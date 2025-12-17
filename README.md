@@ -44,7 +44,7 @@ agentx config show
 agentx alias list
 
 # Execute a prompt with context (requires aliases configured)
-agentx exec bff "Design a GraphQL schema for user dashboard"
+agentx exec bff "Design an API schema for user dashboard"
 
 # Initialize a new project
 agentx init spec-kit --template bff-service --name my-bff
@@ -58,7 +58,32 @@ agentx init spec-kit --template bff-service --name my-bff
 npm install -g agentx-cli
 ```
 
-### From Source
+### From Source (Recommended - with Setup Script)
+
+```bash
+# Clone the repository
+git clone https://github.com/ecruz165/agentx-cli.git
+cd agentx-cli
+
+# Run the setup script (interactive)
+npm run setup
+# or
+./setup.sh
+
+# The setup script will:
+# - Install dependencies
+# - Build the project
+# - Install agentx globally
+# - Prompt for provider and knowledgeBase configuration
+# - Optionally add npm global bin to PATH
+# - Create global config file at ~/.agentx/config.json
+
+# Verify installation
+agentx --version
+agentx config show
+```
+
+### From Source (Manual)
 
 ```bash
 # Clone the repository
@@ -108,24 +133,42 @@ agentx exec <alias> "<prompt>" [options]
 - `-f, --files <files...>` - Additional files to include
 - `--max-context <size>` - Override max context size (bytes)
 - `--dry-run` - Show what would be executed without calling AI
+- `--file <path>` - Save output to file
+- `--output-format <format>` - Output format when saving to file: `toon`, `json`, `markdown`, `raw` (default: `markdown`)
+- `--no-format` - Disable markdown formatting in console output (show raw markdown)
 
 **Examples:**
 
 ```bash
 # Standard execution (minimal output)
-agentx exec bff "Design a GraphQL schema for user dashboard"
+agentx exec bff "Design an API schema for user dashboard"
 
 # Verbose output with file list
-agentx exec bff "Design a GraphQL schema" --verbose
+agentx exec bff "Design an API schema" --verbose
 
 # Quiet mode - only AI response
 agentx exec bff "Explain this code" --quiet
 
 # Include additional files
-agentx exec bff "Explain this" --files ./src/schema.graphql ./src/types.ts
+agentx exec bff "Explain this" --files ./src/schema.ts ./src/types.ts
 
 # Dry run to see what would happen
 agentx exec bff "Test prompt" --dry-run
+
+# Save output to file (markdown format by default)
+agentx exec bff "Design API" --file response.md
+
+# Save as JSON with metadata
+agentx exec bff "Design API" --file response.json --output-format json
+
+# Save as TOON (Token-Oriented Object Notation - compact format for LLMs)
+agentx exec bff "Design API" --file response.toon --output-format toon
+
+# Save as raw text (no metadata)
+agentx exec bff "Design API" --file response.txt --output-format raw
+
+# Use just filename (saves to configured outputLocation)
+agentx exec bff "Design API" --file my-response
 ```
 
 **Output Formats:**
@@ -149,7 +192,7 @@ agentx v1.0.0 | copilot | bff | 12 files (24.5 KB)
 ├─────────────────────────────────────────────────────────────┤
 │  Context Files:                                             │
 │    • reference/bff/architecture/overview.md (3.2 KB)        │
-│    • reference/bff/architecture/graphql-design.md (4.1 KB)  │
+│    • reference/bff/architecture/api-design.md (4.1 KB)      │
 │    • ... and 10 more files                                  │
 └─────────────────────────────────────────────────────────────┘
 
@@ -157,6 +200,88 @@ Executing prompt...
 
 [AI Response Here]
 ```
+
+#### Markdown Rendering
+
+By default, AgentX renders AI responses with **beautiful markdown formatting** in the terminal:
+- ✅ **Syntax-highlighted code blocks**
+- ✅ **Colored headers and emphasis**
+- ✅ **Formatted lists and tables**
+- ✅ **Styled blockquotes**
+
+Since AI providers (Copilot, Claude, OpenAI) naturally output markdown, this makes responses much more readable.
+
+**Disable formatting** (show raw markdown):
+```bash
+agentx exec bff "Explain this code" --no-format
+```
+
+**Use cases for `--no-format`:**
+- Piping output to other tools
+- Copying raw markdown
+- Debugging markdown syntax
+
+#### Output File Formats
+
+When using `--file` to save responses, you can choose from multiple formats:
+
+**Markdown (default)**
+```markdown
+# AgentX AI Response
+
+**Generated:** 2024-01-15T10:30:00.000Z
+**Provider:** copilot
+**Alias:** bff
+**Version:** 1.0.0
+
+## Prompt
+...
+
+## Context Files
+- `reference/bff/architecture.md`
+...
+
+## Response
+[AI response content]
+```
+
+**JSON**
+```json
+{
+  "metadata": {
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "provider": "copilot",
+    "alias": "bff",
+    "version": "1.0.0"
+  },
+  "request": {
+    "prompt": "...",
+    "contextFiles": ["..."]
+  },
+  "response": {
+    "content": "..."
+  }
+}
+```
+
+**TOON (Token-Oriented Object Notation)**
+```
+metadata:
+  timestamp: 2024-01-15T10:30:00.000Z
+  provider: copilot
+  alias: bff
+  version: 1.0.0
+request:
+  prompt: ...
+  contextFiles: [...]
+response:
+  content: ...
+```
+
+TOON is a compact, human-readable format designed specifically for LLMs, reducing token usage by ~30-60% compared to JSON.
+
+**Raw**
+Plain text output without any metadata or formatting.
 
 ---
 
@@ -254,7 +379,7 @@ Available Aliases
 NAME                 DESCRIPTION                              PATTERNS
 ────────────────────────────────────────────────────────────────────────
 bff                  BFF development context                  3 patterns
-bff-graphql          GraphQL-specific BFF                     2 patterns
+bff-api              API-specific BFF                         2 patterns
 rest-api             REST API development                     4 patterns
 api-security         Security patterns                        2 patterns
 
@@ -293,7 +418,7 @@ agentx alias show bff --resolve
 │ Total size: 24.5 KB                                         │
 ├─────────────────────────────────────────────────────────────┤
 │   reference/bff/architecture/overview.md           3.2 KB   │
-│   reference/bff/architecture/graphql-design.md     4.1 KB   │
+│   reference/bff/architecture/api-design.md         4.1 KB   │
 │   reference/bff/patterns/data-aggregation.md       2.8 KB   │
 │   ... and 9 more files                                      │
 └─────────────────────────────────────────────────────────────┘
@@ -399,6 +524,8 @@ AgentX looks for configuration files in the following order:
 | `contextFormat` | string | `hybrid` | Context format (`hybrid`, `raw`, `structured`) |
 | `cacheEnabled` | boolean | `true` | Enable context caching |
 | `frameworks` | object | `{...}` | Framework configurations |
+| `outputFormat` | string | `markdown` | Default output format (`toon`, `json`, `markdown`, `raw`) |
+| `outputLocation` | string | `./agentx-output` | Default directory for saved outputs |
 
 ### Example Configuration
 
@@ -413,7 +540,9 @@ AgentX looks for configuration files in the following order:
     "spec-kit": { "name": "spec-kit", "enabled": true },
     "open-spec": { "name": "open-spec", "enabled": true },
     "bmad": { "name": "bmad", "enabled": true }
-  }
+  },
+  "outputFormat": "markdown",
+  "outputLocation": "./agentx-output"
 }
 ```
 
@@ -441,8 +570,8 @@ Aliases are predefined collections of file patterns that provide context to AI p
 
 | Alias | Purpose | Example Usage |
 |-------|---------|---------------|
-| `bff` | BFF development context | `agentx exec bff "Design GraphQL schema"` |
-| `bff-graphql` | GraphQL-specific BFF | `agentx exec bff-graphql "Add subscription"` |
+| `bff` | BFF development context | `agentx exec bff "Design API schema"` |
+| `bff-api` | API-specific BFF | `agentx exec bff-api "Add endpoint"` |
 | `rest-api` | REST API development | `agentx exec rest-api "Design CRUD endpoints"` |
 | `bff-aggregation` | API aggregation patterns | `agentx exec bff-aggregation "Combine services"` |
 | `bff-caching` | Caching strategies | `agentx exec bff-caching "Implement Redis cache"` |
@@ -640,7 +769,7 @@ agentx v1.0.0 | error
   Alias 'unknown-alias' not found.
 
   Available aliases:
-    bff, bff-graphql, rest-api, api-security
+    bff, bff-api, rest-api, api-security
 
   Run 'agentx alias list' for details.
 ```
@@ -690,7 +819,7 @@ agentx config show                                # View configuration
 agentx config set <key> <value>                   # Update configuration
 
 # Common Exec Examples
-agentx exec bff "Design a GraphQL schema"
+agentx exec bff "Design an API schema"
 agentx exec rest-api "Create CRUD endpoints"
 agentx exec api-security "Add OAuth2 authentication"
 agentx exec testing "Write integration tests"

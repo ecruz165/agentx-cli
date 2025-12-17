@@ -13,6 +13,11 @@ export type OutputMode = 'minimal' | 'verbose' | 'quiet';
 export type ContextFormat = 'hybrid' | 'raw' | 'structured';
 
 /**
+ * Output format for saving AI responses to files
+ */
+export type ResponseOutputFormat = 'toon' | 'json' | 'markdown' | 'raw';
+
+/**
  * Resolved file information with metadata
  */
 export interface ResolvedFile {
@@ -70,6 +75,8 @@ export interface AgentXConfig {
   contextFormat: ContextFormat;
   cacheEnabled: boolean;
   frameworks: Record<string, FrameworkConfig>;
+  outputFormat?: ResponseOutputFormat;
+  outputLocation?: string;
 }
 
 /**

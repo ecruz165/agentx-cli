@@ -10,13 +10,21 @@
  */
 
 import { Command } from 'commander';
-import { OutputMode } from '../types';
+import { OutputMode, ResponseOutputFormat } from '../types';
 import { getAlias, loadAliases } from '../alias';
 import { buildContext, createExecutionSettings } from '../context';
-import { displaySettings } from '../utils/display';
+import { displaySettings, displayStatus } from '../utils/display';
 import { displayError, displayContextWarning } from '../utils/errors';
 import { executeWithProvider } from '../providers';
 import { loadConfig } from '../config';
+import {
+  formatResponse,
+  saveResponseToFile,
+  getFileExtension,
+  ResponseMetadata,
+} from '../utils/output-formatter';
+import { renderMarkdown } from '../utils/markdown-renderer';
+import path from 'path';
 
 /**
  * Create the exec command
@@ -31,6 +39,13 @@ export function createExecCommand(): Command {
     .option('-f, --files <files...>', 'Additional files to include')
     .option('--max-context <size>', 'Override max context size (bytes)', parseInt)
     .option('--dry-run', 'Show what would be executed without calling AI')
+    .option('--file <path>', 'Save output to file')
+    .option(
+      '--output-format <format>',
+      'Output format when saving to file (toon, json, markdown, raw)',
+      'markdown'
+    )
+    .option('--no-format', 'Disable markdown formatting in console output (show raw markdown)')
     .action(async (aliasName: string, prompt: string, options) => {
       // Determine output mode
       let mode: OutputMode = 'minimal';
@@ -84,11 +99,81 @@ export function createExecCommand(): Command {
       // Execute with provider
       const result = await executeWithProvider(prompt, context.content);
 
-      if (result.success) {
-        console.log(result.response);
-      } else {
+      if (!result.success) {
         displayError('provider-error', config.provider, result.error);
         process.exit(1);
+      }
+
+      const response = result.response || '';
+
+      // Handle file output if --file flag is provided
+      if (options.file) {
+        const outputFormat = (options.outputFormat || config.outputFormat || 'markdown') as ResponseOutputFormat;
+
+        // Validate output format
+        const validFormats: ResponseOutputFormat[] = ['toon', 'json', 'markdown', 'raw'];
+        if (!validFormats.includes(outputFormat)) {
+          displayError(
+            'invalid-format',
+            outputFormat,
+            `Valid formats: ${validFormats.join(', ')}`
+          );
+          process.exit(1);
+        }
+
+        // Prepare metadata
+        const metadata: ResponseMetadata = {
+          timestamp: new Date().toISOString(),
+          provider: config.provider,
+          alias: aliasName,
+          prompt: prompt,
+          contextFiles: context.files.map((f) => f.path),
+          version: settings.version,
+        };
+
+        // Format response
+        const formattedContent = formatResponse(response, outputFormat, metadata);
+
+        // Determine output path
+        let outputPath = options.file;
+
+        // If only a filename is provided (no directory), use default output location
+        if (!path.isAbsolute(outputPath) && !outputPath.includes(path.sep)) {
+          const defaultLocation = config.outputLocation || './agentx-output';
+          outputPath = path.join(defaultLocation, outputPath);
+        }
+
+        // Add extension if not provided
+        const ext = path.extname(outputPath);
+        if (!ext) {
+          outputPath += getFileExtension(outputFormat);
+        }
+
+        // Save to file
+        try {
+          saveResponseToFile(formattedContent, outputPath);
+          displayStatus(`Response saved to ${outputPath}`, 'success');
+        } catch (error) {
+          displayError(
+            'file-write-error',
+            outputPath,
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+          process.exit(1);
+        }
+
+        // Also display to console unless quiet mode
+        if (mode !== 'quiet') {
+          console.log('\n--- Response ---\n');
+          // Render markdown for better readability (unless --no-format is used)
+          const formattedResponse = renderMarkdown(response, options.format !== false);
+          console.log(formattedResponse);
+        }
+      } else {
+        // Normal console output
+        // Render markdown for better readability (unless --no-format is used)
+        const formattedResponse = renderMarkdown(response, options.format !== false);
+        console.log(formattedResponse);
       }
     });
 }

@@ -21,6 +21,8 @@ const DEFAULT_CONFIG: AgentXConfig = {
     'open-spec': { name: 'open-spec', enabled: true },
     bmad: { name: 'bmad', enabled: true },
   },
+  outputFormat: 'markdown',
+  outputLocation: './agentx-output',
 };
 
 /**

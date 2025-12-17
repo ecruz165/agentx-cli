@@ -19,7 +19,9 @@ export type ErrorType =
   | 'file-not-found'
   | 'invalid-argument'
   | 'framework-not-found'
-  | 'template-not-found';
+  | 'template-not-found'
+  | 'invalid-format'
+  | 'file-write-error';
 
 /**
  * Display formatted error output
@@ -137,6 +139,28 @@ export function displayError(type: ErrorType, ...args: unknown[]): void {
         console.log('  Available templates:');
         console.log(`    ${availableTemplates.join(', ')}`);
       }
+      break;
+    }
+
+    case 'invalid-format': {
+      const [format, message] = args as [string, string?];
+      console.log(`  Invalid output format: ${colors.cyan(format)}`);
+      if (message) {
+        console.log(`  ${message}`);
+      }
+      console.log('');
+      console.log(`  Run '${colors.cyan('agentx exec --help')}' for valid formats.`);
+      break;
+    }
+
+    case 'file-write-error': {
+      const [filePath, message] = args as [string, string?];
+      console.log(`  Failed to write file: ${colors.cyan(filePath)}`);
+      if (message) {
+        console.log(`  ${message}`);
+      }
+      console.log('');
+      console.log('  Please verify you have write permissions for this location.');
       break;
     }
 

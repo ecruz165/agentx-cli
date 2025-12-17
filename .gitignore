@@ -19,6 +19,7 @@ crash.log
 # BUILD FILES
 **/bin
 **/build
+**/dist
 **/node_modules
 **/target
 .gradle
