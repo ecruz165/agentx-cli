@@ -1,0 +1,13 @@
+{
+  "name": "be-api",
+  "description": "Backend REST API development - controllers, DTOs, validation",
+  "patterns": [
+    "patterns/api-design.md",
+    "patterns/error-handling.md",
+    ".ai-templates/spring-controller.md",
+    ".ai-templates/dto-template.md",
+    ".ai-skill/coding-standards.md",
+    "reference/tech-stack.md"
+  ]
+}
+

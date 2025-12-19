@@ -1,0 +1,13 @@
+{
+  "name": "be-integration",
+  "description": "Downstream system integration - WebClient, circuit breaker, resilience",
+  "patterns": [
+    "patterns/integration-patterns.md",
+    "patterns/circuit-breaker.md",
+    "patterns/error-handling.md",
+    ".ai-templates/webclient-template.md",
+    ".ai-skill/coding-standards.md",
+    "reference/tech-stack.md"
+  ]
+}
+

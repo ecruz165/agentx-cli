@@ -1,0 +1,60 @@
+intention:
+  id: create-new
+  name: Create New {{resource}}
+  alias: {{alias}}
+  originalPrompt: {{originalPrompt}}
+
+requirements:
+  resource: {{resource}}
+  method: {{method}}
+  endpoint: {{endpoint}}
+  requestFields: {{requestFields}}
+  responseFields: {{responseFields}}
+  downstream: {{downstream}}
+  persist: {{persist}}
+
+task:
+  type: create-endpoint
+  description: Create a {{method}} endpoint for {{resource}} management
+
+  endpoint:
+    method: {{method}}
+    path: {{endpoint}}
+    resource: {{resource}}
+
+  request:
+    fields: {{requestFields}}
+    validation: required
+
+  response:
+    fields: {{responseFields}}
+    includeId: true
+    includeTimestamps: true
+
+  integrations:
+    downstream: {{downstream}}
+    errorHandling: fail-fast
+
+  persistence:
+    enabled: {{persist}}
+    generateId: true
+    timestamps: true
+
+implementation:
+  checklist:
+    - Create Request DTO with validation annotations
+    - Create Response DTO
+    - Create/update Domain model
+    - Create/update Entity if persisting
+    - Implement Service layer logic
+    - Implement Controller endpoint
+    - Add mapper between layers
+    - Implement downstream client if needed
+    - Add unit tests
+    - Add integration tests
+
+  guidelines:
+    - Follow patterns in .ai-skill/
+    - Use templates from .ai-templates/
+    - Apply framework config from .ai-frameworks/
+

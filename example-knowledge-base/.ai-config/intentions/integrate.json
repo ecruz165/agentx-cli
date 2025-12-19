@@ -1,0 +1,70 @@
+{
+  "id": "integrate",
+  "name": "Add Integration",
+  "description": "Add a downstream service integration to an existing endpoint",
+  "requirements": [
+    {
+      "id": "target",
+      "name": "Target Endpoint",
+      "description": "The endpoint to add integration to",
+      "type": "string",
+      "required": true,
+      "question": "Which endpoint should call the downstream service?",
+      "extractionHints": ["endpoint", "from", "in"]
+    },
+    {
+      "id": "service",
+      "name": "Downstream Service",
+      "description": "The service to integrate with",
+      "type": "string",
+      "required": true,
+      "question": "What downstream service to call? (e.g., payment service, inventory service)",
+      "extractionHints": ["call", "service", "integrate", "with"]
+    },
+    {
+      "id": "serviceEndpoint",
+      "name": "Service Endpoint",
+      "description": "The endpoint on the downstream service",
+      "type": "string",
+      "required": false,
+      "question": "What endpoint on the downstream service? (e.g., POST /v1/payments)"
+    },
+    {
+      "id": "dataToSend",
+      "name": "Data to Send",
+      "description": "What data to send to the downstream service",
+      "type": "array",
+      "required": true,
+      "question": "What data should be sent to the service? (e.g., customerId, amount, orderId)"
+    },
+    {
+      "id": "dataToReceive",
+      "name": "Data to Receive",
+      "description": "What data to expect back",
+      "type": "array",
+      "required": true,
+      "question": "What data do you expect back? (e.g., paymentId, status, transactionRef)"
+    },
+    {
+      "id": "errorHandling",
+      "name": "Error Handling",
+      "description": "How to handle downstream failures",
+      "type": "enum",
+      "options": ["fail-fast", "retry", "fallback", "queue-for-later"],
+      "required": false,
+      "question": "How should downstream failures be handled?",
+      "default": "fail-fast"
+    },
+    {
+      "id": "circuitBreaker",
+      "name": "Circuit Breaker",
+      "description": "Whether to use circuit breaker",
+      "type": "boolean",
+      "required": false,
+      "question": "Should a circuit breaker be used?",
+      "default": "true"
+    }
+  ],
+  "promptTemplatePath": ".ai-templates/intentions/integrate.prompt.toon"
+}
+

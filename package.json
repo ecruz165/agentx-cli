@@ -1,19 +1,8 @@
 {
-  "name": "agentx-cli",
+  "name": "agentx",
   "version": "1.0.0",
-  "description": "AI-Enhanced Enterprise CLI Tool",
-  "main": "dist/index.js",
-  "bin": {
-    "agentx": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
-    "setup": "./setup.sh",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublishOnly": "npm run build"
-  },
+  "private": true,
+  "description": "AI-Enhanced Enterprise CLI Tool - Monorepo",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ecruz165/agentx-cli.git"
@@ -21,7 +10,8 @@
   "keywords": [
     "cli",
     "ai",
-    "enterprise"
+    "enterprise",
+    "monorepo"
   ],
   "author": "",
   "license": "ISC",
@@ -29,18 +19,23 @@
     "url": "https://github.com/ecruz165/agentx-cli/issues"
   },
   "homepage": "https://github.com/ecruz165/agentx-cli#readme",
-  "dependencies": {
-    "@toon-format/toon": "^2.1.0",
-    "commander": "^14.0.2",
-    "glob": "^13.0.0",
-    "marked": "^17.0.1",
-    "marked-terminal": "^7.3.0"
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "setup": "cd scripts && pnpm install && pnpm start",
+    "setup:quick": "pnpm install && pnpm build && cd packages/cli && pnpm link --global"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/marked-terminal": "^6.1.1",
     "@types/node": "^25.0.2",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
-  }
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
 }

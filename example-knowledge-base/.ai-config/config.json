@@ -1,0 +1,58 @@
+{
+  "provider": "copilot",
+  "model": "gpt-4",
+  "knowledgeBase": "~/example-knowledge-base",
+  "maxContextSize": 32768,
+  "contextFormat": "hybrid",
+  "cacheEnabled": true,
+  "frameworks": {
+    "spec-kit": { "name": "spec-kit", "enabled": true },
+    "open-spec": { "name": "open-spec", "enabled": true },
+    "bmad": { "name": "bmad", "enabled": true }
+  },
+  "outputFormat": "markdown",
+  "outputLocation": "./agentx-output",
+  "personas": [
+    {
+      "id": "backend",
+      "name": "Backend Developer",
+      "description": "Spring Boot, Rust auth, database, APIs",
+      "aliasPatterns": ["be-*", "api-*", "db-*", "auth-*"],
+      "contextProviders": ["tools/context-providers/java-project-context.ts"],
+      "defaultModel": "claude-sonnet"
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend Developer",
+      "description": "React, StyleX, PWA, state management",
+      "aliasPatterns": ["fe-*", "ui-*", "pwa-*"],
+      "contextProviders": ["tools/context-providers/frontend-context.ts"],
+      "defaultModel": "claude-sonnet"
+    },
+    {
+      "id": "fullstack",
+      "name": "Full Stack Developer",
+      "description": "All platform development",
+      "aliasPatterns": ["*"],
+      "contextProviders": [
+        "tools/context-providers/java-project-context.ts",
+        "tools/context-providers/frontend-context.ts"
+      ]
+    },
+    {
+      "id": "architect",
+      "name": "Architect",
+      "description": "System design, patterns, ADRs",
+      "aliasPatterns": ["arch-*", "adr-*", "pattern-*"],
+      "defaultModel": "claude-opus"
+    },
+    {
+      "id": "devops",
+      "name": "DevOps Engineer",
+      "description": "CI/CD, infrastructure, deployment",
+      "aliasPatterns": ["infra-*", "deploy-*", "ci-*"]
+    }
+  ],
+  "activePersona": null
+}
+

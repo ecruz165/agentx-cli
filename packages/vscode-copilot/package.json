@@ -1,0 +1,137 @@
+{
+  "name": "agentx-vscode",
+  "displayName": "AgentX for VS Code",
+  "description": "AI-Enhanced Enterprise Development with AgentX",
+  "version": "1.0.0",
+  "publisher": "agentx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecruz165/agentx-cli.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "extensionDependencies": [
+    "github.copilot-chat"
+  ],
+  "categories": [
+    "Chat"
+  ],
+  "activationEvents": [
+    "onChatParticipant:agentx.chat"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentx.exec",
+        "title": "AgentX: Execute Prompt",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.aliasList",
+        "title": "AgentX: List Aliases",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.aliasShow",
+        "title": "AgentX: Show Alias Details",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.configShow",
+        "title": "AgentX: Show Configuration",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.configPath",
+        "title": "AgentX: Show Config Path",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.selectAlias",
+        "title": "AgentX: Select Alias (Legacy)",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.showConfig",
+        "title": "AgentX: Show Config (Legacy)",
+        "category": "AgentX"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "agentx.exec",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.aliasList",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.aliasShow",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.configShow",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.configPath",
+          "group": "agentx"
+        }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "agentx.chat",
+        "name": "agentx",
+        "description": "AI-Enhanced Enterprise Development Assistant",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "exec",
+            "description": "Execute AI prompt with context alias"
+          },
+          {
+            "name": "alias",
+            "description": "Manage context aliases (list, show)"
+          },
+          {
+            "name": "config",
+            "description": "View configuration (show, path)"
+          },
+          {
+            "name": "init",
+            "description": "Project initialization guidance"
+          },
+          {
+            "name": "help",
+            "description": "Show available commands"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "dev": "npm run build -- --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "npm run build",
+    "package": "npm run build && vsce package --no-dependencies",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@agentx/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.9.3"
+  }
+}

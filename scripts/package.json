@@ -1,0 +1,20 @@
+{
+  "name": "@agentx/scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgentX setup and utility scripts",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx setup.ts"
+  },
+  "dependencies": {
+    "inquirer": "^9.2.12"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
+

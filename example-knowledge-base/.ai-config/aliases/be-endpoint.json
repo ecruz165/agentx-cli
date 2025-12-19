@@ -1,0 +1,14 @@
+{
+  "name": "be-endpoint",
+  "description": "Build complete REST endpoint with layered architecture (10-step guided workflow)",
+  "patterns": [
+    ".ai-skill/build-rest-endpoint.md",
+    ".ai-skill/coding-standards.md",
+    "patterns/api-design.md",
+    "patterns/integration-patterns.md",
+    "patterns/circuit-breaker.md",
+    "patterns/error-handling.md",
+    "reference/tech-stack.md"
+  ]
+}
+

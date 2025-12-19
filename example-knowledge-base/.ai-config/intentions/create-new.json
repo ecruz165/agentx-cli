@@ -1,0 +1,71 @@
+{
+  "id": "create-new",
+  "name": "Create New",
+  "description": "Create a new resource, endpoint, or component from scratch",
+  "requirements": [
+    {
+      "id": "resource",
+      "name": "Resource Name",
+      "description": "The name of the resource/entity to create",
+      "type": "string",
+      "required": true,
+      "question": "What is the resource name? (e.g., Order, Product, Event)",
+      "extractionHints": ["for", "create", "build", "new", "management"]
+    },
+    {
+      "id": "method",
+      "name": "HTTP Method",
+      "description": "The HTTP method for the endpoint",
+      "type": "enum",
+      "options": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "required": true,
+      "question": "What HTTP method?",
+      "default": "POST"
+    },
+    {
+      "id": "endpoint",
+      "name": "Endpoint Path",
+      "description": "The URL path for the endpoint",
+      "type": "string",
+      "required": false,
+      "question": "What is the endpoint path? (e.g., /api/v1/orders)",
+      "extractionHints": ["endpoint", "path", "url", "/api/"]
+    },
+    {
+      "id": "requestFields",
+      "name": "Request Fields",
+      "description": "Fields in the request payload",
+      "type": "array",
+      "required": true,
+      "question": "What fields should the request contain? (e.g., customerId, items[], shippingAddress)"
+    },
+    {
+      "id": "responseFields",
+      "name": "Response Fields",
+      "description": "Fields in the response payload",
+      "type": "array",
+      "required": false,
+      "question": "What fields should be returned in the response?"
+    },
+    {
+      "id": "downstream",
+      "name": "Downstream Services",
+      "description": "External services to call",
+      "type": "array",
+      "required": false,
+      "question": "Does this need to call any downstream services? (e.g., payment service, notification service)",
+      "extractionHints": ["call", "service", "integrate", "downstream"]
+    },
+    {
+      "id": "persist",
+      "name": "Persist Data",
+      "description": "Whether to save data to database",
+      "type": "boolean",
+      "required": false,
+      "question": "Should this data be persisted to the database?",
+      "default": "true"
+    }
+  ],
+  "promptTemplatePath": ".ai-templates/intentions/create-new.prompt.toon"
+}
+

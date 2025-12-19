@@ -1,0 +1,40 @@
+{
+  "name": "agentx-cli",
+  "version": "1.0.0",
+  "description": "AI-Enhanced Enterprise CLI Tool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "agentx": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "enterprise",
+    "agentx"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@agentx/core": "workspace:*",
+    "@toon-format/toon": "^2.1.0",
+    "commander": "^14.0.2",
+    "marked": "^17.0.1",
+    "marked-terminal": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/marked-terminal": "^6.1.1",
+    "@types/node": "^25.0.2",
+    "typescript": "^5.9.3"
+  }
+}
+

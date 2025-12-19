@@ -2,17 +2,21 @@
 
 > AI-Enhanced Enterprise CLI Tool for context-aware development
 
-AgentX is a TypeScript CLI tool that wraps AI assistants (like GitHub Copilot CLI, Claude, OpenAI) with enhanced functionality including context-aware assistance through alias-based file injection, framework bootstrapping, and enterprise knowledge integration.
+AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that wraps AI assistants (GitHub Copilot, Claude, OpenAI) with enhanced functionality including context-aware assistance through alias-based file injection, **intentions framework** for structured prompts, **personas** for role-based context filtering, and enterprise knowledge integration.
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Installation](#installation)
+- [Packages](#packages)
 - [Commands](#commands)
   - [exec](#exec---execute-ai-prompt-with-context)
   - [init](#init---initialize-new-project)
   - [alias](#alias---manage-context-aliases)
   - [config](#config---manage-configuration)
+- [Intentions Framework](#intentions-framework)
+- [Personas](#personas)
+- [VS Code Extension](#vs-code-extension)
 - [Configuration](#configuration)
 - [Aliases](#aliases)
 - [Output Modes](#output-modes)
@@ -24,15 +28,14 @@ AgentX is a TypeScript CLI tool that wraps AI assistants (like GitHub Copilot CL
 ## Quick Start
 
 ```bash
-# Install globally
-npm install -g agentx-cli
-
-# Or install from source
+# Install from source (pnpm monorepo)
 git clone https://github.com/ecruz165/agentx-cli.git
 cd agentx-cli
-npm install
-npm run build
-npm link
+pnpm install
+pnpm run build
+
+# Link CLI globally
+cd packages/cli && pnpm link --global
 
 # View available commands
 agentx --help
@@ -43,8 +46,14 @@ agentx config show
 # List available aliases
 agentx alias list
 
-# Execute a prompt with context (requires aliases configured)
-agentx exec bff "Design an API schema for user dashboard"
+# Execute a prompt with context
+agentx exec be-endpoint "Design an API for event management"
+
+# Execute with intention (structured prompt)
+agentx exec be-endpoint --intention create-new "event management"
+
+# Interactive mode - prompts for missing requirements
+agentx exec be-endpoint -i create-new "event management"
 
 # Initialize a new project
 agentx init spec-kit --template bff-service --name my-bff
@@ -52,66 +61,57 @@ agentx init spec-kit --template bff-service --name my-bff
 
 ## Installation
 
-### From npm (when published)
-
-```bash
-npm install -g agentx-cli
-```
-
-### From Source (Recommended - with Setup Script)
+### From Source (pnpm monorepo)
 
 ```bash
 # Clone the repository
 git clone https://github.com/ecruz165/agentx-cli.git
 cd agentx-cli
 
-# Run the setup script (interactive)
-npm run setup
-# or
-./setup.sh
+# Install dependencies (requires pnpm)
+pnpm install
 
-# The setup script will:
-# - Install dependencies
-# - Build the project
-# - Install agentx globally
-# - Prompt for provider and knowledgeBase configuration
-# - Optionally add npm global bin to PATH
-# - Create global config file at ~/.agentx/config.json
+# Build all packages
+pnpm run build
+
+# Link CLI globally
+cd packages/cli && pnpm link --global
 
 # Verify installation
 agentx --version
 agentx config show
 ```
 
-### From Source (Manual)
+### VS Code Extension
 
 ```bash
-# Clone the repository
-git clone https://github.com/ecruz165/agentx-cli.git
-cd agentx-cli
+# Build and package the extension
+cd packages/vscode-copilot
+pnpm run package
 
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Link globally for development
-npm link
-
-# Verify installation
-agentx --version
+# Install the .vsix file in VS Code
+code --install-extension agentx-vscode-1.0.0.vsix
 ```
 
 ### Prerequisites
 
 - Node.js 18+
-- npm 9+
+- pnpm 8+
 - For Copilot provider: GitHub CLI with Copilot extension
   ```bash
   gh auth login
   gh extension install github/gh-copilot
   ```
+
+## Packages
+
+This is a pnpm monorepo with the following packages:
+
+| Package | Description |
+|---------|-------------|
+| `@agentx/core` | Shared types, config, context building, providers, intentions |
+| `@agentx/cli` | Command-line interface |
+| `@agentx/vscode-copilot` | VS Code extension with GitHub Copilot Chat integration |
 
 ## Commands
 
@@ -121,55 +121,63 @@ The core command that executes prompts with AI providers, injecting context from
 
 ```bash
 agentx exec <alias> "<prompt>" [options]
+agentx exec <alias> --intention <intention> "<prompt>" [options]
+agentx exec <alias> -i <intention> "<prompt>" [options]  # Interactive mode
 ```
 
 **Arguments:**
-- `<alias>` - Context alias to use (e.g., `bff`, `rest-api`)
+- `<alias>` - Context alias to use (e.g., `be-endpoint`, `fe-component`)
 - `<prompt>` - Prompt to send to AI
 
 **Options:**
+- `--intention <id>` - Use an intention for structured prompts
+- `-i, --interactive <id>` - Interactive mode: prompts for missing requirements
+- `--list-intentions` - List available intentions for the alias
 - `-v, --verbose` - Show detailed settings with file list
 - `-q, --quiet` - Show only AI response
 - `-f, --files <files...>` - Additional files to include
 - `--max-context <size>` - Override max context size (bytes)
 - `--dry-run` - Show what would be executed without calling AI
 - `--file <path>` - Save output to file
-- `--output-format <format>` - Output format when saving to file: `toon`, `json`, `markdown`, `raw` (default: `markdown`)
-- `--no-format` - Disable markdown formatting in console output (show raw markdown)
-- `--preview` - Open response in browser with copy-to-clipboard button (OS-aware: macOS, Linux, Windows)
+- `--output-format <format>` - Output format: `toon`, `json`, `markdown`, `raw` (default: `markdown`)
+- `--no-format` - Disable markdown formatting in console output
+- `--preview` - Open response in browser with copy-to-clipboard button
 
 **Examples:**
 
 ```bash
-# Standard execution (minimal output)
-agentx exec bff "Design an API schema for user dashboard"
+# Standard execution
+agentx exec be-endpoint "Design an API for event management"
+
+# With intention (structured prompt with TOON template)
+agentx exec be-endpoint --intention create-new "event management"
+
+# Interactive mode - prompts for missing requirements
+agentx exec be-endpoint -i create-new "event management"
+# ? What HTTP method? POST
+# ? What fields should the request contain? title, date, location
+# ✅ Requirements gathered. Executing...
+
+# List available intentions for an alias
+agentx exec be-endpoint --list-intentions
 
 # Verbose output with file list
-agentx exec bff "Design an API schema" --verbose
+agentx exec be-endpoint "Design an API" --verbose
 
 # Quiet mode - only AI response
-agentx exec bff "Explain this code" --quiet
+agentx exec be-endpoint "Explain this code" --quiet
 
 # Include additional files
-agentx exec bff "Explain this" --files ./src/schema.ts ./src/types.ts
+agentx exec be-endpoint "Explain this" --files ./src/schema.ts
 
 # Dry run to see what would happen
-agentx exec bff "Test prompt" --dry-run
+agentx exec be-endpoint "Test prompt" --dry-run
 
-# Save output to file (markdown format by default)
-agentx exec bff "Design API" --file response.md
+# Save output to file
+agentx exec be-endpoint "Design API" --file response.md
 
-# Save as JSON with metadata
-agentx exec bff "Design API" --file response.json --output-format json
-
-# Save as TOON (Token-Oriented Object Notation - compact format for LLMs)
-agentx exec bff "Design API" --file response.toon --output-format toon
-
-# Save as raw text (no metadata)
-agentx exec bff "Design API" --file response.txt --output-format raw
-
-# Use just filename (saves to configured outputLocation)
-agentx exec bff "Design API" --file my-response
+# Save as TOON (compact format for LLMs)
+agentx exec be-endpoint "Design API" --file response.toon --output-format toon
 ```
 
 **Output Formats:**
@@ -577,6 +585,179 @@ AgentX looks for configuration files in the following order:
 
 ---
 
+## Intentions Framework
+
+Intentions provide structured prompt generation with requirement gathering. They transform simple prompts into detailed, context-aware instructions using TOON (Task-Oriented Output Notation) templates.
+
+### How It Works
+
+1. **User provides a simple prompt**: `"event management"`
+2. **Intention gathers requirements**: HTTP method, fields, validation rules
+3. **TOON template renders**: Structured prompt with all context
+4. **AI receives refined prompt**: Complete instructions with patterns and examples
+
+### Intention Definition
+
+Intentions are defined in `.ai-config/intentions/`:
+
+```json
+{
+  "id": "create-new",
+  "name": "Create New Resource",
+  "description": "Generate a new REST endpoint with full CRUD support",
+  "applicableAliases": ["be-endpoint", "be-service", "be-api"],
+  "requirements": [
+    {
+      "id": "httpMethod",
+      "name": "HTTP Method",
+      "type": "enum",
+      "options": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "required": true,
+      "question": "What HTTP method?"
+    },
+    {
+      "id": "fields",
+      "name": "Request Fields",
+      "type": "string",
+      "required": true,
+      "question": "What fields should the request contain?"
+    }
+  ],
+  "promptTemplatePath": ".ai-templates/intentions/create-new.prompt.toon"
+}
+```
+
+### TOON Templates
+
+Templates in `.ai-templates/intentions/` use TOON format for token efficiency:
+
+```toon
+task: Create REST Endpoint
+context:
+  alias: {{alias}}
+  intention: {{intention}}
+requirements:
+  httpMethod: {{httpMethod}}
+  fields: {{fields}}
+  resourceName: {{resourceName}}
+instructions:
+  - Follow patterns in context
+  - Use Spring Boot conventions
+  - Include validation annotations
+  - Add OpenAPI documentation
+output:
+  format: code
+  files:
+    - Controller
+    - Service
+    - DTO
+    - Repository
+```
+
+### Usage
+
+```bash
+# List intentions for an alias
+agentx exec be-endpoint --list-intentions
+
+# Execute with intention
+agentx exec be-endpoint --intention create-new "event management"
+
+# Interactive mode - prompts for missing requirements
+agentx exec be-endpoint -i create-new "event management"
+```
+
+---
+
+## Personas
+
+Personas enable role-based context filtering. Different team members see only the aliases relevant to their role.
+
+### Persona Definition
+
+Personas are defined in `.ai-config/config.json`:
+
+```json
+{
+  "personas": [
+    {
+      "id": "backend",
+      "name": "Backend Developer",
+      "description": "Java/Spring Boot backend development",
+      "aliasFilter": ["be-*", "db-*", "auth-*"]
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend Developer",
+      "description": "React/TypeScript frontend development",
+      "aliasFilter": ["fe-*", "ui-*"]
+    },
+    {
+      "id": "fullstack",
+      "name": "Full Stack Developer",
+      "description": "Full stack development",
+      "aliasFilter": ["*"]
+    }
+  ],
+  "activePersona": "backend"
+}
+```
+
+### Usage
+
+```bash
+# Set active persona
+agentx config set activePersona backend
+
+# List aliases (filtered by persona)
+agentx alias list
+# Shows only: be-endpoint, be-service, db-schema, auth-jwt
+
+# Switch persona
+agentx config set activePersona frontend
+agentx alias list
+# Shows only: fe-component, fe-state, ui-design
+```
+
+---
+
+## VS Code Extension
+
+The VS Code extension integrates AgentX with GitHub Copilot Chat.
+
+### Installation
+
+```bash
+cd packages/vscode-copilot
+pnpm run package
+code --install-extension agentx-vscode-1.0.0.vsix
+```
+
+### Commands
+
+In VS Code Chat, use `@agentx` followed by:
+
+```
+@agentx /exec be-endpoint "Design an API for events"
+@agentx /exec be-endpoint --intention create-new "event management"
+@agentx /intentions list
+@agentx /intentions create-new
+@agentx /alias list
+@agentx /alias show be-endpoint
+@agentx /config show
+@agentx /help
+```
+
+### Completions
+
+The extension provides intelligent completions:
+- `be-endpoint` - Execute with alias
+- `be-endpoint:create-new` - Execute with alias + intention
+- `intention:create-new` - Show intention details
+- `persona:backend` - Switch persona
+
+---
+
 ## Aliases
 
 Aliases are predefined collections of file patterns that provide context to AI prompts. They are defined as JSON files in the knowledge base directory under `.ai-config/aliases/`.
@@ -712,30 +893,37 @@ agentx config set provider mock
 
 ```
 agentx-cli/
-├── src/
-│   ├── index.ts           # CLI entry point
-│   ├── types/
-│   │   └── index.ts       # TypeScript interfaces
-│   ├── config/
-│   │   └── index.ts       # Configuration management
-│   ├── alias/
-│   │   └── index.ts       # Alias management
-│   ├── context/
-│   │   └── index.ts       # Context file aggregation
-│   ├── providers/
-│   │   └── index.ts       # AI provider abstraction
-│   ├── commands/
-│   │   ├── exec.ts        # exec command
-│   │   ├── init.ts        # init command
-│   │   ├── alias.ts       # alias command
-│   │   └── config.ts      # config command
-│   └── utils/
-│       ├── output.ts      # Terminal output utilities
-│       ├── display.ts     # Settings display
-│       └── errors.ts      # Error handling
-├── dist/                  # Compiled output
-├── package.json
-├── tsconfig.json
+├── packages/
+│   ├── core/                    # @agentx/core - Shared functionality
+│   │   └── src/
+│   │       ├── types/           # TypeScript interfaces
+│   │       ├── config/          # Configuration management
+│   │       ├── alias/           # Alias loading and filtering
+│   │       ├── context/         # Context file aggregation
+│   │       ├── intention/       # Intentions framework
+│   │       ├── providers/       # AI provider abstraction
+│   │       └── toon/            # TOON conversion utilities
+│   ├── cli/                     # @agentx/cli - Command-line interface
+│   │   └── src/
+│   │       ├── commands/        # CLI commands (exec, init, alias, config)
+│   │       └── utils/           # Output formatting, errors
+│   └── vscode-copilot/          # VS Code extension
+│       └── src/
+│           ├── extension.ts     # Extension entry point
+│           ├── participant.ts   # Copilot Chat participant
+│           └── commands.ts      # VS Code commands
+├── example-knowledge-base/      # Example knowledge base
+│   ├── .ai-config/
+│   │   ├── config.json          # Configuration with personas
+│   │   ├── aliases/             # Alias definitions
+│   │   └── intentions/          # Intention definitions
+│   ├── .ai-templates/
+│   │   └── intentions/          # TOON prompt templates
+│   ├── .ai-skill/               # AI behavior instructions
+│   ├── patterns/                # Architecture patterns
+│   └── reference/               # Technical reference docs
+├── pnpm-workspace.yaml          # Monorepo configuration
+├── tsconfig.base.json           # Shared TypeScript config
 └── README.md
 ```
 
@@ -750,39 +938,62 @@ agentx-cli/
 git clone https://github.com/ecruz165/agentx-cli.git
 cd agentx-cli
 
-# Install dependencies
-npm install
+# Install dependencies (requires pnpm)
+pnpm install
 
-# Build
-npm run build
+# Build all packages
+pnpm run build
 
-# Run in development mode
-npm run dev
+# Run tests
+pnpm test
 
-# Link for global testing
-npm link
+# Link CLI for global testing
+cd packages/cli && pnpm link --global
 ```
 
 ### Scripts
 
 | Script | Description |
 |--------|-------------|
-| `npm run build` | Compile TypeScript to JavaScript |
-| `npm run dev` | Run with ts-node (development) |
-| `npm start` | Run compiled version |
-| `npm test` | Run tests |
+| `pnpm run build` | Build all packages |
+| `pnpm test` | Run tests for all packages |
+| `pnpm run clean` | Clean build artifacts |
+
+### Package-specific Development
+
+```bash
+# Work on core package
+cd packages/core
+pnpm run build
+
+# Work on CLI
+cd packages/cli
+pnpm run build
+pnpm link --global
+
+# Work on VS Code extension
+cd packages/vscode-copilot
+pnpm run build
+pnpm run package  # Creates .vsix file
+```
 
 ### Testing Locally
 
 ```bash
-# Build the project
-npm run build
+# Build all packages
+pnpm run build
 
-# Test commands
-node dist/index.js --help
-node dist/index.js config show
-node dist/index.js alias list
-node dist/index.js exec bff "test" --dry-run
+# Test CLI commands
+agentx --help
+agentx config show
+agentx alias list
+agentx exec be-endpoint "test" --dry-run
+agentx exec be-endpoint --list-intentions
+
+# Test with example knowledge base
+cd example-knowledge-base
+agentx alias list
+agentx exec be-endpoint --intention create-new "event management" --dry-run
 ```
 
 ---
@@ -840,28 +1051,32 @@ ISC
 
 ```bash
 # Core Commands
-agentx exec <alias> "<prompt>"                    # Execute with context
-agentx init <framework> -t <template> -n <name>   # Initialize project
-agentx alias list                                 # List all aliases
-agentx alias show <alias>                         # Show alias details
-agentx config show                                # View configuration
-agentx config set <key> <value>                   # Update configuration
+agentx exec <alias> "<prompt>"                              # Execute with context
+agentx exec <alias> --intention <id> "<prompt>"             # Execute with intention
+agentx exec <alias> -i <id> "<prompt>"                      # Interactive mode
+agentx exec <alias> --list-intentions                       # List intentions
+agentx init <framework> -t <template> -n <name>             # Initialize project
+agentx alias list                                           # List aliases
+agentx alias show <alias>                                   # Show alias details
+agentx config show                                          # View configuration
+agentx config set <key> <value>                             # Update configuration
 
-# Common Exec Examples
-agentx exec bff "Design an API schema"
-agentx exec rest-api "Create CRUD endpoints"
-agentx exec api-security "Add OAuth2 authentication"
-agentx exec testing "Write integration tests"
+# Exec with Intentions
+agentx exec be-endpoint --intention create-new "event management"
+agentx exec be-endpoint -i create-new "event management"    # Interactive
+agentx exec be-service --intention refactor "improve error handling"
 
-# Init Examples
-agentx init spec-kit --template bff-service --name my-bff
-agentx init open-spec --template openapi --name my-api
-agentx init bmad --template business-model --name my-model
+# Persona Management
+agentx config set activePersona backend
+agentx config set activePersona frontend
+agentx config set activePersona fullstack
 
-# Configuration
-agentx config set provider copilot
-agentx config set provider claude
-agentx config set maxContextSize 65536
+# VS Code Extension
+@agentx /exec be-endpoint "Design an API"
+@agentx /exec be-endpoint --intention create-new "events"
+@agentx /intentions list
+@agentx /alias list
+@agentx /help
 ```
 
 ---

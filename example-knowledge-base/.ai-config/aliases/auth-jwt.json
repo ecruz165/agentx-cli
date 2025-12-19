@@ -1,0 +1,11 @@
+{
+  "name": "auth-jwt",
+  "description": "JWT authentication implementation",
+  "patterns": [
+    "patterns/auth-*.md",
+    "reference/rust-auth.md",
+    "reference/jwt-standards.md",
+    ".ai-skill/security-guidelines.md"
+  ]
+}
+

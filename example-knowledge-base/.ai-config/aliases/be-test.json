@@ -1,0 +1,12 @@
+{
+  "name": "be-test",
+  "description": "Backend testing - unit tests, integration tests, mocking",
+  "patterns": [
+    "patterns/testing-patterns.md",
+    ".ai-templates/test-template.md",
+    ".ai-skill/testing-standards.md",
+    "examples/test-examples.md",
+    "reference/tech-stack.md"
+  ]
+}
+

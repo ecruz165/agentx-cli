@@ -1,0 +1,62 @@
+{
+  "id": "add-field",
+  "name": "Add Field",
+  "description": "Add a new field to an existing endpoint or entity",
+  "requirements": [
+    {
+      "id": "target",
+      "name": "Target Endpoint/Entity",
+      "description": "The endpoint or entity to modify",
+      "type": "string",
+      "required": true,
+      "question": "Which endpoint or entity should be modified? (e.g., Order, /api/v1/orders)",
+      "extractionHints": ["to", "in", "for", "endpoint", "entity"]
+    },
+    {
+      "id": "fieldName",
+      "name": "Field Name",
+      "description": "Name of the new field",
+      "type": "string",
+      "required": true,
+      "question": "What is the field name?",
+      "extractionHints": ["field", "add", "new", "property"]
+    },
+    {
+      "id": "fieldType",
+      "name": "Field Type",
+      "description": "Data type of the field",
+      "type": "enum",
+      "options": ["String", "Integer", "Long", "BigDecimal", "Boolean", "Instant", "List", "Object"],
+      "required": true,
+      "question": "What is the field type?"
+    },
+    {
+      "id": "required",
+      "name": "Required Field",
+      "description": "Whether the field is required",
+      "type": "boolean",
+      "required": false,
+      "question": "Is this field required?",
+      "default": "false"
+    },
+    {
+      "id": "validation",
+      "name": "Validation Rules",
+      "description": "Validation rules for the field",
+      "type": "string",
+      "required": false,
+      "question": "Any validation rules? (e.g., max length 100, positive number, email format)"
+    },
+    {
+      "id": "layers",
+      "name": "Layers to Update",
+      "description": "Which layers need the field",
+      "type": "array",
+      "required": false,
+      "question": "Which layers need this field? (request DTO, response DTO, domain, entity, all)",
+      "default": "all"
+    }
+  ],
+  "promptTemplatePath": ".ai-templates/intentions/add-field.prompt.toon"
+}
+
