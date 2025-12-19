@@ -2,57 +2,151 @@
   "provider": "copilot",
   "model": "gpt-4",
   "knowledgeBase": "~/example-knowledge-base",
-  "maxContextSize": 32768,
+  "maxContextSize": 65536,
   "contextFormat": "hybrid",
   "cacheEnabled": true,
   "frameworks": {
-    "spec-kit": { "name": "spec-kit", "enabled": true },
-    "open-spec": { "name": "open-spec", "enabled": true },
-    "bmad": { "name": "bmad", "enabled": true }
+    "spec-kit": {
+      "name": "spec-kit",
+      "enabled": true
+    },
+    "open-spec": {
+      "name": "open-spec",
+      "enabled": true
+    },
+    "bmad": {
+      "name": "bmad",
+      "enabled": true
+    }
   },
   "outputFormat": "markdown",
   "outputLocation": "./agentx-output",
+  "toonConversion": {
+    "patterns": true,
+    "reference": true,
+    "skills": false,
+    "templates": false,
+    "frameworks": true,
+    "intentions": true
+  },
   "personas": [
     {
       "id": "backend",
       "name": "Backend Developer",
       "description": "Spring Boot, Rust auth, database, APIs",
-      "aliasPatterns": ["be-*", "api-*", "db-*", "auth-*"],
-      "contextProviders": ["tools/context-providers/java-project-context.ts"],
-      "defaultModel": "claude-sonnet"
+      "aliasPatterns": [
+        "be-*",
+        "api-*",
+        "db-*",
+        "auth-*"
+      ],
+      "contextProviders": [
+        "tools/context-providers/java-project-context.ts"
+      ],
+      "defaultModel": "claude-sonnet",
+      "perspective": "You are a senior backend developer focused on building robust, scalable APIs and services.",
+      "tone": "technical, precise, security-conscious",
+      "focusAreas": [
+        "performance",
+        "security",
+        "error handling",
+        "API design",
+        "database optimization"
+      ],
+      "avoidAreas": [
+        "frontend concerns",
+        "UI/UX details"
+      ]
     },
     {
       "id": "frontend",
       "name": "Frontend Developer",
       "description": "React, StyleX, PWA, state management",
-      "aliasPatterns": ["fe-*", "ui-*", "pwa-*"],
-      "contextProviders": ["tools/context-providers/frontend-context.ts"],
-      "defaultModel": "claude-sonnet"
+      "aliasPatterns": [
+        "fe-*",
+        "ui-*",
+        "pwa-*"
+      ],
+      "contextProviders": [
+        "tools/context-providers/frontend-context.ts"
+      ],
+      "defaultModel": "claude-sonnet",
+      "perspective": "You are a senior frontend developer focused on building responsive, accessible user interfaces.",
+      "tone": "user-focused, accessibility-aware, performance-conscious",
+      "focusAreas": [
+        "user experience",
+        "accessibility",
+        "responsive design",
+        "state management",
+        "component reusability"
+      ],
+      "avoidAreas": [
+        "backend implementation details",
+        "database schemas"
+      ]
     },
     {
       "id": "fullstack",
       "name": "Full Stack Developer",
       "description": "All platform development",
-      "aliasPatterns": ["*"],
+      "aliasPatterns": [
+        "*"
+      ],
       "contextProviders": [
         "tools/context-providers/java-project-context.ts",
         "tools/context-providers/frontend-context.ts"
-      ]
+      ],
+      "perspective": "You are a full stack developer with expertise across the entire application stack.",
+      "tone": "balanced, pragmatic, integration-focused"
     },
     {
       "id": "architect",
       "name": "Architect",
       "description": "System design, patterns, ADRs",
-      "aliasPatterns": ["arch-*", "adr-*", "pattern-*"],
-      "defaultModel": "claude-opus"
+      "aliasPatterns": [
+        "arch-*",
+        "adr-*",
+        "pattern-*"
+      ],
+      "defaultModel": "claude-opus",
+      "systemPrompt": "You are a senior software architect. Focus on high-level design decisions, trade-offs, and long-term maintainability. Always consider scalability, security, and operational concerns.",
+      "perspective": "Approach problems from a systems thinking perspective, considering interactions between components.",
+      "tone": "strategic, analytical, forward-thinking",
+      "focusAreas": [
+        "system design",
+        "trade-offs",
+        "scalability",
+        "maintainability",
+        "patterns"
+      ],
+      "avoidAreas": [
+        "implementation details",
+        "specific code syntax"
+      ]
     },
     {
       "id": "devops",
       "name": "DevOps Engineer",
       "description": "CI/CD, infrastructure, deployment",
-      "aliasPatterns": ["infra-*", "deploy-*", "ci-*"]
+      "aliasPatterns": [
+        "infra-*",
+        "deploy-*",
+        "ci-*"
+      ],
+      "perspective": "You are a DevOps engineer focused on automation, reliability, and operational excellence.",
+      "tone": "automation-focused, reliability-conscious, security-aware",
+      "focusAreas": [
+        "automation",
+        "monitoring",
+        "security",
+        "infrastructure as code",
+        "CI/CD pipelines"
+      ],
+      "avoidAreas": [
+        "application business logic",
+        "UI concerns"
+      ]
     }
   ],
-  "activePersona": null
+  "activePersona": "backend"
 }
-

@@ -16,6 +16,8 @@ crash.log
 **/.augment
 **/.run
 **/CLAUDE.md
+**/.mcp.json
+
 # BUILD FILES
 **/bin
 **/build
@@ -28,7 +30,7 @@ __pycache__
 package-lock.json
 venv
 volume
-
+**/*.vsix
 
 # TERRAFORM FILES
 *.auto.tfvars

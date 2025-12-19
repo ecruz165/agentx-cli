@@ -1,8 +1,8 @@
-# AgentX CLI
+# AgentX
 
 > AI-Enhanced Enterprise CLI Tool for context-aware development
 
-AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that wraps AI assistants (GitHub Copilot, Claude, OpenAI) with enhanced functionality including context-aware assistance through alias-based file injection, **intentions framework** for structured prompts, **personas** for role-based context filtering, and enterprise knowledge integration.
+AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that wraps AI assistants (GitHub Copilot, Claude, OpenAI) with enhanced functionality including context-aware assistance through alias-based file injection, **intentions framework** for structured prompts, **personas** for scoping the perspective of context, role-based context filtering, and enterprise knowledge integration.
 
 ## Table of Contents
 
@@ -141,7 +141,7 @@ agentx exec <alias> -i <intention> "<prompt>" [options]  # Interactive mode
 - `--file <path>` - Save output to file
 - `--output-format <format>` - Output format: `toon`, `json`, `markdown`, `raw` (default: `markdown`)
 - `--no-format` - Disable markdown formatting in console output
-- `--preview` - Open response in browser with copy-to-clipboard button
+- `--browser` - Open response in browser with copy-to-clipboard button
 
 **Examples:**
 
@@ -210,13 +210,13 @@ Executing prompt...
 [AI Response Here]
 ```
 
-#### Browser Preview
+#### Browser Output
 
 Open AI responses in your browser with a beautiful interface and **copy-to-clipboard** button:
 
 ```bash
 # Open response in browser
-agentx exec bff "Design an API" --preview
+agentx exec bff "Design an API" --browser
 ```
 
 **Features:**
@@ -235,7 +235,7 @@ agentx exec bff "Design an API" --preview
 **Combine with file output:**
 ```bash
 # Save to file AND open in browser
-agentx exec bff "Design API" --file api-design.md --preview
+agentx exec bff "Design API" --file api-design.md --browser
 ```
 
 #### Markdown Rendering
@@ -671,7 +671,7 @@ agentx exec be-endpoint -i create-new "event management"
 
 ## Personas
 
-Personas enable role-based context filtering. Different team members see only the aliases relevant to their role.
+Personas enable role-based context filtering and perspective scoping. Different team members see only the aliases relevant to their role, and the AI responds with the appropriate tone and focus.
 
 ### Persona Definition
 
@@ -684,24 +684,43 @@ Personas are defined in `.ai-config/config.json`:
       "id": "backend",
       "name": "Backend Developer",
       "description": "Java/Spring Boot backend development",
-      "aliasFilter": ["be-*", "db-*", "auth-*"]
+      "aliasPatterns": ["be-*", "db-*", "auth-*"],
+      "perspective": "You are a senior backend developer focused on building robust, scalable APIs.",
+      "tone": "technical, precise, security-conscious",
+      "focusAreas": ["performance", "security", "error handling", "API design"],
+      "avoidAreas": ["frontend concerns", "UI/UX details"]
     },
     {
-      "id": "frontend",
-      "name": "Frontend Developer",
-      "description": "React/TypeScript frontend development",
-      "aliasFilter": ["fe-*", "ui-*"]
-    },
-    {
-      "id": "fullstack",
-      "name": "Full Stack Developer",
-      "description": "Full stack development",
-      "aliasFilter": ["*"]
+      "id": "architect",
+      "name": "Architect",
+      "description": "System design and architecture",
+      "aliasPatterns": ["arch-*", "adr-*"],
+      "systemPrompt": "You are a senior software architect. Focus on high-level design decisions and trade-offs.",
+      "perspective": "Approach problems from a systems thinking perspective.",
+      "tone": "strategic, analytical, forward-thinking",
+      "focusAreas": ["system design", "scalability", "maintainability"],
+      "avoidAreas": ["implementation details", "specific code syntax"]
     }
   ],
   "activePersona": "backend"
 }
 ```
+
+### Persona Properties
+
+| Property | Description |
+|----------|-------------|
+| `id` | Unique identifier for the persona |
+| `name` | Display name |
+| `description` | Brief description of the role |
+| `aliasPatterns` | Glob patterns to filter visible aliases |
+| `systemPrompt` | Full system prompt injected at context start |
+| `perspective` | Brief perspective statement for the AI |
+| `tone` | Tone modifiers (e.g., "technical", "casual", "educational") |
+| `focusAreas` | Topics to emphasize in responses |
+| `avoidAreas` | Topics to de-emphasize or avoid |
+| `defaultModel` | Preferred AI model for this persona |
+| `contextProviders` | Custom context provider scripts |
 
 ### Usage
 
@@ -714,9 +733,26 @@ agentx alias list
 # Shows only: be-endpoint, be-service, db-schema, auth-jwt
 
 # Switch persona
-agentx config set activePersona frontend
+agentx config set activePersona architect
 agentx alias list
-# Shows only: fe-component, fe-state, ui-design
+# Shows only: arch-overview, adr-001
+```
+
+### Context Output with Persona
+
+When a persona with perspective settings is active, the context includes a prefix:
+
+```
+[SYSTEM]
+You are a senior software architect. Focus on high-level design decisions...
+
+[PERSPECTIVE: Architect]
+Approach problems from a systems thinking perspective.
+Tone: strategic, analytical, forward-thinking
+Focus on: system design, scalability, maintainability
+Avoid: implementation details, specific code syntax
+
+--- File Contents Below ---
 ```
 
 ---

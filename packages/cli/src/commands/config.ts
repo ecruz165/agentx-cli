@@ -31,12 +31,13 @@ export function createConfigCommand(): Command {
       const configPath = findConfigPath();
 
       if (options.key) {
-        const value = (config as unknown as Record<string, unknown>)[options.key];
-        if (value === undefined) {
+        const validKeys = getConfigKeys();
+        if (!validKeys.includes(options.key)) {
           displayStatus(`Unknown configuration key: ${options.key}`, 'error');
-          console.log(`\nAvailable keys: ${getConfigKeys().join(', ')}`);
+          console.log(`\nAvailable keys: ${validKeys.join(', ')}`);
           process.exit(1);
         }
+        const value = (config as unknown as Record<string, unknown>)[options.key];
         console.log(formatValue(value));
         return;
       }

@@ -19,7 +19,7 @@ export type ErrorType =
   | 'template-not-found'
   | 'invalid-format'
   | 'file-write-error'
-  | 'preview-error';
+  | 'browser-error';
 
 /**
  * Display formatted error output
@@ -159,9 +159,9 @@ export function displayError(type: ErrorType, version: string, ...args: unknown[
       break;
     }
 
-    case 'preview-error': {
+    case 'browser-error': {
       const [target, message] = args as [string, string?];
-      console.log(`  Failed to open preview in ${colors.cyan(target)}`);
+      console.log(`  Failed to open in ${colors.cyan(target)}`);
       if (message) {
         console.log(`  ${message}`);
       }

@@ -5,8 +5,8 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { ExecutionSettings, AliasDefinition, ResolvedFile, ToonConversionConfig } from '../types';
-import { resolveAlias } from '../alias';
+import { ExecutionSettings, AliasDefinition, ResolvedFile, ToonConversionConfig, PersonaDefinition } from '../types';
+import { resolveAlias, getActivePersona } from '../alias';
 import { loadConfig } from '../config';
 import { processContent, DEFAULT_TOON_CONFIG } from '../toon';
 
@@ -18,6 +18,8 @@ export interface ContextResult {
   totalSize: number;
   truncated: boolean;
   content: string;
+  /** Persona context prefix if active persona has perspective/systemPrompt */
+  personaContext?: string;
 }
 
 /**
@@ -84,14 +86,69 @@ export async function buildContext(
   }
 
   // Build content string with optional TOON conversion
-  const content = buildContentString(filesToInclude, basePath, additionalFiles, toonConfig);
+  const fileContent = buildContentString(filesToInclude, basePath, additionalFiles, toonConfig);
+
+  // Build persona context prefix if active persona has perspective settings
+  const activePersona = getActivePersona();
+  const personaContext = buildPersonaContext(activePersona);
+
+  // Combine persona context with file content
+  const content = personaContext ? `${personaContext}\n\n${fileContent}` : fileContent;
 
   return {
     files: filesToInclude,
-    totalSize,
+    totalSize: totalSize + (personaContext?.length || 0),
     truncated,
     content,
+    personaContext,
   };
+}
+
+/**
+ * Build persona context prefix from active persona settings
+ */
+function buildPersonaContext(persona: PersonaDefinition | null): string | undefined {
+  if (!persona) {
+    return undefined;
+  }
+
+  // Check if persona has any perspective settings
+  const hasSettings = persona.systemPrompt || persona.perspective || persona.tone ||
+                      persona.focusAreas?.length || persona.avoidAreas?.length;
+
+  if (!hasSettings) {
+    return undefined;
+  }
+
+  const parts: string[] = [];
+
+  // Add system prompt if present
+  if (persona.systemPrompt) {
+    parts.push(`[SYSTEM]\n${persona.systemPrompt}`);
+  }
+
+  // Add perspective section
+  if (persona.perspective || persona.tone || persona.focusAreas?.length || persona.avoidAreas?.length) {
+    parts.push(`[PERSPECTIVE: ${persona.name}]`);
+
+    if (persona.perspective) {
+      parts.push(persona.perspective);
+    }
+
+    if (persona.tone) {
+      parts.push(`Tone: ${persona.tone}`);
+    }
+
+    if (persona.focusAreas?.length) {
+      parts.push(`Focus on: ${persona.focusAreas.join(', ')}`);
+    }
+
+    if (persona.avoidAreas?.length) {
+      parts.push(`Avoid: ${persona.avoidAreas.join(', ')}`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join('\n') : undefined;
 }
 
 /**

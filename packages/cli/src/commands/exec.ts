@@ -58,7 +58,7 @@ export function createExecCommand(version: string): Command {
       'markdown'
     )
     .option('--no-format', 'Disable markdown formatting in console output')
-    .option('--preview', 'Open response in browser with copy-to-clipboard button')
+    .option('--browser', 'Open response in browser with copy-to-clipboard button')
     .action(async (aliasName: string, prompt: string, options) => {
       let mode: OutputMode = 'minimal';
       if (options.verbose) mode = 'verbose';
@@ -193,7 +193,7 @@ export function createExecCommand(version: string): Command {
         },
       };
 
-      if (options.preview) {
+      if (options.browser) {
         try {
           const fileContents: FileContent[] = [];
           const basePath = config.knowledgeBase.replace(/^~/, os.homedir());
@@ -210,12 +210,12 @@ export function createExecCommand(version: string): Command {
           }
 
           const htmlContent = generateHTMLPreview(response, metadata, fileContents);
-          const previewPath = await createAndOpenPreview(htmlContent);
-          displayStatus(`Preview opened in browser (${getOSName()})`, 'success');
-          displayStatus(`Temporary file: ${previewPath}`, 'info');
+          const browserPath = await createAndOpenPreview(htmlContent);
+          displayStatus(`Opened in browser (${getOSName()})`, 'success');
+          displayStatus(`Temporary file: ${browserPath}`, 'info');
         } catch (error) {
           displayError(
-            'preview-error',
+            'browser-error',
             version,
             'browser',
             error instanceof Error ? error.message : 'Unknown error'
@@ -262,7 +262,7 @@ export function createExecCommand(version: string): Command {
       }
 
       // Normal console output (if not using --file)
-      // Skip if quiet mode or if only preview was requested
+      // Skip if quiet mode or if only browser output was requested
       if (!options.file && mode !== 'quiet') {
         const formattedResponse = renderMarkdown(response, options.format !== false);
         console.log(formattedResponse);

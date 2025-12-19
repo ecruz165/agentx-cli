@@ -32,6 +32,8 @@ const DEFAULT_CONFIG: AgentXConfig = {
     frameworks: true,
     intentions: true,
   },
+  personas: [],
+  activePersona: undefined,
 };
 
 /**

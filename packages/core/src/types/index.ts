@@ -133,7 +133,7 @@ export interface ProviderConfig {
 }
 
 /**
- * Persona definition for role-based alias filtering
+ * Persona definition for role-based alias filtering and context perspective
  */
 export interface PersonaDefinition {
   id: string;
@@ -142,6 +142,16 @@ export interface PersonaDefinition {
   aliasPatterns: string[];
   contextProviders?: string[];
   defaultModel?: string;
+  /** System prompt that sets the AI's perspective and tone for this persona */
+  systemPrompt?: string;
+  /** Brief perspective statement injected at the start of context */
+  perspective?: string;
+  /** Tone modifiers: professional, casual, technical, educational, etc. */
+  tone?: string;
+  /** Focus areas to emphasize in responses */
+  focusAreas?: string[];
+  /** Areas to de-emphasize or avoid */
+  avoidAreas?: string[];
 }
 
 /**
