@@ -17,6 +17,76 @@ export interface ProviderResult {
   success: boolean;
   response?: string;
   error?: string;
+  truncated?: boolean;
+}
+
+/**
+ * Token limits for different providers/models
+ */
+const TOKEN_LIMITS: Record<string, number> = {
+  'copilot': 8000,      // gh copilot CLI has limited context
+  'gpt-4': 8192,
+  'gpt-4-turbo': 128000,
+  'gpt-4o': 128000,
+  'claude-sonnet': 200000,
+  'claude-opus': 200000,
+  'default': 8000,
+};
+
+/**
+ * Estimate token count from text (rough: ~4 chars per token)
+ */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Truncate context to fit within token limit
+ * Reserves space for prompt and response
+ */
+export function truncateContextForTokenLimit(
+  context: string,
+  prompt: string,
+  maxTokens: number,
+  reserveForResponse: number = 2000
+): { context: string; truncated: boolean } {
+  const promptTokens = estimateTokens(prompt);
+  const availableForContext = maxTokens - promptTokens - reserveForResponse;
+
+  if (availableForContext <= 0) {
+    return { context: '', truncated: true };
+  }
+
+  const contextTokens = estimateTokens(context);
+
+  if (contextTokens <= availableForContext) {
+    return { context, truncated: false };
+  }
+
+  // Truncate context to fit
+  const maxContextChars = availableForContext * 4;
+  const truncatedContext = context.substring(0, maxContextChars);
+
+  // Try to truncate at a reasonable boundary (newline)
+  const lastNewline = truncatedContext.lastIndexOf('\n');
+  const finalContext = lastNewline > maxContextChars * 0.8
+    ? truncatedContext.substring(0, lastNewline)
+    : truncatedContext;
+
+  return {
+    context: finalContext + '\n\n[... context truncated to fit token limit ...]',
+    truncated: true,
+  };
+}
+
+/**
+ * Get token limit for a provider/model
+ */
+export function getTokenLimit(provider: string, model?: string): number {
+  if (model && TOKEN_LIMITS[model]) {
+    return TOKEN_LIMITS[model];
+  }
+  return TOKEN_LIMITS[provider] || TOKEN_LIMITS['default'];
 }
 
 /**
@@ -28,22 +98,44 @@ export async function executeWithProvider(
 ): Promise<ProviderResult> {
   const config = loadConfig();
   const provider = config.provider as ProviderType;
+  const model = config.model;
+
+  // Get token limit and truncate context if needed
+  const tokenLimit = getTokenLimit(provider, model);
+  const { context: truncatedContext, truncated } = truncateContextForTokenLimit(
+    context,
+    prompt,
+    tokenLimit
+  );
+
+  let result: ProviderResult;
 
   switch (provider) {
     case 'copilot':
-      return executeCopilot(prompt, context);
+      result = await executeCopilot(prompt, truncatedContext);
+      break;
     case 'claude':
-      return executeClaude(prompt, context);
+      result = await executeClaude(prompt, truncatedContext);
+      break;
     case 'openai':
-      return executeOpenAI(prompt, context);
+      result = await executeOpenAI(prompt, truncatedContext);
+      break;
     case 'mock':
-      return executeMock(prompt, context);
+      result = await executeMock(prompt, truncatedContext);
+      break;
     default:
       return {
         success: false,
         error: `Unknown provider: ${provider}`,
       };
   }
+
+  // Add truncation info to result
+  if (truncated) {
+    result.truncated = true;
+  }
+
+  return result;
 }
 
 /**
@@ -132,13 +224,15 @@ async function executeMock(
   prompt: string,
   context: string
 ): Promise<ProviderResult> {
+  const contextTokens = estimateTokens(context);
+  const promptTokens = estimateTokens(prompt);
   const contextInfo = context
-    ? `\n\nContext provided: ${context.length} characters`
+    ? `\n\nContext provided: ${context.length} characters (~${contextTokens} tokens)`
     : '\n\nNo context provided';
 
   return {
     success: true,
-    response: `[Mock AI Response]\n\nReceived prompt: "${prompt}"${contextInfo}`,
+    response: `[Mock AI Response]\n\nReceived prompt: "${prompt}" (~${promptTokens} tokens)${contextInfo}`,
   };
 }
 

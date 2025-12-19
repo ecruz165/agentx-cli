@@ -54,6 +54,9 @@ export {
   executeWithProvider,
   checkProviderAvailability,
   getAvailableProviders,
+  estimateTokens,
+  truncateContextForTokenLimit,
+  getTokenLimit,
 } from './providers';
 export type { ProviderType, ProviderResult } from './providers';
 

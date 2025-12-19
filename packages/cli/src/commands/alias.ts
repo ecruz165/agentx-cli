@@ -4,11 +4,12 @@
 
 import { Command } from 'commander';
 import {
-  loadAliases,
+  loadAliasesForActivePersona,
   getAliasWithFiles,
   calculateTotalSize,
   aliasDirectoryExists,
   getAliasDirectoryPath,
+  getActivePersona,
 } from '@agentx/core';
 import { colors, formatSize, drawBox, printHeader } from '../utils/output';
 import { displayStatus } from '../utils/display';
@@ -33,7 +34,8 @@ export function createAliasCommand(): Command {
         return;
       }
 
-      const aliases = await loadAliases();
+      const aliases = await loadAliasesForActivePersona();
+      const activePersona = getActivePersona();
 
       if (aliases.length === 0) {
         displayStatus('No aliases found', 'info');
@@ -41,7 +43,11 @@ export function createAliasCommand(): Command {
         return;
       }
 
-      printHeader('Available Aliases');
+      if (activePersona) {
+        printHeader(`Available Aliases (${activePersona.name})`);
+      } else {
+        printHeader('Available Aliases');
+      }
       console.log();
 
       const nameWidth = 20;
@@ -81,7 +87,7 @@ export function createAliasCommand(): Command {
       if (!alias) {
         displayStatus(`Alias not found: ${name}`, 'error');
 
-        const aliases = await loadAliases();
+        const aliases = await loadAliasesForActivePersona();
         if (aliases.length > 0) {
           console.log(`\nAvailable aliases: ${aliases.map((a) => a.name).join(', ')}`);
         }

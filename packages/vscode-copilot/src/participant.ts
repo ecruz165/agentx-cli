@@ -15,7 +15,6 @@ import {
   getConfigKeys,
   aliasDirectoryExists,
   getAliasDirectoryPath,
-  executeWithProvider,
   createExecutionSettings,
   getPersonas,
   getActivePersona,
@@ -29,6 +28,7 @@ import {
   IntentionDefinition,
   RequirementGatheringResult,
 } from '@agentx/core';
+import { executeWithVSCodeLMStreaming, isVSCodeLMAvailable } from './vscode-lm-provider';
 
 /**
  * Register the AgentX chat participant
@@ -314,7 +314,7 @@ async function handleExecCommand(
 
   stream.markdown(`## Executing with AgentX\n\n`);
   stream.markdown(`| Setting | Value |\n|---------|-------|\n`);
-  stream.markdown(`| Provider | ${config.provider} |\n`);
+  stream.markdown(`| Provider | VS Code Copilot (native) |\n`);
   stream.markdown(`| Alias | ${aliasName} |\n`);
   if (intention) {
     stream.markdown(`| Intention | ${intention.name} |\n`);
@@ -331,15 +331,21 @@ async function handleExecCommand(
   }
   stream.markdown(`---\n\n`);
 
-  // Execute with provider
-  const execResult = await executeWithProvider(finalPrompt, context.content);
-
-  if (!execResult.success) {
-    stream.markdown(`❌ **Provider Error:** ${execResult.error}\n`);
-    return { metadata: { command: 'exec', error: 'provider_error' } };
+  // Check if VS Code LM API is available
+  if (!isVSCodeLMAvailable()) {
+    stream.markdown(`❌ **Error:** VS Code Language Model API not available.\n\n`);
+    stream.markdown(`Please update VS Code to version 1.90 or later and ensure GitHub Copilot is installed.\n`);
+    return { metadata: { command: 'exec', error: 'lm_not_available' } };
   }
 
-  stream.markdown(`### Response\n\n${execResult.response}`);
+  // Execute with VS Code's native Language Model API (streaming)
+  stream.markdown(`### Response\n\n`);
+  const execResult = await executeWithVSCodeLMStreaming(finalPrompt, context.content, stream, token);
+
+  if (!execResult.success) {
+    stream.markdown(`\n\n❌ **Error:** ${execResult.error}\n`);
+    return { metadata: { command: 'exec', error: 'provider_error' } };
+  }
 
   return { metadata: { command: 'exec', alias: aliasName, intention: intentionId, prompt } };
 }

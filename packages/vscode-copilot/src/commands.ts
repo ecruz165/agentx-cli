@@ -12,10 +12,10 @@ import {
   buildContext,
   calculateTotalSize,
   findConfigPath,
-  executeWithProvider,
   aliasDirectoryExists,
   getAliasDirectoryPath,
 } from '@agentx/core';
+import { executeWithVSCodeLM, isVSCodeLMAvailable } from './vscode-lm-provider';
 
 /**
  * Register all AgentX commands
@@ -66,17 +66,24 @@ export function registerCommands(context: vscode.ExtensionContext) {
       return;
     }
 
-    const config = loadConfig();
     const builtContext = await buildContext(alias);
 
-    // Show progress
+    // Check if VS Code LM API is available
+    if (!isVSCodeLMAvailable()) {
+      vscode.window.showErrorMessage(
+        'VS Code Language Model API not available. Please update VS Code to version 1.90 or later.'
+      );
+      return;
+    }
+
+    // Show progress with cancellation support
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: `AgentX: Executing with ${alias.name}`,
-        cancellable: false,
+        cancellable: true,
       },
-      async (progress) => {
+      async (progress, token) => {
         progress.report({ message: 'Building context...' });
 
         const contextInfo = `${builtContext.files.length} files (${(builtContext.totalSize / 1024).toFixed(1)} KB)`;
@@ -87,18 +94,18 @@ export function registerCommands(context: vscode.ExtensionContext) {
           );
         }
 
-        progress.report({ message: `Sending to ${config.provider}...` });
+        progress.report({ message: 'Sending to VS Code Copilot...' });
 
-        const result = await executeWithProvider(prompt, builtContext.content);
+        const result = await executeWithVSCodeLM(prompt, builtContext.content, token);
 
         if (!result.success) {
-          vscode.window.showErrorMessage(`Provider error: ${result.error}`);
+          vscode.window.showErrorMessage(`Error: ${result.error}`);
           return;
         }
 
         // Show result in new document
         const doc = await vscode.workspace.openTextDocument({
-          content: `# AgentX Response\n\n**Alias:** ${alias.name}\n**Context:** ${contextInfo}\n**Provider:** ${config.provider}\n\n---\n\n## Prompt\n\n${prompt}\n\n---\n\n## Response\n\n${result.response}`,
+          content: `# AgentX Response\n\n**Alias:** ${alias.name}\n**Context:** ${contextInfo}\n**Provider:** VS Code Copilot (native)\n\n---\n\n## Prompt\n\n${prompt}\n\n---\n\n## Response\n\n${result.response}`,
           language: 'markdown',
         });
 
@@ -271,16 +278,23 @@ ${fileList}${moreFiles}`;
         return;
       }
 
-      const config = loadConfig();
+      // Check if VS Code LM API is available
+      if (!isVSCodeLMAvailable()) {
+        vscode.window.showErrorMessage(
+          'VS Code Language Model API not available. Please update VS Code to version 1.90 or later.'
+        );
+        return;
+      }
+
       const builtContext = await buildContext(alias);
 
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: `AgentX: Executing with ${alias.name}`,
-          cancellable: false,
+          cancellable: true,
         },
-        async (progress) => {
+        async (progress, token) => {
           progress.report({ message: 'Building context...' });
 
           const contextInfo = `${builtContext.files.length} files (${(builtContext.totalSize / 1024).toFixed(1)} KB)`;
@@ -291,18 +305,18 @@ ${fileList}${moreFiles}`;
             );
           }
 
-          progress.report({ message: `Sending to ${config.provider}...` });
+          progress.report({ message: 'Sending to VS Code Copilot...' });
 
-          const result = await executeWithProvider(prompt, builtContext.content);
+          const result = await executeWithVSCodeLM(prompt, builtContext.content, token);
 
           if (!result.success) {
-            vscode.window.showErrorMessage(`Provider error: ${result.error}`);
+            vscode.window.showErrorMessage(`Error: ${result.error}`);
             return;
           }
 
           // Show result in new document
           const doc = await vscode.workspace.openTextDocument({
-            content: `# AgentX Response\n\n**Alias:** ${alias.name}\n**Context:** ${contextInfo}\n**Provider:** ${config.provider}\n\n---\n\n## Prompt\n\n${prompt}\n\n---\n\n## Response\n\n${result.response}`,
+            content: `# AgentX Response\n\n**Alias:** ${alias.name}\n**Context:** ${contextInfo}\n**Provider:** VS Code Copilot (native)\n\n---\n\n## Prompt\n\n${prompt}\n\n---\n\n## Response\n\n${result.response}`,
             language: 'markdown',
           });
 
