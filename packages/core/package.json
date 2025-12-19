@@ -1,0 +1,69 @@
+{
+  "name": "@agentx/core",
+  "version": "1.0.0",
+  "description": "Core shared logic for AgentX - config, alias, context, and providers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.js",
+      "require": "./dist/config/index.js",
+      "default": "./dist/config/index.js"
+    },
+    "./alias": {
+      "types": "./dist/alias/index.d.ts",
+      "import": "./dist/alias/index.js",
+      "require": "./dist/alias/index.js",
+      "default": "./dist/alias/index.js"
+    },
+    "./context": {
+      "types": "./dist/context/index.d.ts",
+      "import": "./dist/context/index.js",
+      "require": "./dist/context/index.js",
+      "default": "./dist/context/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js",
+      "require": "./dist/providers/index.js",
+      "default": "./dist/providers/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "agentx",
+    "core",
+    "ai",
+    "config"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "glob": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "^25.0.2",
+    "typescript": "^5.9.3"
+  }
+}
+

@@ -1,0 +1,11 @@
+{
+  "name": "fe-state",
+  "description": "Frontend state management",
+  "patterns": [
+    "patterns/state-*.md",
+    "reference/react.md",
+    "reference/zustand.md",
+    ".ai-skill/coding-standards.md"
+  ]
+}
+

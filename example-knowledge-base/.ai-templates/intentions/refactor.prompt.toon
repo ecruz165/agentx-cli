@@ -1,0 +1,86 @@
+intention:
+  id: refactor
+  name: Refactor {{target}}
+  alias: {{alias}}
+  originalPrompt: {{originalPrompt}}
+
+requirements:
+  target: {{target}}
+  goal: {{goal}}
+  pattern: {{pattern}}
+  constraints: {{constraints}}
+  scope: {{scope}}
+
+task:
+  type: refactor
+  description: Refactor {{target}} with goal {{goal}}
+
+  refactoring:
+    target: {{target}}
+    goal: {{goal}}
+    scope: {{scope}}
+    pattern: {{pattern}}
+    constraints: {{constraints}}
+
+  goals:
+    extract-method:
+      - Identify code blocks that can be extracted
+      - Create well-named methods with single responsibility
+      - Ensure proper parameter passing
+      - Maintain readability
+    extract-class:
+      - Identify cohesive functionality to extract
+      - Create new class with clear responsibility
+      - Move related fields and methods
+      - Update references in original class
+    improve-naming:
+      - Review all variable method and class names
+      - Apply consistent naming conventions
+      - Make names self-documenting
+      - Update related documentation
+    reduce-complexity:
+      - Identify complex conditionals
+      - Apply guard clauses
+      - Extract complex logic to methods
+      - Consider strategy pattern for branching
+    add-error-handling:
+      - Identify potential failure points
+      - Add appropriate try-catch blocks
+      - Create custom exceptions if needed
+      - Ensure proper error propagation
+    improve-testability:
+      - Extract dependencies for injection
+      - Create interfaces for external services
+      - Reduce static method usage
+      - Break up large methods
+    apply-pattern:
+      - Analyze current structure
+      - Identify pattern application points
+      - Implement pattern incrementally
+      - Ensure pattern adds value
+    general-cleanup:
+      - Remove dead code
+      - Fix formatting inconsistencies
+      - Update outdated comments
+      - Apply coding standards
+
+implementation:
+  checklist:
+    - Analyze current code structure
+    - Identify specific changes needed
+    - Make incremental changes
+    - Run tests after each change
+    - Verify behavior unchanged
+    - Update documentation if needed
+    - Review for additional improvements
+
+  defaultConstraints:
+    - Maintain backward compatibility
+    - No behavior changes
+    - All existing tests must pass
+
+  guidelines:
+    - Follow patterns in .ai-skill/
+    - Use templates from .ai-templates/
+    - Apply framework config from .ai-frameworks/
+

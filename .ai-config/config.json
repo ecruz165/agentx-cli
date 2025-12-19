@@ -1,0 +1,24 @@
+{
+  "provider": "mock",
+  "model": "claude-3-5-sonnet-20241022",
+  "knowledgeBase": "/Users/edwincruz/agentx-enterprise-docs",
+  "maxContextSize": 32768,
+  "contextFormat": "hybrid",
+  "cacheEnabled": true,
+  "frameworks": {
+    "spec-kit": {
+      "name": "spec-kit",
+      "enabled": true
+    },
+    "open-spec": {
+      "name": "open-spec",
+      "enabled": true
+    },
+    "bmad": {
+      "name": "bmad",
+      "enabled": true
+    }
+  },
+  "outputFormat": "markdown",
+  "outputLocation": "./agentx-output"
+}

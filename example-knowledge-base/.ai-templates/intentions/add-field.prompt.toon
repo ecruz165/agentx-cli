@@ -1,0 +1,56 @@
+intention:
+  id: add-field
+  name: Add Field to {{target}}
+  alias: {{alias}}
+  originalPrompt: {{originalPrompt}}
+
+requirements:
+  target: {{target}}
+  fieldName: {{fieldName}}
+  fieldType: {{fieldType}}
+  required: {{required}}
+  validation: {{validation}}
+  layers: {{layers}}
+
+task:
+  type: add-field
+  description: Add field '{{fieldName}}' of type {{fieldType}} to {{target}}
+
+  field:
+    name: {{fieldName}}
+    type: {{fieldType}}
+    required: {{required}}
+    validation: {{validation}}
+
+  layers:
+    update: {{layers}}
+    default:
+      - requestDto
+      - responseDto
+      - domain
+      - entity
+      - mappers
+
+implementation:
+  checklist:
+    - Add field to Request DTO if applicable
+    - Add validation annotations
+    - Add field to Response DTO if applicable
+    - Add field to Domain model
+    - Add field to Entity
+    - Add JPA annotations
+    - Consider database migration
+    - Update mappers between layers
+    - Update existing tests
+    - Add tests for new field validation
+
+  database:
+    considerMigration: true
+    nullableDuringTransition: true
+    updateQueries: true
+
+  guidelines:
+    - Follow patterns in .ai-skill/
+    - Use templates from .ai-templates/
+    - Apply framework config from .ai-frameworks/
+

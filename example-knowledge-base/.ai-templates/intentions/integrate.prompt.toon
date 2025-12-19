@@ -1,0 +1,77 @@
+intention:
+  id: integrate
+  name: Integrate {{service}} with {{target}}
+  alias: {{alias}}
+  originalPrompt: {{originalPrompt}}
+
+requirements:
+  target: {{target}}
+  service: {{service}}
+  serviceEndpoint: {{serviceEndpoint}}
+  dataToSend: {{dataToSend}}
+  dataToReceive: {{dataToReceive}}
+  errorHandling: {{errorHandling}}
+  circuitBreaker: {{circuitBreaker}}
+
+task:
+  type: add-integration
+  description: Add integration with {{service}} to {{target}}
+
+  integration:
+    targetEndpoint: {{target}}
+    downstreamService: {{service}}
+    serviceEndpoint: {{serviceEndpoint}}
+
+  dataContract:
+    send: {{dataToSend}}
+    receive: {{dataToReceive}}
+
+  resilience:
+    errorHandling: {{errorHandling}}
+    circuitBreaker: {{circuitBreaker}}
+    retry:
+      enabled: true
+      maxAttempts: 3
+      backoff: exponential
+
+implementation:
+  checklist:
+    - Create/update downstream service client interface
+    - Implement WebClient-based service client
+    - Create request/response DTOs for downstream call
+    - Add client to service layer
+    - Implement error handling strategy
+    - Configure circuit breaker if enabled
+    - Add retry configuration
+    - Update service layer to call downstream
+    - Add unit tests with mocked client
+    - Add integration tests
+
+  errorHandlingStrategies:
+    fail-fast:
+      - Throw exception immediately on downstream failure
+      - Let error propagate to caller
+      - Return appropriate HTTP error status
+    retry:
+      - Configure retry with exponential backoff
+      - Max retries 3
+      - Initial interval 100ms
+    fallback:
+      - Implement fallback response
+      - Log warning for downstream failure
+      - Continue with degraded functionality
+    queue-for-later:
+      - Queue failed request for retry
+      - Return success to caller
+      - Process queue asynchronously
+
+  circuitBreakerConfig:
+    failureRateThreshold: 50
+    waitDurationInOpenState: 60s
+    permittedCallsInHalfOpen: 10
+
+  guidelines:
+    - Follow patterns in .ai-skill/
+    - Use templates from .ai-templates/
+    - Apply framework config from .ai-frameworks/
+

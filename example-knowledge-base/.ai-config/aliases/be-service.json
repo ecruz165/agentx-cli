@@ -1,0 +1,11 @@
+{
+  "name": "be-service",
+  "description": "Backend service layer - business logic, transactions, integrations",
+  "patterns": [
+    "patterns/error-handling.md",
+    ".ai-templates/spring-service.md",
+    ".ai-skill/coding-standards.md",
+    "reference/tech-stack.md"
+  ]
+}
+

@@ -1,0 +1,11 @@
+{
+  "name": "db-schema",
+  "description": "Database schema design and migrations",
+  "patterns": [
+    "patterns/database-*.md",
+    "reference/postgresql.md",
+    ".ai-skill/coding-standards.md",
+    ".ai-templates/flyway-migration.md"
+  ]
+}
+

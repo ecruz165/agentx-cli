@@ -1,0 +1,62 @@
+{
+  "id": "refactor",
+  "name": "Refactor",
+  "description": "Improve existing code structure without changing behavior",
+  "requirements": [
+    {
+      "id": "target",
+      "name": "Target Code",
+      "description": "What code to refactor",
+      "type": "string",
+      "required": true,
+      "question": "What code should be refactored? (e.g., OrderService, /api/v1/orders endpoint)",
+      "extractionHints": ["refactor", "improve", "clean up", "restructure"]
+    },
+    {
+      "id": "goal",
+      "name": "Refactoring Goal",
+      "description": "What improvement to make",
+      "type": "enum",
+      "options": [
+        "extract-method",
+        "extract-class",
+        "improve-naming",
+        "reduce-complexity",
+        "add-error-handling",
+        "improve-testability",
+        "apply-pattern",
+        "general-cleanup"
+      ],
+      "required": true,
+      "question": "What is the refactoring goal?"
+    },
+    {
+      "id": "pattern",
+      "name": "Design Pattern",
+      "description": "Specific pattern to apply",
+      "type": "string",
+      "required": false,
+      "question": "Any specific design pattern to apply? (e.g., Strategy, Factory, Builder)"
+    },
+    {
+      "id": "constraints",
+      "name": "Constraints",
+      "description": "Any constraints to follow",
+      "type": "string",
+      "required": false,
+      "question": "Any constraints? (e.g., maintain backward compatibility, no new dependencies)"
+    },
+    {
+      "id": "scope",
+      "name": "Scope",
+      "description": "Scope of refactoring",
+      "type": "enum",
+      "options": ["single-file", "single-class", "module", "cross-cutting"],
+      "required": false,
+      "question": "What is the scope of this refactoring?",
+      "default": "single-class"
+    }
+  ],
+  "promptTemplatePath": ".ai-templates/intentions/refactor.prompt.toon"
+}
+

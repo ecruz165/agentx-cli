@@ -1,0 +1,11 @@
+{
+  "name": "ui-design",
+  "description": "UI/UX design system implementation",
+  "patterns": [
+    "patterns/design-system-*.md",
+    "reference/stylex.md",
+    "reference/accessibility.md",
+    ".ai-templates/design-tokens.md"
+  ]
+}
+
