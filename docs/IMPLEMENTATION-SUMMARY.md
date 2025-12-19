@@ -22,6 +22,20 @@ This document summarizes the implementation of the output format feature for Age
 - **Automatic detection**: Works with markdown from all AI providers (Copilot, Claude, OpenAI)
 - **Optional**: Use `--no-format` to disable and show raw markdown
 
+### 4. Browser Preview
+- **Tabbed interface**: "Response" tab (default) and "Details" tab for organized viewing
+- **HTML preview**: Open AI responses in browser with beautiful styling
+- **Copy-to-clipboard**: Top-right button to copy full markdown to clipboard
+- **Code block copy buttons**: Individual copy buttons for each code block (appear on hover)
+- **User Prompt display**: Dedicated section in Details tab showing the original prompt
+- **Context Files viewer**: Clickable file links that open full file contents in new tabs
+- **File content display**: Shows actual file contents with syntax highlighting and line numbers
+- **File copy button**: Copy entire file contents with one click
+- **File metadata**: Displays file size, line count, and file type
+- **OS-aware**: Automatically detects and launches browser on macOS, Linux, Windows
+- **Keyboard shortcut**: Ctrl/Cmd + Shift + C to copy full markdown
+- **Responsive design**: Works on mobile and desktop browsers
+
 ### 4. Configuration Properties
 - `outputFormat`: Default format for saved outputs (default: `markdown`)
 - `outputLocation`: Default directory for outputs (default: `./agentx-output`)
@@ -80,6 +94,9 @@ This document summarizes the implementation of the output format feature for Age
 
 2. **src/commands/exec.ts**
    - Added `--file` and `--output-format` options
+   - Added `--preview` option for browser preview
+   - Integrated HTML preview generation and browser launching
+   - Metadata preparation for both file output and preview
    - Implemented file output logic
    - Added metadata collection
    - Integrated output formatter

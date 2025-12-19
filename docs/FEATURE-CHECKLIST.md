@@ -49,6 +49,7 @@
 - [x] Added `--file <path>` option to exec command
 - [x] Added `--output-format <format>` option to exec command
 - [x] Added `--no-format` option to disable markdown rendering
+- [x] Added `--preview` option to open browser preview
 - [x] Implemented file output logic in exec command
 - [x] Integrated markdown rendering for console output
 - [x] Integrated browser preview with HTML generation
@@ -61,6 +62,7 @@
   - [x] Filename-only support (uses outputLocation)
 - [x] Auto-extension appending when not provided
 - [x] Console output still shown unless --quiet flag used
+- [x] Preview can be combined with file output
 
 ## ✅ Configuration
 
