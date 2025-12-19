@@ -136,6 +136,7 @@ agentx exec <alias> "<prompt>" [options]
 - `--file <path>` - Save output to file
 - `--output-format <format>` - Output format when saving to file: `toon`, `json`, `markdown`, `raw` (default: `markdown`)
 - `--no-format` - Disable markdown formatting in console output (show raw markdown)
+- `--preview` - Open response in browser with copy-to-clipboard button (OS-aware: macOS, Linux, Windows)
 
 **Examples:**
 
@@ -199,6 +200,34 @@ agentx v1.0.0 | copilot | bff | 12 files (24.5 KB)
 Executing prompt...
 
 [AI Response Here]
+```
+
+#### Browser Preview
+
+Open AI responses in your browser with a beautiful interface and **copy-to-clipboard** button:
+
+```bash
+# Open response in browser
+agentx exec bff "Design an API" --preview
+```
+
+**Features:**
+- ✅ **Tabbed interface** - "Agent Request" and "Response" tabs for organized viewing
+- ✅ **Beautiful HTML rendering** with syntax highlighting
+- ✅ **Copy-to-clipboard button** (top-right corner) - Copy entire markdown
+- ✅ **Code block copy buttons** - Hover over any code block to copy just that snippet
+- ✅ **User Prompt section** - View the original prompt in Agent Request tab
+- ✅ **Context Files viewer** - Click any file to view full contents in new tab
+- ✅ **File content display** - See actual file contents with syntax highlighting
+- ✅ **File copy button** - Copy entire file contents with one click
+- ✅ **OS-aware** - Works on macOS, Linux, and Windows
+- ✅ **Keyboard shortcut** - Press `Ctrl/Cmd + Shift + C` to copy full markdown
+- ✅ **Responsive design** - Works on mobile and desktop
+
+**Combine with file output:**
+```bash
+# Save to file AND open in browser
+agentx exec bff "Design API" --file api-design.md --preview
 ```
 
 #### Markdown Rendering

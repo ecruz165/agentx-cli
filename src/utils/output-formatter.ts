@@ -13,10 +13,18 @@ import { ResponseOutputFormat } from '../types';
 export interface ResponseMetadata {
   timestamp: string;
   provider: string;
+  model?: string;
   alias: string;
   prompt: string;
   contextFiles: string[];
   version: string;
+  contextSize?: number; // Total size of context in bytes
+  config?: {
+    knowledgeBase: string;
+    maxContextSize: number;
+    contextFormat: string;
+    cacheEnabled: boolean;
+  };
 }
 
 /**

@@ -12,6 +12,7 @@ import { AgentXConfig, FrameworkConfig } from '../types';
  */
 const DEFAULT_CONFIG: AgentXConfig = {
   provider: 'copilot',
+  model: 'gpt-4',
   knowledgeBase: path.join(os.homedir(), 'agentx-enterprise-docs'),
   maxContextSize: 32768,
   contextFormat: 'hybrid',

@@ -24,7 +24,11 @@ import {
   ResponseMetadata,
 } from '../utils/output-formatter';
 import { renderMarkdown } from '../utils/markdown-renderer';
+import { generateHTMLPreview, FileContent } from '../utils/html-preview';
+import { createAndOpenPreview, getOSName } from '../utils/browser-launcher';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 /**
  * Create the exec command
@@ -46,6 +50,7 @@ export function createExecCommand(): Command {
       'markdown'
     )
     .option('--no-format', 'Disable markdown formatting in console output (show raw markdown)')
+    .option('--preview', 'Open response in browser with copy-to-clipboard button')
     .action(async (aliasName: string, prompt: string, options) => {
       // Determine output mode
       let mode: OutputMode = 'minimal';
@@ -106,6 +111,62 @@ export function createExecCommand(): Command {
 
       const response = result.response || '';
 
+      // Prepare metadata (used by both file output and preview)
+      const metadata: ResponseMetadata = {
+        timestamp: new Date().toISOString(),
+        provider: config.provider,
+        model: config.model,
+        alias: aliasName,
+        prompt: prompt,
+        contextFiles: context.files.map((f) => f.path),
+        version: settings.version,
+        contextSize: context.totalSize,
+        config: {
+          knowledgeBase: config.knowledgeBase,
+          maxContextSize: maxContextSize,
+          contextFormat: config.contextFormat,
+          cacheEnabled: config.cacheEnabled,
+        },
+      };
+
+      // Handle browser preview if --preview flag is provided
+      if (options.preview) {
+        try {
+          // Read file contents for embedding in preview
+          const fileContents: FileContent[] = [];
+          const basePath = config.knowledgeBase.replace(/^~/, os.homedir());
+
+          for (const filePath of metadata.contextFiles) {
+            try {
+              const fullPath = path.join(basePath, filePath);
+              const content = fs.readFileSync(fullPath, 'utf-8');
+              const stat = fs.statSync(fullPath);
+
+              fileContents.push({
+                path: filePath,
+                content: content,
+                size: stat.size,
+              });
+            } catch (error) {
+              // Skip files that can't be read
+              console.warn(`Warning: Could not read file ${filePath}`);
+            }
+          }
+
+          const htmlContent = generateHTMLPreview(response, metadata, fileContents);
+          const previewPath = await createAndOpenPreview(htmlContent);
+          displayStatus(`Preview opened in browser (${getOSName()})`, 'success');
+          displayStatus(`Temporary file: ${previewPath}`, 'info');
+        } catch (error) {
+          displayError(
+            'preview-error',
+            'browser',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+          // Don't exit - still show console output
+        }
+      }
+
       // Handle file output if --file flag is provided
       if (options.file) {
         const outputFormat = (options.outputFormat || config.outputFormat || 'markdown') as ResponseOutputFormat;
@@ -120,16 +181,6 @@ export function createExecCommand(): Command {
           );
           process.exit(1);
         }
-
-        // Prepare metadata
-        const metadata: ResponseMetadata = {
-          timestamp: new Date().toISOString(),
-          provider: config.provider,
-          alias: aliasName,
-          prompt: prompt,
-          contextFiles: context.files.map((f) => f.path),
-          version: settings.version,
-        };
 
         // Format response
         const formattedContent = formatResponse(response, outputFormat, metadata);
@@ -169,8 +220,11 @@ export function createExecCommand(): Command {
           const formattedResponse = renderMarkdown(response, options.format !== false);
           console.log(formattedResponse);
         }
-      } else {
-        // Normal console output
+      }
+
+      // Normal console output (if not using --file or if file output was done)
+      // Skip if quiet mode or if only preview was requested
+      if (!options.file && mode !== 'quiet') {
         // Render markdown for better readability (unless --no-format is used)
         const formattedResponse = renderMarkdown(response, options.format !== false);
         console.log(formattedResponse);

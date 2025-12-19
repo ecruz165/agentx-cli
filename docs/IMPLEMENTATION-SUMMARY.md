@@ -48,6 +48,19 @@ This document summarizes the implementation of the output format feature for Age
    - `isMarkdown()`: Detect markdown content
    - Uses `marked` and `marked-terminal` for beautiful terminal output
 
+3. **src/utils/html-preview.ts**
+   - `generateHTMLPreview()`: Convert markdown to styled HTML with copy button
+   - Beautiful gradient header with metadata display
+   - Responsive CSS styling for all screen sizes
+   - JavaScript for copy-to-clipboard functionality
+
+4. **src/utils/browser-launcher.ts**
+   - `detectOS()`: Detect current operating system
+   - `openInBrowser()`: OS-aware browser launching
+   - `createAndOpenPreview()`: Create temp HTML file and open in browser
+   - `getOSName()`: Get display name of current OS
+   - Supports macOS (open), Linux (xdg-open), Windows (start)
+
 3. **docs/OUTPUT-FORMATS.md**
    - Comprehensive guide for output format feature
    - Examples and best practices

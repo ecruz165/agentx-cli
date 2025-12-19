@@ -21,7 +21,8 @@ export type ErrorType =
   | 'framework-not-found'
   | 'template-not-found'
   | 'invalid-format'
-  | 'file-write-error';
+  | 'file-write-error'
+  | 'preview-error';
 
 /**
  * Display formatted error output
@@ -161,6 +162,17 @@ export function displayError(type: ErrorType, ...args: unknown[]): void {
       }
       console.log('');
       console.log('  Please verify you have write permissions for this location.');
+      break;
+    }
+
+    case 'preview-error': {
+      const [target, message] = args as [string, string?];
+      console.log(`  Failed to open preview in ${colors.cyan(target)}`);
+      if (message) {
+        console.log(`  ${message}`);
+      }
+      console.log('');
+      console.log('  The response will still be displayed in the console.');
       break;
     }
 

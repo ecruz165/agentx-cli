@@ -70,6 +70,7 @@ export interface FrameworkConfig {
  */
 export interface AgentXConfig {
   provider: string;
+  model?: string;
   knowledgeBase: string;
   maxContextSize: number;
   contextFormat: ContextFormat;

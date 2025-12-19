@@ -22,6 +22,28 @@
   - [x] Installed `marked` and `marked-terminal` packages
   - [x] Installed `@types/marked-terminal` for TypeScript support
 
+- [x] Implemented browser preview feature
+  - [x] Created `html-preview.ts` utility module
+  - [x] `generateHTMLPreview()` - Convert markdown to styled HTML
+  - [x] Tabbed interface with "Response" and "Details" tabs
+  - [x] Beautiful gradient header with metadata
+  - [x] Copy-to-clipboard button (top-right) for full markdown
+  - [x] Individual copy buttons for each code block (hover to reveal)
+  - [x] User Prompt section in Details tab
+  - [x] Context Files section with clickable links
+  - [x] File viewer that opens in new tabs with full content
+  - [x] File content display with syntax highlighting
+  - [x] File metadata display (size, lines, type)
+  - [x] Copy button for entire file contents
+  - [x] Embedded file contents in HTML preview
+  - [x] Keyboard shortcut support (Ctrl/Cmd + Shift + C)
+  - [x] Responsive CSS design
+  - [x] Created `browser-launcher.ts` utility module
+  - [x] `detectOS()` - Detect operating system
+  - [x] `openInBrowser()` - OS-aware browser launching
+  - [x] `createAndOpenPreview()` - Create temp file and open
+  - [x] Support for macOS, Linux, Windows
+
 ## ✅ Command Integration
 
 - [x] Added `--file <path>` option to exec command
@@ -29,6 +51,7 @@
 - [x] Added `--no-format` option to disable markdown rendering
 - [x] Implemented file output logic in exec command
 - [x] Integrated markdown rendering for console output
+- [x] Integrated browser preview with HTML generation
 - [x] Added metadata collection (timestamp, provider, alias, prompt, files, version)
 - [x] Integrated output formatter with exec command
 - [x] Added format validation
