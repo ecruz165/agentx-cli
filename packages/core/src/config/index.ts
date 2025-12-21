@@ -62,6 +62,14 @@ const DEFAULT_CONFIG: AgentXConfig = {
   },
   personas: [],
   activePersona: undefined,
+  history: {
+    enabled: true,
+    retainDays: 7,
+    maxEntries: 100,
+    location: '.agentx/history',
+    includeWorkspaceFiles: true,
+    compressAfterDays: 1,
+  },
 };
 
 /**

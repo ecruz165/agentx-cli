@@ -88,3 +88,21 @@ export {
   DEFAULT_TOON_CONFIG,
 } from './toon';
 
+// History/Context Persistence
+export {
+  DEFAULT_HISTORY_CONFIG,
+  getHistoryPath,
+  getEntryPath,
+  generateContextMarkdown,
+  generateManifest,
+  saveHistoryEntry,
+  listHistoryEntries,
+  getLastHistoryEntry,
+  cleanupHistory,
+  clearHistory,
+  estimateTokens as estimateHistoryTokens,
+  isHistoryInGitignore,
+  addHistoryToGitignore,
+  isFirstHistorySave,
+} from './history';
+

@@ -27,6 +27,16 @@ import {
   formatMissingRequirements,
   IntentionDefinition,
   RequirementGatheringResult,
+  HistoryEntry,
+  HistoryManifestSources,
+  saveHistoryEntry,
+  isFirstHistorySave,
+  addHistoryToGitignore,
+  isHistoryInGitignore,
+  estimateHistoryTokens,
+  getLastHistoryEntry,
+  listHistoryEntries,
+  clearHistory,
 } from '@agentx/core';
 import { executeWithVSCodeLMStreaming, isVSCodeLMAvailable } from './vscode-lm-provider';
 
@@ -118,6 +128,93 @@ function formatReferenceContext(refContext: ExtractedReferenceContext): string {
   }
 
   return parts.join('\n');
+}
+
+/**
+ * Save context history after successful execution
+ */
+async function saveContextHistory(
+  participant: string,
+  contextGroup: string,
+  intent: string | undefined,
+  prompt: string,
+  finalPrompt: string,
+  contextContent: string,
+  personaContext: string | undefined,
+  workspaceContent: string | undefined,
+  contextFiles: string[],
+  workspaceFiles: string[],
+  stream: vscode.ChatResponseStream
+): Promise<string | null> {
+  const config = loadConfig();
+
+  // Check if history is enabled
+  if (config.history?.enabled === false) {
+    return null;
+  }
+
+  try {
+    const timestamp = new Date().toISOString();
+    const totalBytes = contextContent.length + (workspaceContent?.length || 0);
+
+    // Build sources
+    const sources: HistoryManifestSources = {
+      static: contextFiles.filter(f => !f.endsWith('.sh') && !f.endsWith('.ts')),
+      dynamic: contextFiles.filter(f => f.endsWith('.sh') || f.endsWith('.ts')),
+      templates: [], // TODO: Extract template paths when available
+      workspace: workspaceFiles,
+    };
+
+    // Create history entry
+    const entry: HistoryEntry = {
+      timestamp,
+      participant,
+      contextGroup,
+      intent,
+      prompt,
+      personaContent: personaContext,
+      conventionsContent: contextContent,
+      workspaceContent,
+      finalPrompt,
+      sources,
+      stats: {
+        totalTokens: estimateHistoryTokens(totalBytes),
+        totalBytes,
+        fileCount: contextFiles.length + workspaceFiles.length,
+      },
+    };
+
+    // Check if first save and handle gitignore
+    if (isFirstHistorySave(config.history)) {
+      if (!isHistoryInGitignore(config.history)) {
+        // Auto-add to gitignore (in VS Code we don't prompt, just do it)
+        addHistoryToGitignore(config.history);
+      }
+    }
+
+    // Save the entry
+    const result = await saveHistoryEntry(entry, config.history);
+
+    // Show notification in chat
+    const relativePath = result.contextPath.replace(process.cwd() + '/', '');
+    stream.markdown(`\n\n---\n📄 Context saved → `);
+    stream.button({
+      command: 'vscode.open',
+      arguments: [vscode.Uri.file(result.contextPath)],
+      title: 'View',
+    });
+    stream.button({
+      command: 'agentx.browseHistory',
+      title: 'Browse History',
+    });
+    stream.markdown(`\n`);
+
+    return result.contextPath;
+  } catch (error) {
+    // Don't fail the command if history saving fails
+    console.warn('Failed to save context history:', error);
+    return null;
+  }
 }
 
 /**
@@ -558,6 +655,25 @@ async function handleExecCommand(
     return { metadata: { command: 'exec', error: 'provider_error' } };
   }
 
+  // Save context history
+  const workspaceFiles = references && references.length > 0
+    ? (await extractReferenceContext(references)).files.map(f => f.path)
+    : [];
+
+  await saveContextHistory(
+    'agentx',
+    aliasName,
+    intentionId,
+    prompt,
+    finalPrompt,
+    context.content,
+    context.personaContext,
+    userContext || undefined,
+    context.files.map(f => f.path),
+    workspaceFiles,
+    stream
+  );
+
   return { metadata: { command: 'exec', alias: aliasName, intention: intentionId, prompt } };
 }
 
@@ -687,6 +803,25 @@ async function handleExecCommandWithParsed(
     stream.markdown(`\n\n❌ **Error:** ${execResult.error}\n`);
     return { metadata: { command: `exec:${aliasName}`, error: 'provider_error' } };
   }
+
+  // Save context history
+  const workspaceFiles = references && references.length > 0
+    ? (await extractReferenceContext(references)).files.map(f => f.path)
+    : [];
+
+  await saveContextHistory(
+    `agentx-${aliasName}`,
+    aliasName,
+    intentionId,
+    prompt,
+    finalPrompt,
+    context.content,
+    context.personaContext,
+    userContext || undefined,
+    context.files.map(f => f.path),
+    workspaceFiles,
+    stream
+  );
 
   return { metadata: { command: `exec:${aliasName}`, alias: aliasName, intention: intentionId, prompt } };
 }

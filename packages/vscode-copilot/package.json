@@ -69,6 +69,21 @@
         "command": "agentx.showConfig",
         "title": "AgentX: Show Config (Legacy)",
         "category": "AgentX"
+      },
+      {
+        "command": "agentx.openLastContext",
+        "title": "AgentX: Open Last Context",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.browseHistory",
+        "title": "AgentX: Browse Context History",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.clearHistory",
+        "title": "AgentX: Clear Context History",
+        "category": "AgentX"
       }
     ],
     "menus": {
@@ -91,6 +106,18 @@
         },
         {
           "command": "agentx.configPath",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.openLastContext",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.browseHistory",
+          "group": "agentx"
+        },
+        {
+          "command": "agentx.clearHistory",
           "group": "agentx"
         }
       ]

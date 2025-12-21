@@ -14,6 +14,9 @@ import {
   findConfigPath,
   aliasDirectoryExists,
   getAliasDirectoryPath,
+  listHistoryEntries,
+  getLastHistoryEntry,
+  clearHistory,
 } from '@agentx/core';
 import { executeWithVSCodeLM, isVSCodeLMAvailable } from './vscode-lm-provider';
 
@@ -337,6 +340,99 @@ ${fileList}${moreFiles}`;
     () => vscode.commands.executeCommand('agentx.configShow')
   );
 
+  // agentx.openLastContext - Open the most recent context file
+  const openLastContextCommand = vscode.commands.registerCommand(
+    'agentx.openLastContext',
+    async () => {
+      const config = loadConfig();
+      const lastEntry = await getLastHistoryEntry(config.history);
+
+      if (!lastEntry) {
+        vscode.window.showInformationMessage('No context history found.');
+        return;
+      }
+
+      const contextPath = `${lastEntry}/context.md`;
+      try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(contextPath));
+        await vscode.window.showTextDocument(doc);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to open context file: ${contextPath}`);
+      }
+    }
+  );
+
+  // agentx.browseHistory - Browse context history
+  const browseHistoryCommand = vscode.commands.registerCommand(
+    'agentx.browseHistory',
+    async () => {
+      const config = loadConfig();
+      const entries = await listHistoryEntries(config.history);
+
+      if (entries.length === 0) {
+        vscode.window.showInformationMessage('No context history found.');
+        return;
+      }
+
+      // Format entries for quick pick
+      const items = entries.map((entry) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+        let dateLabel: string;
+        if (entry.date === today) {
+          dateLabel = 'Today';
+        } else if (entry.date === yesterday) {
+          dateLabel = 'Yesterday';
+        } else {
+          dateLabel = entry.date;
+        }
+
+        const timeFormatted = `${entry.time.slice(0, 2)}:${entry.time.slice(2)}`;
+        const intentLabel = entry.intent ? ` / ${entry.intent}` : '';
+
+        return {
+          label: `${dateLabel} ${timeFormatted} — ${entry.contextGroup}${intentLabel}`,
+          description: entry.path,
+          path: entry.path,
+        };
+      });
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select a context to view',
+        title: 'AgentX: Context History',
+      });
+
+      if (selected) {
+        const contextPath = `${selected.path}/context.md`;
+        try {
+          const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(contextPath));
+          await vscode.window.showTextDocument(doc);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Failed to open context file: ${contextPath}`);
+        }
+      }
+    }
+  );
+
+  // agentx.clearHistory - Clear all context history
+  const clearHistoryCommand = vscode.commands.registerCommand(
+    'agentx.clearHistory',
+    async () => {
+      const confirm = await vscode.window.showWarningMessage(
+        'Are you sure you want to clear all context history?',
+        { modal: true },
+        'Clear History'
+      );
+
+      if (confirm === 'Clear History') {
+        const config = loadConfig();
+        await clearHistory(config.history);
+        vscode.window.showInformationMessage('Context history cleared.');
+      }
+    }
+  );
+
   context.subscriptions.push(
     execCommand,
     aliasListCommand,
@@ -345,7 +441,10 @@ ${fileList}${moreFiles}`;
     configPathCommand,
     execWithAliasCommand,
     selectAliasCommand,
-    showConfigCommand
+    showConfigCommand,
+    openLastContextCommand,
+    browseHistoryCommand,
+    clearHistoryCommand
   );
 }
 

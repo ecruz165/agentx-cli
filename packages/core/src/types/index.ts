@@ -100,6 +100,8 @@ export interface AgentXConfig {
   activePersona?: string;
   /** TOON conversion settings for token optimization */
   toonConversion?: ToonConversionConfig;
+  /** History/context persistence settings */
+  history?: HistoryConfig;
 }
 
 /**
@@ -206,5 +208,105 @@ export interface RequirementGatheringResult {
   missing: IntentionRequirement[];
   complete: boolean;
   refinedPrompt?: string;
+}
+
+/**
+ * History configuration for context persistence
+ */
+export interface HistoryConfig {
+  /** Enable/disable context history saving (default: true) */
+  enabled: boolean;
+  /** Number of days to retain history (default: 7) */
+  retainDays: number;
+  /** Maximum number of history entries to keep (default: 100) */
+  maxEntries: number;
+  /** Location for history files (default: .agentx/history) */
+  location: string;
+  /** Include workspace files in context.md (default: true) */
+  includeWorkspaceFiles: boolean;
+  /** Compress contexts older than N days (default: 1) */
+  compressAfterDays: number;
+}
+
+/**
+ * Source files categorized by type for manifest
+ */
+export interface HistoryManifestSources {
+  /** Static context files (personas, conventions, intents) */
+  static: string[];
+  /** Dynamic context files (scripts that generate context) */
+  dynamic: string[];
+  /** Output templates used */
+  templates: string[];
+  /** Workspace files from #file references */
+  workspace: string[];
+}
+
+/**
+ * Statistics about the context
+ */
+export interface HistoryManifestStats {
+  /** Estimated total tokens */
+  totalTokens: number;
+  /** Total bytes of context */
+  totalBytes: number;
+  /** Number of files included */
+  fileCount: number;
+}
+
+/**
+ * Manifest file structure for context history
+ */
+export interface HistoryManifest {
+  /** Manifest version */
+  version: string;
+  /** ISO timestamp of execution */
+  timestamp: string;
+  /** Participant ID (e.g., agentx-backend) */
+  participant: string;
+  /** Context group/alias name */
+  contextGroup: string;
+  /** Intent ID if used */
+  intent?: string;
+  /** User's original prompt */
+  prompt: string;
+  /** Categorized source files */
+  sources: HistoryManifestSources;
+  /** Context statistics */
+  stats: HistoryManifestStats;
+}
+
+/**
+ * Data needed to save context history
+ */
+export interface HistoryEntry {
+  /** ISO timestamp */
+  timestamp: string;
+  /** Participant ID */
+  participant: string;
+  /** Alias/context group name */
+  contextGroup: string;
+  /** Intent ID if used */
+  intent?: string;
+  /** User's prompt */
+  prompt: string;
+  /** Persona content if any */
+  personaContent?: string;
+  /** Conventions/base context content */
+  conventionsContent?: string;
+  /** Dynamic context content (from scripts) */
+  dynamicContent?: string;
+  /** Intent template content */
+  intentContent?: string;
+  /** Output templates content */
+  templatesContent?: string;
+  /** Workspace files content */
+  workspaceContent?: string;
+  /** Final composed prompt sent to LLM */
+  finalPrompt: string;
+  /** Source file paths by category */
+  sources: HistoryManifestSources;
+  /** Context statistics */
+  stats: HistoryManifestStats;
 }
 
