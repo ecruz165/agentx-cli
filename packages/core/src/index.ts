@@ -22,6 +22,9 @@ export {
   getDefaultConfig,
   resetConfig,
   getConfigKeys,
+  setBasePath,
+  getBasePath,
+  clearBasePath,
 } from './config';
 
 // Alias

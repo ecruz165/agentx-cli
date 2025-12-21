@@ -1,0 +1,13 @@
+{
+  "name": "ux-flow",
+  "description": "Design user flows, journey maps, and interaction patterns",
+  "patterns": [
+    "patterns/user-flows.md",
+    "patterns/interaction-patterns.md",
+    ".ai-templates/user-flow-template.md",
+    ".ai-skill/design-standards.md",
+    "reference/personas.md",
+    "reference/user-research.md"
+  ]
+}
+

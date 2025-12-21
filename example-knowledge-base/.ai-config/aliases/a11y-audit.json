@@ -1,0 +1,13 @@
+{
+  "name": "a11y-audit",
+  "description": "Accessibility audit and remediation guidance following WCAG standards",
+  "patterns": [
+    "patterns/accessibility.md",
+    "patterns/wcag-compliance.md",
+    ".ai-templates/a11y-audit-template.md",
+    ".ai-skill/design-standards.md",
+    "reference/wcag-guidelines.md",
+    "reference/aria-patterns.md"
+  ]
+}
+

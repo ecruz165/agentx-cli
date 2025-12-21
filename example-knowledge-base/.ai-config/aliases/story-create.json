@@ -1,0 +1,12 @@
+{
+  "name": "story-create",
+  "description": "Create user stories with acceptance criteria and business value",
+  "patterns": [
+    "patterns/user-story-format.md",
+    "patterns/acceptance-criteria.md",
+    ".ai-templates/user-story-template.md",
+    ".ai-skill/product-standards.md",
+    "reference/domain-glossary.md"
+  ]
+}
+

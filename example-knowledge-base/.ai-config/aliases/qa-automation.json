@@ -1,0 +1,13 @@
+{
+  "name": "qa-automation",
+  "description": "Design and implement automated test suites - E2E, integration, performance",
+  "patterns": [
+    "patterns/test-automation.md",
+    "patterns/ci-testing.md",
+    ".ai-templates/automation-framework-template.md",
+    ".ai-skill/qa-standards.md",
+    "reference/testing-tools.md",
+    "reference/tech-stack.md"
+  ]
+}
+

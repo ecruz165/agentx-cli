@@ -1,0 +1,13 @@
+{
+  "name": "spec-write",
+  "description": "Write detailed feature specifications and technical requirements",
+  "patterns": [
+    "patterns/specification-format.md",
+    "patterns/api-contract.md",
+    ".ai-templates/feature-spec-template.md",
+    ".ai-skill/product-standards.md",
+    "reference/tech-stack.md",
+    "reference/domain-glossary.md"
+  ]
+}
+

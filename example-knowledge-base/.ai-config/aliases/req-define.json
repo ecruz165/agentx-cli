@@ -1,0 +1,13 @@
+{
+  "name": "req-define",
+  "description": "Define and document functional and non-functional requirements",
+  "patterns": [
+    "patterns/requirements-format.md",
+    "patterns/traceability.md",
+    ".ai-templates/requirements-template.md",
+    ".ai-skill/product-standards.md",
+    "reference/domain-glossary.md",
+    "reference/compliance-requirements.md"
+  ]
+}
+

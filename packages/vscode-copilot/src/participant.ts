@@ -31,7 +31,113 @@ import {
 import { executeWithVSCodeLMStreaming, isVSCodeLMAvailable } from './vscode-lm-provider';
 
 /**
- * Register the AgentX chat participant
+ * Represents extracted context from chat references
+ */
+interface ExtractedReferenceContext {
+  files: Array<{ path: string; content: string }>;
+  selections: Array<{ path: string; content: string; range: string }>;
+  summary: string;
+}
+
+/**
+ * Extract context from chat request references
+ * Handles #file, #selection, and other reference types
+ */
+async function extractReferenceContext(
+  references: readonly vscode.ChatPromptReference[]
+): Promise<ExtractedReferenceContext> {
+  const result: ExtractedReferenceContext = {
+    files: [],
+    selections: [],
+    summary: '',
+  };
+
+  for (const ref of references) {
+    try {
+      // Handle file references (#file)
+      if (ref.id === 'vscode.file' && ref.value instanceof vscode.Uri) {
+        const uri = ref.value;
+        const document = await vscode.workspace.openTextDocument(uri);
+        const content = document.getText();
+        const relativePath = vscode.workspace.asRelativePath(uri);
+        result.files.push({ path: relativePath, content });
+      }
+      // Handle selection references (#selection)
+      else if (ref.id === 'vscode.selection') {
+        // Selection value is typically a Location or an object with uri and range
+        const value = ref.value as { uri?: vscode.Uri; range?: vscode.Range } | vscode.Location;
+
+        if (value && 'uri' in value && value.uri) {
+          const uri = value.uri;
+          const document = await vscode.workspace.openTextDocument(uri);
+          const range = 'range' in value && value.range ? value.range : undefined;
+          const content = range ? document.getText(range) : document.getText();
+          const relativePath = vscode.workspace.asRelativePath(uri);
+          const rangeStr = range
+            ? `L${range.start.line + 1}-L${range.end.line + 1}`
+            : 'full file';
+          result.selections.push({ path: relativePath, content, range: rangeStr });
+        }
+      }
+      // Handle other reference types (e.g., #codebase results)
+      else if (typeof ref.value === 'string') {
+        // String values can be appended to summary
+        result.summary += ref.value + '\n';
+      }
+    } catch (error) {
+      // Log but don't fail on individual reference errors
+      console.warn(`Failed to extract reference ${ref.id}:`, error);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Format extracted reference context as additional context string
+ */
+function formatReferenceContext(refContext: ExtractedReferenceContext): string {
+  const parts: string[] = [];
+
+  if (refContext.files.length > 0) {
+    parts.push('## User-Attached Files\n');
+    for (const file of refContext.files) {
+      parts.push(`### ${file.path}\n\`\`\`\n${file.content}\n\`\`\`\n`);
+    }
+  }
+
+  if (refContext.selections.length > 0) {
+    parts.push('## User-Selected Code\n');
+    for (const sel of refContext.selections) {
+      parts.push(`### ${sel.path} (${sel.range})\n\`\`\`\n${sel.content}\n\`\`\`\n`);
+    }
+  }
+
+  if (refContext.summary.trim()) {
+    parts.push('## Additional Context\n' + refContext.summary);
+  }
+
+  return parts.join('\n');
+}
+
+/**
+ * Participant IDs that should be registered
+ * These must match the IDs in package.json chatParticipants
+ */
+const PARTICIPANT_IDS = [
+  'agentx.chat',
+  'agentx.backend',
+  'agentx.frontend',
+  'agentx.fullstack',
+  'agentx.architect',
+  'agentx.devops',
+  'agentx.qa',
+  'agentx.product',
+  'agentx.designer',
+];
+
+/**
+ * Register the AgentX chat participants (main + persona-specific)
  */
 export function registerChatParticipant(context: vscode.ExtensionContext) {
   if (!vscode.chat) {
@@ -39,18 +145,47 @@ export function registerChatParticipant(context: vscode.ExtensionContext) {
     return;
   }
 
-  const participant = vscode.chat.createChatParticipant('agentx.chat', handleChatRequest);
-
-  // Set icon if it exists (optional)
+  // Set icon path (shared by all participants)
   const iconPath = vscode.Uri.joinPath(context.extensionUri, 'icon.png');
-  try {
-    participant.iconPath = iconPath;
-  } catch {
-    // Icon is optional, continue without it
+
+  // Register all participants
+  for (const participantId of PARTICIPANT_IDS) {
+    try {
+      const participant = vscode.chat.createChatParticipant(participantId, handleChatRequest);
+
+      // Set icon if it exists (optional)
+      try {
+        participant.iconPath = iconPath;
+      } catch {
+        // Icon is optional, continue without it
+      }
+
+      // Add participant variable provider for alias suggestions (filtered by active persona)
+      // Uses the official proposed API: chatParticipantAdditions
+      participant.participantVariableProvider = {
+        triggerCharacters: ['@', '/'],
+        provider: createCompletionProvider(),
+      };
+
+      context.subscriptions.push(participant);
+      console.log(`AgentX chat participant registered: ${participantId}`);
+    } catch (error) {
+      console.error(`Failed to register participant ${participantId}:`, error);
+    }
   }
 
-  // Add completion provider for alias suggestions (filtered by active persona)
-  participant.completionProvider = {
+  console.log('AgentX chat participants registration complete');
+}
+
+// Import proposed API types (from vscode.proposed.chatParticipantAdditions.d.ts)
+// These types extend the vscode module with the chatParticipantAdditions proposed API
+
+/**
+ * Create a completion provider for alias suggestions
+ * Uses the official proposed API: ChatParticipantCompletionItemProvider
+ */
+function createCompletionProvider(): vscode.ChatParticipantCompletionItemProvider {
+  return {
     provideCompletionItems: async (
       query: string,
       token: vscode.CancellationToken
@@ -67,29 +202,46 @@ export function registerChatParticipant(context: vscode.ExtensionContext) {
 
       for (const alias of aliases) {
         // Suggest alias for /exec command (without intention)
+        // Using the official ChatCompletionItem constructor: (id, label, values)
         const execItem = new vscode.ChatCompletionItem(
+          `alias:${alias.name}`,
           alias.name,
-          new vscode.ChatCompletionCommand(
-            'exec',
-            `${alias.name} "Your prompt here"`
-          )
+          [{
+            level: vscode.ChatVariableLevel.Medium,
+            value: `${alias.name} "Your prompt here"`,
+            description: `Execute with alias ${alias.name}`,
+          }]
         );
         execItem.detail = alias.description;
         execItem.documentation = `Execute with ${alias.patterns.length} pattern(s)${personaLabel}`;
+        execItem.insertText = `${alias.name} `;
+        execItem.command = {
+          command: 'agentx.exec',
+          title: `Execute with ${alias.name}`,
+          arguments: [alias.name],
+        };
         completions.push(execItem);
 
         // Suggest alias + intention combinations
         const aliasIntentions = await getIntentionsForAlias(alias.name);
         for (const intention of aliasIntentions) {
           const intentItem = new vscode.ChatCompletionItem(
+            `alias:${alias.name}:${intention.id}`,
             `${alias.name}:${intention.id}`,
-            new vscode.ChatCompletionCommand(
-              'exec',
-              `${alias.name} --intention ${intention.id} "Your prompt here"`
-            )
+            [{
+              level: vscode.ChatVariableLevel.Medium,
+              value: `${alias.name} --intention ${intention.id} "Your prompt here"`,
+              description: `Execute ${alias.name} with ${intention.name} intention`,
+            }]
           );
           intentItem.detail = `${alias.description} → ${intention.name}`;
           intentItem.documentation = intention.description;
+          intentItem.insertText = `${alias.name} --intention ${intention.id} `;
+          intentItem.command = {
+            command: 'agentx.exec',
+            title: `Execute ${alias.name} with ${intention.name}`,
+            arguments: [alias.name, intention.id],
+          };
           completions.push(intentItem);
         }
       }
@@ -98,13 +250,21 @@ export function registerChatParticipant(context: vscode.ExtensionContext) {
       for (const intention of intentions) {
         const intentItem = new vscode.ChatCompletionItem(
           `intention:${intention.id}`,
-          new vscode.ChatCompletionCommand(
-            'intentions',
-            intention.id
-          )
+          `intention:${intention.id}`,
+          [{
+            level: vscode.ChatVariableLevel.Medium,
+            value: intention.id,
+            description: intention.description,
+          }]
         );
         intentItem.detail = intention.name;
         intentItem.documentation = intention.description;
+        intentItem.insertText = intention.id;
+        intentItem.command = {
+          command: 'agentx.intentionShow',
+          title: `Show intention: ${intention.name}`,
+          arguments: [intention.id],
+        };
         completions.push(intentItem);
       }
 
@@ -115,13 +275,21 @@ export function registerChatParticipant(context: vscode.ExtensionContext) {
           const isActive = activePersona?.id === persona.id;
           const personaItem = new vscode.ChatCompletionItem(
             `persona:${persona.id}`,
-            new vscode.ChatCompletionCommand(
-              'config',
-              `set activePersona ${persona.id}`
-            )
+            `persona:${persona.id}`,
+            [{
+              level: vscode.ChatVariableLevel.Short,
+              value: persona.id,
+              description: `Switch to ${persona.name} persona`,
+            }]
           );
           personaItem.detail = `${isActive ? '✓ ' : ''}${persona.name}`;
           personaItem.documentation = persona.description;
+          personaItem.insertText = persona.id;
+          personaItem.command = {
+            command: 'agentx.setPersona',
+            title: `Set persona to ${persona.name}`,
+            arguments: [persona.id],
+          };
           completions.push(personaItem);
         }
       }
@@ -129,9 +297,22 @@ export function registerChatParticipant(context: vscode.ExtensionContext) {
       return completions;
     },
   };
+}
 
-  context.subscriptions.push(participant);
-  console.log('AgentX chat participant registered');
+/**
+ * Parse compound exec command format: exec:alias or exec:alias:intention
+ * Returns { alias, intention? } or null if invalid format
+ */
+function parseCompoundExecCommand(command: string): { alias: string; intention?: string } | null {
+  const parts = command.split(':');
+  if (parts.length < 2 || parts[0] !== 'exec') {
+    return null;
+  }
+
+  return {
+    alias: parts[1],
+    intention: parts[2], // undefined if not present
+  };
 }
 
 /**
@@ -145,10 +326,19 @@ async function handleChatRequest(
 ): Promise<vscode.ChatResult> {
   const prompt = request.prompt.trim();
   const command = request.command; // VS Code passes slash commands here
+  const references = request.references; // User-attached context (#file, #selection, etc.)
 
-  // Handle slash commands from VS Code Chat
+  // Handle compound exec commands: exec:alias or exec:alias:intention
+  if (command?.startsWith('exec:')) {
+    const parsed = parseCompoundExecCommand(command);
+    if (parsed) {
+      return handleExecCommandWithParsed(parsed.alias, parsed.intention, prompt, stream, token, references);
+    }
+  }
+
+  // Handle simple exec command (legacy format)
   if (command === 'exec') {
-    return handleExecCommand(prompt, stream, token);
+    return handleExecCommand(prompt, stream, token, references);
   }
 
   if (command === 'intentions') {
@@ -196,7 +386,7 @@ async function handleChatRequest(
 
   // Fallback: check for inline /commands in prompt (for backwards compatibility)
   if (prompt.startsWith('/exec ')) {
-    return handleExecCommand(prompt.substring(6).trim(), stream, token);
+    return handleExecCommand(prompt.substring(6).trim(), stream, token, references);
   }
   if (prompt === '/alias list' || prompt === '/alias') {
     return handleAliasListCommand(stream);
@@ -226,7 +416,7 @@ async function handleChatRequest(
   }
 
   // Default: treat as exec with prompt selection
-  return handleDefaultExec(prompt, stream, token);
+  return handleDefaultExec(prompt, stream, token, references);
 }
 
 /**
@@ -235,7 +425,8 @@ async function handleChatRequest(
 async function handleExecCommand(
   args: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
+  references?: readonly vscode.ChatPromptReference[]
 ): Promise<vscode.ChatResult> {
   // Parse: alias [--intention intention] "prompt" or alias prompt
   // Support both: alias "prompt" and alias --intention create-new "prompt"
@@ -308,9 +499,20 @@ async function handleExecCommand(
     stream.markdown(`## ✅ Requirements Gathered\n\n`);
   }
 
-  // Build context
+  // Build context from alias
   const config = loadConfig();
   const context = await buildContext(alias);
+
+  // Extract and append user-attached context from references (#file, #selection, etc.)
+  let userContext = '';
+  let userContextFileCount = 0;
+  let userContextSelectionCount = 0;
+  if (references && references.length > 0) {
+    const refContext = await extractReferenceContext(references);
+    userContext = formatReferenceContext(refContext);
+    userContextFileCount = refContext.files.length;
+    userContextSelectionCount = refContext.selections.length;
+  }
 
   stream.markdown(`## Executing with AgentX\n\n`);
   stream.markdown(`| Setting | Value |\n|---------|-------|\n`);
@@ -319,7 +521,11 @@ async function handleExecCommand(
   if (intention) {
     stream.markdown(`| Intention | ${intention.name} |\n`);
   }
-  stream.markdown(`| Context | ${context.files.length} files (${(context.totalSize / 1024).toFixed(1)} KB) |\n\n`);
+  stream.markdown(`| Alias Context | ${context.files.length} files (${(context.totalSize / 1024).toFixed(1)} KB) |\n`);
+  if (userContextFileCount > 0 || userContextSelectionCount > 0) {
+    stream.markdown(`| User Context | ${userContextFileCount} files, ${userContextSelectionCount} selections |\n`);
+  }
+  stream.markdown(`\n`);
 
   if (context.truncated) {
     stream.markdown(`⚠️ **Warning:** Context was truncated to fit within size limit.\n\n`);
@@ -338,9 +544,14 @@ async function handleExecCommand(
     return { metadata: { command: 'exec', error: 'lm_not_available' } };
   }
 
+  // Combine alias context with user-attached context
+  const combinedContext = userContext
+    ? `${context.content}\n\n${userContext}`
+    : context.content;
+
   // Execute with VS Code's native Language Model API (streaming)
   stream.markdown(`### Response\n\n`);
-  const execResult = await executeWithVSCodeLMStreaming(finalPrompt, context.content, stream, token);
+  const execResult = await executeWithVSCodeLMStreaming(finalPrompt, combinedContext, stream, token);
 
   if (!execResult.success) {
     stream.markdown(`\n\n❌ **Error:** ${execResult.error}\n`);
@@ -348,6 +559,136 @@ async function handleExecCommand(
   }
 
   return { metadata: { command: 'exec', alias: aliasName, intention: intentionId, prompt } };
+}
+
+/**
+ * Handle exec command with pre-parsed alias and intention (from compound command format)
+ * Used for commands like /exec:be-api:create-new "prompt"
+ */
+async function handleExecCommandWithParsed(
+  aliasName: string,
+  intentionId: string | undefined,
+  prompt: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken,
+  references?: readonly vscode.ChatPromptReference[]
+): Promise<vscode.ChatResult> {
+  // Validate prompt
+  if (!prompt || prompt.trim() === '') {
+    stream.markdown(`❌ **Missing prompt**\n\nUsage: \`/exec:${aliasName}${intentionId ? ':' + intentionId : ''} "Your prompt here"\``);
+    return { metadata: { command: `exec:${aliasName}`, error: 'missing_prompt' } };
+  }
+
+  const alias = await getAlias(aliasName);
+  if (!alias) {
+    const aliases = await loadAliases();
+    stream.markdown(`❌ **Alias not found:** \`${aliasName}\`\n\n`);
+    if (aliases.length > 0) {
+      stream.markdown(`Available aliases: ${aliases.map(a => `\`${a.name}\``).join(', ')}`);
+    }
+    return { metadata: { command: `exec:${aliasName}`, error: 'alias_not_found' } };
+  }
+
+  // Handle intention if specified
+  let finalPrompt = prompt;
+  let intention: IntentionDefinition | null = null;
+
+  if (intentionId) {
+    intention = await getIntention(intentionId);
+    if (!intention) {
+      const intentions = await getIntentionsForAlias(aliasName);
+      stream.markdown(`❌ **Intention not found:** \`${intentionId}\`\n\n`);
+      if (intentions.length > 0) {
+        stream.markdown(`Available intentions: ${intentions.map(i => `\`${i.id}\``).join(', ')}`);
+      }
+      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'intention_not_found' } };
+    }
+
+    // Gather requirements
+    const result = gatherRequirements(prompt, intention, aliasName);
+
+    if (!result.complete) {
+      // Show missing requirements and prompt user
+      stream.markdown(`## 📋 Intention: ${intention.name}\n\n`);
+      stream.markdown(`${formatMissingRequirements(result.missing)}\n\n`);
+      stream.markdown(`**Please provide the missing information in your prompt.**\n\n`);
+      stream.markdown(`Example: \`/exec:${aliasName}:${intentionId} "POST /api/v1/events with title, date, location fields"\`\n`);
+
+      // Show buttons for each missing requirement
+      for (const req of result.missing) {
+        stream.markdown(`\n**${req.name}:** ${req.question}`);
+        if (req.type === 'enum' && req.options) {
+          stream.markdown(` (${req.options.join(' | ')})`);
+        }
+      }
+
+      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'missing_requirements' } };
+    }
+
+    finalPrompt = result.refinedPrompt || prompt;
+    stream.markdown(`## ✅ Requirements Gathered\n\n`);
+  }
+
+  // Build context from alias
+  const config = loadConfig();
+  const context = await buildContext(alias);
+
+  // Extract and append user-attached context from references (#file, #selection, etc.)
+  let userContext = '';
+  let userContextFileCount = 0;
+  let userContextSelectionCount = 0;
+  if (references && references.length > 0) {
+    const refContext = await extractReferenceContext(references);
+    userContext = formatReferenceContext(refContext);
+    userContextFileCount = refContext.files.length;
+    userContextSelectionCount = refContext.selections.length;
+  }
+
+  stream.markdown(`## Executing with AgentX\n\n`);
+  stream.markdown(`| Setting | Value |\n|---------|-------|\n`);
+  stream.markdown(`| Provider | VS Code Copilot (native) |\n`);
+  stream.markdown(`| Alias | ${aliasName} |\n`);
+  if (intention) {
+    stream.markdown(`| Intention | ${intention.name} |\n`);
+  }
+  stream.markdown(`| Alias Context | ${context.files.length} files (${(context.totalSize / 1024).toFixed(1)} KB) |\n`);
+  if (userContextFileCount > 0 || userContextSelectionCount > 0) {
+    stream.markdown(`| User Context | ${userContextFileCount} files, ${userContextSelectionCount} selections |\n`);
+  }
+  stream.markdown(`\n`);
+
+  if (context.truncated) {
+    stream.markdown(`⚠️ **Warning:** Context was truncated to fit within size limit.\n\n`);
+  }
+
+  stream.markdown(`**Prompt:** ${prompt}\n\n`);
+  if (intention && finalPrompt !== prompt) {
+    stream.markdown(`**Refined Prompt (TOON):**\n\`\`\`\n${finalPrompt.substring(0, 500)}${finalPrompt.length > 500 ? '...' : ''}\n\`\`\`\n\n`);
+  }
+  stream.markdown(`---\n\n`);
+
+  // Check if VS Code LM API is available
+  if (!isVSCodeLMAvailable()) {
+    stream.markdown(`❌ **Error:** VS Code Language Model API not available.\n\n`);
+    stream.markdown(`Please update VS Code to version 1.90 or later and ensure GitHub Copilot is installed.\n`);
+    return { metadata: { command: `exec:${aliasName}`, error: 'lm_not_available' } };
+  }
+
+  // Combine alias context with user-attached context
+  const combinedContext = userContext
+    ? `${context.content}\n\n${userContext}`
+    : context.content;
+
+  // Execute with VS Code's native Language Model API (streaming)
+  stream.markdown(`### Response\n\n`);
+  const execResult = await executeWithVSCodeLMStreaming(finalPrompt, combinedContext, stream, token);
+
+  if (!execResult.success) {
+    stream.markdown(`\n\n❌ **Error:** ${execResult.error}\n`);
+    return { metadata: { command: `exec:${aliasName}`, error: 'provider_error' } };
+  }
+
+  return { metadata: { command: `exec:${aliasName}`, alias: aliasName, intention: intentionId, prompt } };
 }
 
 /**
@@ -626,7 +967,14 @@ async function handleHelpCommand(
   stream: vscode.ChatResponseStream
 ): Promise<vscode.ChatResult> {
   stream.markdown(`## AgentX Commands\n\n`);
-  stream.markdown(`### Execute\n`);
+  stream.markdown(`### Execute (Compound Format - Recommended)\n`);
+  stream.markdown(`- \`/exec:<alias> "<prompt>"\` - Execute with alias (auto-suggested)\n`);
+  stream.markdown(`- \`/exec:<alias>:<intention> "<prompt>"\` - Execute with alias + intention\n\n`);
+  stream.markdown(`**Examples:**\n`);
+  stream.markdown(`- \`/exec:be-api "Create customer endpoint"\`\n`);
+  stream.markdown(`- \`/exec:be-endpoint:create-new "event management"\`\n\n`);
+
+  stream.markdown(`### Execute (Legacy Format)\n`);
   stream.markdown(`- \`/exec <alias> "<prompt>"\` - Execute AI prompt with context alias\n`);
   stream.markdown(`- \`/exec <alias> --intention <intention> "<prompt>"\` - Execute with intention\n\n`);
 
@@ -650,7 +998,7 @@ async function handleHelpCommand(
   stream.markdown(`- \`/help\` - Show this help message\n\n`);
 
   stream.markdown(`---\n\n`);
-  stream.markdown(`💡 **Tip:** Use intentions to get structured prompts with requirement gathering.`);
+  stream.markdown(`💡 **Tip:** Use the compound format (\`/exec:<alias>:<intention>\`) for auto-suggest support!`);
 
   return { metadata: { command: 'help' } };
 }
@@ -661,7 +1009,8 @@ async function handleHelpCommand(
 async function handleDefaultExec(
   prompt: string,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  token: vscode.CancellationToken,
+  references?: readonly vscode.ChatPromptReference[]
 ): Promise<vscode.ChatResult> {
   // Load aliases filtered by active persona
   const aliases = await loadAliasesForActivePersona();
@@ -682,6 +1031,14 @@ async function handleDefaultExec(
   // Show active persona if set
   if (activePersona) {
     stream.markdown(`*Persona: ${activePersona.name}*\n\n`);
+  }
+
+  // Show user-attached context if any
+  if (references && references.length > 0) {
+    const refContext = await extractReferenceContext(references);
+    if (refContext.files.length > 0 || refContext.selections.length > 0) {
+      stream.markdown(`📎 **Attached context:** ${refContext.files.length} files, ${refContext.selections.length} selections\n\n`);
+    }
   }
 
   stream.markdown(`**Available aliases:**\n\n`);

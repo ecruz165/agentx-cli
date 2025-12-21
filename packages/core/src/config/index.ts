@@ -8,6 +8,34 @@ import os from 'os';
 import { AgentXConfig, FrameworkConfig } from '../types';
 
 /**
+ * Base path for resolving relative config paths
+ * Defaults to process.cwd() but can be overridden for VS Code extensions
+ */
+let basePath: string | null = null;
+
+/**
+ * Set the base path for resolving relative config paths
+ * This is useful for VS Code extensions where process.cwd() is not the workspace folder
+ */
+export function setBasePath(newBasePath: string): void {
+  basePath = newBasePath;
+}
+
+/**
+ * Get the current base path (defaults to process.cwd())
+ */
+export function getBasePath(): string {
+  return basePath || process.cwd();
+}
+
+/**
+ * Clear the base path (revert to using process.cwd())
+ */
+export function clearBasePath(): void {
+  basePath = null;
+}
+
+/**
  * Default configuration values
  */
 const DEFAULT_CONFIG: AgentXConfig = {
@@ -52,7 +80,7 @@ export function findConfigPath(): string | null {
   for (const configPath of CONFIG_PATHS) {
     const fullPath = path.isAbsolute(configPath)
       ? configPath
-      : path.join(process.cwd(), configPath);
+      : path.join(getBasePath(), configPath);
     if (fs.existsSync(fullPath)) {
       return fullPath;
     }
@@ -84,7 +112,7 @@ export function loadConfig(): AgentXConfig {
  * Save configuration to file
  */
 export function saveConfig(config: AgentXConfig, configPath?: string): void {
-  const targetPath = configPath || path.join(process.cwd(), CONFIG_PATHS[0]);
+  const targetPath = configPath || path.join(getBasePath(), CONFIG_PATHS[0]);
   const dir = path.dirname(targetPath);
 
   if (!fs.existsSync(dir)) {
@@ -138,7 +166,7 @@ export function getDefaultConfig(): AgentXConfig {
  * Reset configuration to defaults
  */
 export function resetConfig(): void {
-  const configPath = findConfigPath() || path.join(process.cwd(), CONFIG_PATHS[0]);
+  const configPath = findConfigPath() || path.join(getBasePath(), CONFIG_PATHS[0]);
   saveConfig(DEFAULT_CONFIG, configPath);
 }
 

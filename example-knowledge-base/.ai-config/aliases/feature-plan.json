@@ -1,0 +1,13 @@
+{
+  "name": "feature-plan",
+  "description": "Plan feature development with milestones, dependencies, and rollout strategy",
+  "patterns": [
+    "patterns/feature-planning.md",
+    "patterns/release-strategy.md",
+    ".ai-templates/feature-plan-template.md",
+    ".ai-skill/product-standards.md",
+    "reference/team-capacity.md",
+    "reference/roadmap.md"
+  ]
+}
+

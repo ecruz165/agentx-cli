@@ -1,0 +1,13 @@
+{
+  "name": "design-system",
+  "description": "Create and maintain design system components, tokens, and documentation",
+  "patterns": [
+    "patterns/design-system.md",
+    "patterns/design-tokens.md",
+    ".ai-templates/component-spec-template.md",
+    ".ai-skill/design-standards.md",
+    "reference/brand-guidelines.md",
+    "reference/color-palette.md"
+  ]
+}
+

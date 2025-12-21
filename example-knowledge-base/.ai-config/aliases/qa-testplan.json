@@ -1,0 +1,12 @@
+{
+  "name": "qa-testplan",
+  "description": "Create comprehensive test plans with test cases and coverage analysis",
+  "patterns": [
+    "patterns/test-planning.md",
+    "patterns/test-coverage.md",
+    ".ai-templates/test-plan-template.md",
+    ".ai-skill/qa-standards.md",
+    "reference/testing-tools.md"
+  ]
+}
+

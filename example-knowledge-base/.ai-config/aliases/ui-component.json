@@ -1,0 +1,13 @@
+{
+  "name": "ui-component",
+  "description": "Design UI component specifications with states, variants, and accessibility",
+  "patterns": [
+    "patterns/component-design.md",
+    "patterns/accessibility.md",
+    ".ai-templates/ui-component-spec-template.md",
+    ".ai-skill/design-standards.md",
+    "reference/design-system.md",
+    "reference/wcag-guidelines.md"
+  ]
+}
+
