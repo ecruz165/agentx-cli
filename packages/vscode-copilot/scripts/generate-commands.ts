@@ -154,7 +154,10 @@ function generateBaseCommands(): ChatCommand[] {
     { name: 'alias', description: 'Manage context aliases (list, show)' },
     { name: 'config', description: 'View configuration (show, path)' },
     { name: 'intentions', description: 'List or show intentions' },
-    { name: 'init', description: 'Project initialization guidance' },
+    { name: 'init', description: 'Initialize AgentX - detect project and scaffold .ai-config' },
+    { name: 'init:analyze', description: 'Analyze project type and dependencies without scaffolding' },
+    { name: 'init:scaffold', description: 'Scaffold .ai-config with detected project settings' },
+    { name: 'init:scaffold-with-dirs', description: 'Scaffold .ai-config and create source directories' },
     { name: 'help', description: 'Show available commands' },
   ];
 }

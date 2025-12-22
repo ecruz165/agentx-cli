@@ -106,3 +106,71 @@ export {
   isFirstHistorySave,
 } from './history';
 
+// Plan Document Management
+export {
+  // Types
+  type PlanStatus,
+  type GatheredRequirement,
+  type MissingRequirement,
+  type PlanDocument,
+  type PrdDocument,
+  // Functions
+  getPlansPath,
+  generatePlanId,
+  getPlanPath,
+  createPlanDocument,
+  savePlanDocument,
+  loadPlanDocument,
+  isPlanExpired,
+  updatePlanRequirements,
+  addToConversationHistory,
+  setImplementationPlan,
+  approvePlan,
+  rejectPlan,
+  deletePlanDocument,
+  listActivePlans,
+  cleanupPlans,
+  generatePlanMarkdown,
+  generatePrdDocument,
+  generatePrdMarkdown,
+  savePrdToHistory,
+  findActivePlan,
+} from './plan';
+
+// Bootstrap/Project Detection
+export {
+  // Types
+  type ProjectMarker,
+  type ProjectRootResult,
+  type ProjectType,
+  type DetectedFramework,
+  type DependencyInfo,
+  type ProjectAnalysisResult,
+  type AliasTemplateInput,
+  type IntentionTemplateInput,
+  type ScaffoldOptions,
+  type ScaffoldResult,
+  type ProjectTemplates,
+  // Project Detection
+  detectProjectRoot,
+  findProjectRoot,
+  hasMarker,
+  getPrimaryLanguage,
+  isMonorepo,
+  // Project Analysis
+  analyzeProject,
+  parsePackageJson,
+  parsePomXml,
+  parseBuildGradle,
+  determineProjectType,
+  // Scaffolding
+  scaffoldProject,
+  generateAliasFiles,
+  generateIntentionFiles,
+  generateDefaultConfig,
+  createSourceDirectories,
+  getAiConfigPath,
+  hasAiConfig,
+  DEFAULT_TEMPLATES,
+} from './bootstrap';
+

@@ -84,6 +84,36 @@
         "command": "agentx.clearHistory",
         "title": "AgentX: Clear Context History",
         "category": "AgentX"
+      },
+      {
+        "command": "agentx.executeScaffold",
+        "title": "AgentX: Initialize Project",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.initAnyway",
+        "title": "AgentX: Initialize Project (No Markers)",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.reinitialize",
+        "title": "AgentX: Add Missing Config Files",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.reinitializeOverwrite",
+        "title": "AgentX: Reinitialize (Overwrite)",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.executePlan",
+        "title": "AgentX: Execute Plan",
+        "category": "AgentX"
+      },
+      {
+        "command": "agentx.rejectPlan",
+        "title": "AgentX: Cancel Plan",
+        "category": "AgentX"
       }
     ],
     "menus": {
@@ -144,7 +174,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -573,7 +615,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -742,7 +796,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -851,7 +917,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -1280,7 +1358,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -1309,7 +1399,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -1338,7 +1440,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -1427,7 +1541,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",
@@ -1536,7 +1662,19 @@
           },
           {
             "name": "init",
-            "description": "Project initialization guidance"
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
           },
           {
             "name": "help",

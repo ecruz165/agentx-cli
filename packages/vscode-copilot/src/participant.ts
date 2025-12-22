@@ -37,8 +37,27 @@ import {
   getLastHistoryEntry,
   listHistoryEntries,
   clearHistory,
+  // Bootstrap utilities
+  detectProjectRoot,
+  analyzeProject,
+  hasAiConfig,
+  getAiConfigPath,
+  DEFAULT_TEMPLATES,
+  scaffoldProject,
 } from '@agentx/core';
-import { executeWithVSCodeLMStreaming, isVSCodeLMAvailable } from './vscode-lm-provider';
+import { executeWithVSCodeLMStreaming, isVSCodeLMAvailable, generatePlanWithVSCodeLM } from './vscode-lm-provider';
+import {
+  createPlanDocument,
+  savePlanDocument,
+  findActivePlan,
+  updatePlanRequirements,
+  setImplementationPlan,
+  addToConversationHistory,
+  generatePlanMarkdown,
+  GatheredRequirement,
+  MissingRequirement,
+  PlanDocument,
+} from '@agentx/core';
 
 /**
  * Represents extracted context from chat references
@@ -477,6 +496,18 @@ async function handleChatRequest(
     return handleInitCommand(stream);
   }
 
+  if (command === 'init:analyze') {
+    return handleInitAnalyzeCommand(stream);
+  }
+
+  if (command === 'init:scaffold') {
+    return handleInitScaffoldCommand(stream, false);
+  }
+
+  if (command === 'init:scaffold-with-dirs') {
+    return handleInitScaffoldCommand(stream, true);
+  }
+
   if (command === 'help') {
     return handleHelpCommand(stream);
   }
@@ -500,8 +531,17 @@ async function handleChatRequest(
   if (prompt === '/config path') {
     return handleConfigPathCommand(stream);
   }
-  if (prompt === '/init' || prompt.startsWith('/init ')) {
+  if (prompt === '/init' || prompt === '/init ') {
     return handleInitCommand(stream);
+  }
+  if (prompt === '/init:analyze') {
+    return handleInitAnalyzeCommand(stream);
+  }
+  if (prompt === '/init:scaffold') {
+    return handleInitScaffoldCommand(stream, false);
+  }
+  if (prompt === '/init:scaffold-with-dirs') {
+    return handleInitScaffoldCommand(stream, true);
   }
   if (prompt === '/help') {
     return handleHelpCommand(stream);
@@ -680,6 +720,12 @@ async function handleExecCommand(
 /**
  * Handle exec command with pre-parsed alias and intention (from compound command format)
  * Used for commands like /exec:be-api:create-new "prompt"
+ *
+ * When an intention is specified, this triggers PLAN MODE with incremental gathering:
+ * 1. Creates or resumes a plan document
+ * 2. Gathers requirements incrementally across chat turns
+ * 3. When all requirements gathered, generates implementation plan
+ * 4. User reviews and approves - PRD is saved to history
  */
 async function handleExecCommandWithParsed(
   aliasName: string,
@@ -687,7 +733,8 @@ async function handleExecCommandWithParsed(
   prompt: string,
   stream: vscode.ChatResponseStream,
   token: vscode.CancellationToken,
-  references?: readonly vscode.ChatPromptReference[]
+  references?: readonly vscode.ChatPromptReference[],
+  participantId?: string
 ): Promise<vscode.ChatResult> {
   // Validate prompt
   if (!prompt || prompt.trim() === '') {
@@ -705,46 +752,6 @@ async function handleExecCommandWithParsed(
     return { metadata: { command: `exec:${aliasName}`, error: 'alias_not_found' } };
   }
 
-  // Handle intention if specified
-  let finalPrompt = prompt;
-  let intention: IntentionDefinition | null = null;
-
-  if (intentionId) {
-    intention = await getIntention(intentionId);
-    if (!intention) {
-      const intentions = await getIntentionsForAlias(aliasName);
-      stream.markdown(`❌ **Intention not found:** \`${intentionId}\`\n\n`);
-      if (intentions.length > 0) {
-        stream.markdown(`Available intentions: ${intentions.map(i => `\`${i.id}\``).join(', ')}`);
-      }
-      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'intention_not_found' } };
-    }
-
-    // Gather requirements
-    const result = gatherRequirements(prompt, intention, aliasName);
-
-    if (!result.complete) {
-      // Show missing requirements and prompt user
-      stream.markdown(`## 📋 Intention: ${intention.name}\n\n`);
-      stream.markdown(`${formatMissingRequirements(result.missing)}\n\n`);
-      stream.markdown(`**Please provide the missing information in your prompt.**\n\n`);
-      stream.markdown(`Example: \`/exec:${aliasName}:${intentionId} "POST /api/v1/events with title, date, location fields"\`\n`);
-
-      // Show buttons for each missing requirement
-      for (const req of result.missing) {
-        stream.markdown(`\n**${req.name}:** ${req.question}`);
-        if (req.type === 'enum' && req.options) {
-          stream.markdown(` (${req.options.join(' | ')})`);
-        }
-      }
-
-      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'missing_requirements' } };
-    }
-
-    finalPrompt = result.refinedPrompt || prompt;
-    stream.markdown(`## ✅ Requirements Gathered\n\n`);
-  }
-
   // Build context from alias
   const config = loadConfig();
   const context = await buildContext(alias);
@@ -760,13 +767,208 @@ async function handleExecCommandWithParsed(
     userContextSelectionCount = refContext.selections.length;
   }
 
+  // Combine alias context with user-attached context
+  const combinedContext = userContext
+    ? `${context.content}\n\n${userContext}`
+    : context.content;
+
+  // Check if VS Code LM API is available
+  if (!isVSCodeLMAvailable()) {
+    stream.markdown(`❌ **Error:** VS Code Language Model API not available.\n\n`);
+    stream.markdown(`Please update VS Code to version 1.90 or later and ensure GitHub Copilot is installed.\n`);
+    return { metadata: { command: `exec:${aliasName}`, error: 'lm_not_available' } };
+  }
+
+  // ========================================
+  // PLAN MODE: When intention is specified
+  // ========================================
+  if (intentionId) {
+    const intention = await getIntention(intentionId);
+    if (!intention) {
+      const intentions = await getIntentionsForAlias(aliasName);
+      stream.markdown(`❌ **Intention not found:** \`${intentionId}\`\n\n`);
+      if (intentions.length > 0) {
+        stream.markdown(`Available intentions: ${intentions.map(i => `\`${i.id}\``).join(', ')}`);
+      }
+      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'intention_not_found' } };
+    }
+
+    const participant = participantId || 'agentx';
+
+    // Check for existing active plan for this combination
+    let plan = findActivePlan(participant, aliasName, intentionId);
+
+    // Gather requirements from the current prompt
+    const gatherResult = gatherRequirements(prompt, intention, aliasName);
+
+    // Convert to plan document format
+    const gatheredReqs: GatheredRequirement[] = gatherResult.gathered.map(g => ({
+      id: g.id || g.name.toLowerCase().replace(/\s+/g, '-'),
+      name: g.name,
+      type: g.type || 'string',
+      value: g.value,
+      gatheredAt: new Date().toISOString(),
+    }));
+
+    const missingReqs: MissingRequirement[] = gatherResult.missing.map(m => ({
+      id: m.id || m.name.toLowerCase().replace(/\s+/g, '-'),
+      name: m.name,
+      type: m.type || 'string',
+      question: m.question,
+      required: m.required !== false,
+      options: m.options,
+    }));
+
+    if (plan) {
+      // Update existing plan with new requirements
+      plan = updatePlanRequirements(plan, gatheredReqs);
+      plan = addToConversationHistory(plan, 'user', prompt);
+      savePlanDocument(plan);
+
+      stream.markdown(`## 📋 Plan: ${intention.name} (Continued)\n\n`);
+      stream.markdown(`*Updating plan with new information...*\n\n`);
+    } else {
+      // Create new plan document
+      plan = createPlanDocument(
+        participant,
+        aliasName,
+        intention,
+        prompt,
+        gatheredReqs,
+        missingReqs
+      );
+      plan = addToConversationHistory(plan, 'user', prompt);
+      savePlanDocument(plan);
+
+      stream.markdown(`## 🎯 Plan Mode: ${intention.name}\n\n`);
+      stream.markdown(`*Creating new plan document...*\n\n`);
+    }
+
+    // Show plan status
+    stream.markdown(`| Setting | Value |\n|---------|-------|\n`);
+    stream.markdown(`| Plan ID | \`${plan.id}\` |\n`);
+    stream.markdown(`| Alias | \`${aliasName}\` |\n`);
+    stream.markdown(`| Intention | ${intention.name} |\n`);
+    stream.markdown(`| Status | ${plan.status} |\n`);
+    stream.markdown(`| Context | ${context.files.length} files (${(context.totalSize / 1024).toFixed(1)} KB) |\n`);
+    stream.markdown(`\n`);
+
+    // Show gathered requirements
+    if (plan.gathered.length > 0) {
+      stream.markdown(`### ✅ Requirements Gathered\n\n`);
+      for (const req of plan.gathered) {
+        stream.markdown(`- **${req.name}:** ${req.value}\n`);
+      }
+      stream.markdown(`\n`);
+    }
+
+    // Check if more requirements are needed
+    const requiredMissing = plan.missing.filter(m => m.required);
+
+    if (requiredMissing.length > 0) {
+      // Still gathering requirements
+      stream.markdown(`### ❓ Missing Requirements\n\n`);
+      stream.markdown(`Please provide the following information:\n\n`);
+
+      for (const req of requiredMissing) {
+        stream.markdown(`**${req.name}:** ${req.question}`);
+        if (req.options) {
+          stream.markdown(` *(${req.options.join(' | ')})*`);
+        }
+        stream.markdown(`\n\n`);
+      }
+
+      stream.markdown(`---\n\n`);
+      stream.markdown(`💡 *Continue the conversation by providing the missing information. Example:*\n\n`);
+      stream.markdown(`\`\`\`\n@${participant} ${requiredMissing[0].question.replace('?', '')} ...\n\`\`\`\n`);
+
+      // Add conversation to plan
+      const assistantMsg = `Gathered ${plan.gathered.length} requirement(s). Still need: ${requiredMissing.map(r => r.name).join(', ')}`;
+      plan = addToConversationHistory(plan, 'assistant', assistantMsg);
+      savePlanDocument(plan);
+
+      return {
+        metadata: {
+          command: `exec:${aliasName}:${intentionId}`,
+          alias: aliasName,
+          intention: intentionId,
+          prompt,
+          mode: 'plan',
+          planId: plan.id,
+          status: 'gathering',
+        }
+      };
+    }
+
+    // All requirements gathered - generate implementation plan
+    stream.markdown(`---\n\n`);
+    stream.markdown(`### 📝 Implementation Plan\n\n`);
+    stream.markdown(`*Generating plan based on your conventions and requirements...*\n\n`);
+
+    const requirementsDescription = plan.gathered
+      .map(g => `- **${g.name}**: ${g.value}`)
+      .join('\n');
+
+    // Generate the plan using LLM
+    const planResult = await generatePlanWithVSCodeLM(
+      intention.name,
+      intention.description,
+      requirementsDescription,
+      plan.originalPrompt,
+      combinedContext,
+      stream,
+      token
+    );
+
+    if (!planResult.success) {
+      stream.markdown(`\n\n❌ **Error generating plan:** ${planResult.error}\n`);
+      return { metadata: { command: `exec:${aliasName}:${intentionId}`, error: 'plan_generation_failed' } };
+    }
+
+    // Update plan with implementation plan and context
+    plan = setImplementationPlan(plan, planResult.plan || '', combinedContext);
+    plan = addToConversationHistory(plan, 'assistant', `Generated implementation plan:\n\n${planResult.plan}`);
+    savePlanDocument(plan);
+
+    stream.markdown(`\n\n---\n\n`);
+    stream.markdown(`### ✅ Plan Ready for Review\n\n`);
+    stream.markdown(`All requirements gathered. Review the plan above.\n\n`);
+    stream.markdown(`**When ready, click to execute and generate PRD:**\n\n`);
+
+    // Add action buttons
+    stream.button({
+      command: 'agentx.executePlan',
+      arguments: [plan.id],
+      title: '🚀 Execute & Generate PRD',
+    });
+    stream.button({
+      command: 'agentx.rejectPlan',
+      arguments: [plan.id],
+      title: '❌ Cancel Plan',
+    });
+
+    stream.markdown(`\n\n💡 *The plan expires in 30 minutes. PRD will be saved to \`.agentx/history/\` on execution.*`);
+
+    return {
+      metadata: {
+        command: `exec:${aliasName}:${intentionId}`,
+        alias: aliasName,
+        intention: intentionId,
+        prompt,
+        mode: 'plan',
+        planId: plan.id,
+        status: 'ready',
+      }
+    };
+  }
+
+  // ========================================
+  // DIRECT EXECUTION: No intention (no plan mode)
+  // ========================================
   stream.markdown(`## Executing with AgentX\n\n`);
   stream.markdown(`| Setting | Value |\n|---------|-------|\n`);
   stream.markdown(`| Provider | VS Code Copilot (native) |\n`);
   stream.markdown(`| Alias | ${aliasName} |\n`);
-  if (intention) {
-    stream.markdown(`| Intention | ${intention.name} |\n`);
-  }
   stream.markdown(`| Alias Context | ${context.files.length} files (${(context.totalSize / 1024).toFixed(1)} KB) |\n`);
   if (userContextFileCount > 0 || userContextSelectionCount > 0) {
     stream.markdown(`| User Context | ${userContextFileCount} files, ${userContextSelectionCount} selections |\n`);
@@ -778,26 +980,11 @@ async function handleExecCommandWithParsed(
   }
 
   stream.markdown(`**Prompt:** ${prompt}\n\n`);
-  if (intention && finalPrompt !== prompt) {
-    stream.markdown(`**Refined Prompt (TOON):**\n\`\`\`\n${finalPrompt.substring(0, 500)}${finalPrompt.length > 500 ? '...' : ''}\n\`\`\`\n\n`);
-  }
   stream.markdown(`---\n\n`);
-
-  // Check if VS Code LM API is available
-  if (!isVSCodeLMAvailable()) {
-    stream.markdown(`❌ **Error:** VS Code Language Model API not available.\n\n`);
-    stream.markdown(`Please update VS Code to version 1.90 or later and ensure GitHub Copilot is installed.\n`);
-    return { metadata: { command: `exec:${aliasName}`, error: 'lm_not_available' } };
-  }
-
-  // Combine alias context with user-attached context
-  const combinedContext = userContext
-    ? `${context.content}\n\n${userContext}`
-    : context.content;
 
   // Execute with VS Code's native Language Model API (streaming)
   stream.markdown(`### Response\n\n`);
-  const execResult = await executeWithVSCodeLMStreaming(finalPrompt, combinedContext, stream, token);
+  const execResult = await executeWithVSCodeLMStreaming(prompt, combinedContext, stream, token);
 
   if (!execResult.success) {
     stream.markdown(`\n\n❌ **Error:** ${execResult.error}\n`);
@@ -814,7 +1001,7 @@ async function handleExecCommandWithParsed(
     aliasName,
     intentionId,
     prompt,
-    finalPrompt,
+    prompt,
     context.content,
     context.personaContext,
     userContext || undefined,
@@ -1075,24 +1262,347 @@ async function handleIntentionShowCommand(
 }
 
 /**
- * /init - Show init guidance (limited in VS Code context)
+ * /init - Project initialization with bootstrapping utilities
  */
 async function handleInitCommand(
   stream: vscode.ChatResponseStream
 ): Promise<vscode.ChatResult> {
-  stream.markdown(`## Initialize Project\n\n`);
-  stream.markdown(`The \`init\` command creates new projects from framework templates.\n\n`);
-  stream.markdown(`**Available Frameworks:**\n`);
-  stream.markdown(`- \`spec-kit\` - Templates: bff-service, rest-service\n`);
-  stream.markdown(`- \`open-spec\` - Templates: openapi, asyncapi\n`);
-  stream.markdown(`- \`bmad\` - Templates: business-model\n\n`);
-  stream.markdown(`**Usage (in terminal):**\n`);
-  stream.markdown(`\`\`\`bash\nagentx init <framework> -t <template> -n <name>\n\`\`\`\n\n`);
-  stream.markdown(`**Example:**\n`);
-  stream.markdown(`\`\`\`bash\nagentx init spec-kit -t bff-service -n my-bff\n\`\`\`\n\n`);
-  stream.markdown(`💡 Run this command in the VS Code integrated terminal.`);
+  // Get workspace folder
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    stream.markdown(`## Initialize Project\n\n`);
+    stream.markdown(`**No workspace folder open**\n\n`);
+    stream.markdown(`Please open a folder or workspace first, then run \`/init\` again.\n\n`);
+    stream.markdown(`You can:\n`);
+    stream.markdown(`1. Use **File > Open Folder** to open an existing project\n`);
+    stream.markdown(`2. Or create a new folder and open it\n`);
+    return { metadata: { command: 'init', error: 'no_workspace' } };
+  }
 
-  return { metadata: { command: 'init' } };
+  const workspacePath = workspaceFolders[0].uri.fsPath;
+
+  // Step 1: Detect project root
+  stream.markdown(`## Initialize AgentX Configuration\n\n`);
+  stream.markdown(`### Step 1: Project Detection\n\n`);
+
+  const detection = detectProjectRoot(workspacePath);
+
+  if (!detection.isProjectRoot) {
+    stream.markdown(`**No project markers found** in \`${workspacePath}\`\n\n`);
+    stream.markdown(`This doesn't appear to be a project root. Expected files like:\n`);
+    stream.markdown(`- \`package.json\` (Node.js/TypeScript)\n`);
+    stream.markdown(`- \`pom.xml\` or \`build.gradle\` (Java)\n`);
+    stream.markdown(`- \`.git\` (Git repository)\n\n`);
+
+    // Offer to initialize anyway
+    stream.markdown(`Would you like to initialize anyway?\n\n`);
+    stream.button({
+      command: 'agentx.initAnyway',
+      arguments: [workspacePath],
+      title: 'Initialize Anyway (TypeScript defaults)',
+    });
+
+    return { metadata: { command: 'init', error: 'not_project_root' } };
+  }
+
+  stream.markdown(`**Project root detected**\n\n`);
+  stream.markdown(`| Property | Value |\n|----------|-------|\n`);
+  stream.markdown(`| Path | \`${workspacePath}\` |\n`);
+  stream.markdown(
+    `| Markers | ${detection.detectedMarkers.map((m) => `\`${m}\``).join(', ')} |\n`
+  );
+  stream.markdown(`| Primary | \`${detection.primaryMarker}\` |\n\n`);
+
+  // Step 2: Check if .ai-config exists
+  if (hasAiConfig(workspacePath)) {
+    stream.markdown(`### Existing Configuration Found\n\n`);
+    stream.markdown(`\`.ai-config/\` already exists at \`${getAiConfigPath(workspacePath)}\`\n\n`);
+    stream.markdown(`Would you like to:\n\n`);
+
+    stream.button({
+      command: 'agentx.configShow',
+      title: 'View Current Config',
+    });
+    stream.button({
+      command: 'agentx.reinitialize',
+      arguments: [workspacePath, 'typescript'],
+      title: 'Add Missing Files',
+    });
+    stream.button({
+      command: 'agentx.reinitializeOverwrite',
+      arguments: [workspacePath, 'typescript'],
+      title: 'Reinitialize (Overwrite)',
+    });
+
+    return { metadata: { command: 'init', status: 'exists' } };
+  }
+
+  // Step 3: Analyze project
+  stream.markdown(`### Step 2: Project Analysis\n\n`);
+
+  const analysis = await analyzeProject(workspacePath);
+
+  stream.markdown(`| Property | Value |\n|----------|-------|\n`);
+  stream.markdown(`| Type | **${analysis.projectType}** |\n`);
+  if (analysis.projectName) {
+    stream.markdown(`| Name | ${analysis.projectName} |\n`);
+  }
+  if (analysis.buildTool) {
+    stream.markdown(`| Build Tool | ${analysis.buildTool} |\n`);
+  }
+  stream.markdown(`| Dependencies | ${analysis.dependencies.length} |\n\n`);
+
+  // Show detected frameworks
+  const allFrameworks = [
+    ...analysis.frameworks.frontend,
+    ...analysis.frameworks.backend,
+    ...analysis.frameworks.testing,
+    ...analysis.frameworks.build,
+  ];
+
+  if (allFrameworks.length > 0) {
+    stream.markdown(`**Detected Frameworks:**\n`);
+    for (const fw of allFrameworks.slice(0, 10)) {
+      stream.markdown(`- ${fw.name}${fw.version ? ` (${fw.version})` : ''}\n`);
+    }
+    if (allFrameworks.length > 10) {
+      stream.markdown(`- ... and ${allFrameworks.length - 10} more\n`);
+    }
+    stream.markdown(`\n`);
+  }
+
+  // Step 4: Preview scaffold
+  stream.markdown(`### Step 3: Configuration Preview\n\n`);
+
+  const templates =
+    DEFAULT_TEMPLATES[analysis.projectType as keyof typeof DEFAULT_TEMPLATES] ||
+    DEFAULT_TEMPLATES.typescript;
+
+  stream.markdown(
+    `Based on your **${analysis.projectType}** project, the following will be created:\n\n`
+  );
+  stream.markdown(`**Directory Structure:**\n`);
+  stream.markdown(`\`\`\`\n`);
+  stream.markdown(`.ai-config/\n`);
+  stream.markdown(`├── config.json\n`);
+  stream.markdown(`├── aliases/\n`);
+  for (const alias of templates.aliases.slice(0, 5)) {
+    stream.markdown(`│   └── ${alias.name}.json\n`);
+  }
+  if (templates.aliases.length > 5) {
+    stream.markdown(`│   └── ... (${templates.aliases.length - 5} more)\n`);
+  }
+  stream.markdown(`└── intentions/\n`);
+  stream.markdown(`\`\`\`\n\n`);
+
+  stream.markdown(`**Aliases to be created:**\n`);
+  for (const alias of templates.aliases) {
+    stream.markdown(`- \`${alias.name}\` - ${alias.description}\n`);
+  }
+  stream.markdown(`\n`);
+
+  // Confirm and scaffold
+  stream.markdown(`### Ready to Initialize\n\n`);
+
+  stream.button({
+    command: 'agentx.executeScaffold',
+    arguments: [workspacePath, analysis.projectType, false],
+    title: 'Initialize Project',
+  });
+  stream.button({
+    command: 'agentx.executeScaffold',
+    arguments: [workspacePath, analysis.projectType, true],
+    title: 'Initialize + Create Source Dirs',
+  });
+
+  return { metadata: { command: 'init', projectType: analysis.projectType } };
+}
+
+/**
+ * /init:analyze - Analyze project without scaffolding
+ */
+async function handleInitAnalyzeCommand(
+  stream: vscode.ChatResponseStream
+): Promise<vscode.ChatResult> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    stream.markdown(`## Project Analysis\n\n`);
+    stream.markdown(`**No workspace folder open**\n\n`);
+    stream.markdown(`Please open a folder or workspace first.\n`);
+    return { metadata: { command: 'init:analyze', error: 'no_workspace' } };
+  }
+
+  const workspacePath = workspaceFolders[0].uri.fsPath;
+
+  stream.markdown(`## Project Analysis\n\n`);
+
+  // Step 1: Detect project root
+  stream.markdown(`### Project Detection\n\n`);
+  const detection = detectProjectRoot(workspacePath);
+
+  if (!detection.isProjectRoot) {
+    stream.markdown(`**No project markers found** in \`${workspacePath}\`\n\n`);
+    stream.markdown(`This doesn't appear to be a project root.\n`);
+    return { metadata: { command: 'init:analyze', error: 'not_project_root' } };
+  }
+
+  stream.markdown(`| Property | Value |\n|----------|-------|\n`);
+  stream.markdown(`| Path | \`${workspacePath}\` |\n`);
+  stream.markdown(
+    `| Markers | ${detection.detectedMarkers.map((m) => `\`${m}\``).join(', ')} |\n`
+  );
+  stream.markdown(`| Primary | \`${detection.primaryMarker}\` |\n\n`);
+
+  // Step 2: Analyze project
+  stream.markdown(`### Dependencies & Frameworks\n\n`);
+  const analysis = await analyzeProject(workspacePath);
+
+  stream.markdown(`| Property | Value |\n|----------|-------|\n`);
+  stream.markdown(`| Type | **${analysis.projectType}** |\n`);
+  if (analysis.projectName) {
+    stream.markdown(`| Name | ${analysis.projectName} |\n`);
+  }
+  if (analysis.projectVersion) {
+    stream.markdown(`| Version | ${analysis.projectVersion} |\n`);
+  }
+  if (analysis.buildTool) {
+    stream.markdown(`| Build Tool | ${analysis.buildTool} |\n`);
+  }
+  stream.markdown(`| Dependencies | ${analysis.dependencies.length} |\n\n`);
+
+  // Show detected frameworks by category
+  const { frontend, backend, testing, build } = analysis.frameworks;
+
+  if (frontend.length > 0) {
+    stream.markdown(`**Frontend:** ${frontend.map((f) => f.name).join(', ')}\n\n`);
+  }
+  if (backend.length > 0) {
+    stream.markdown(`**Backend:** ${backend.map((f) => f.name).join(', ')}\n\n`);
+  }
+  if (testing.length > 0) {
+    stream.markdown(`**Testing:** ${testing.map((f) => f.name).join(', ')}\n\n`);
+  }
+  if (build.length > 0) {
+    stream.markdown(`**Build:** ${build.map((f) => f.name).join(', ')}\n\n`);
+  }
+
+  // Check if already initialized
+  if (hasAiConfig(workspacePath)) {
+    stream.markdown(`### AgentX Status\n\n`);
+    stream.markdown(`\`.ai-config/\` exists at \`${getAiConfigPath(workspacePath)}\`\n`);
+  } else {
+    stream.markdown(`### Next Steps\n\n`);
+    stream.markdown(`Run \`/init:scaffold\` to create \`.ai-config/\` for this project.\n`);
+  }
+
+  return { metadata: { command: 'init:analyze', projectType: analysis.projectType } };
+}
+
+/**
+ * /init:scaffold and /init:scaffold-with-dirs - Scaffold .ai-config
+ */
+async function handleInitScaffoldCommand(
+  stream: vscode.ChatResponseStream,
+  createSourceDirs: boolean
+): Promise<vscode.ChatResult> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    stream.markdown(`## Scaffold Project\n\n`);
+    stream.markdown(`**No workspace folder open**\n\n`);
+    stream.markdown(`Please open a folder or workspace first.\n`);
+    return { metadata: { command: 'init:scaffold', error: 'no_workspace' } };
+  }
+
+  const workspacePath = workspaceFolders[0].uri.fsPath;
+
+  stream.markdown(`## Scaffold AgentX Configuration\n\n`);
+
+  // Detect project type
+  const detection = detectProjectRoot(workspacePath);
+  const analysis = await analyzeProject(workspacePath);
+
+  stream.markdown(`Detected project type: **${analysis.projectType}**\n\n`);
+
+  // Check if already exists
+  if (hasAiConfig(workspacePath)) {
+    stream.markdown(`**.ai-config/** already exists.\n\n`);
+    stream.markdown(`Use the buttons below to update:\n\n`);
+
+    stream.button({
+      command: 'agentx.reinitialize',
+      arguments: [workspacePath, analysis.projectType],
+      title: 'Add Missing Files',
+    });
+    stream.button({
+      command: 'agentx.reinitializeOverwrite',
+      arguments: [workspacePath, analysis.projectType],
+      title: 'Overwrite All',
+    });
+
+    return { metadata: { command: 'init:scaffold', status: 'exists' } };
+  }
+
+  // Preview what will be created
+  const templates =
+    DEFAULT_TEMPLATES[analysis.projectType as keyof typeof DEFAULT_TEMPLATES] ||
+    DEFAULT_TEMPLATES.typescript;
+
+  stream.markdown(`### Files to Create\n\n`);
+  stream.markdown(`\`\`\`\n`);
+  stream.markdown(`.ai-config/\n`);
+  stream.markdown(`├── config.json\n`);
+  stream.markdown(`├── aliases/\n`);
+  for (const alias of templates.aliases) {
+    stream.markdown(`│   └── ${alias.name}.json\n`);
+  }
+  stream.markdown(`└── intentions/\n`);
+  stream.markdown(`\`\`\`\n\n`);
+
+  if (createSourceDirs && templates.sourceDirs.length > 0) {
+    stream.markdown(`### Source Directories\n\n`);
+    for (const dir of templates.sourceDirs) {
+      stream.markdown(`- \`${dir}/\`\n`);
+    }
+    stream.markdown(`\n`);
+  }
+
+  // Execute scaffold
+  stream.markdown(`### Initializing...\n\n`);
+
+  const result = await scaffoldProject({
+    projectType: analysis.projectType,
+    basePath: workspacePath,
+    createSourceDirs,
+    overwrite: false,
+  });
+
+  if (result.success) {
+    stream.markdown(`**Success!** Created ${result.createdFiles.length} files.\n\n`);
+
+    if (result.createdFiles.length > 0) {
+      stream.markdown(`**Created:**\n`);
+      for (const file of result.createdFiles.slice(0, 10)) {
+        const relativePath = file.replace(workspacePath, '').replace(/^\//, '');
+        stream.markdown(`- \`${relativePath}\`\n`);
+      }
+      if (result.createdFiles.length > 10) {
+        stream.markdown(`- ... and ${result.createdFiles.length - 10} more\n`);
+      }
+      stream.markdown(`\n`);
+    }
+
+    stream.markdown(`Run \`/alias list\` to see available aliases.\n`);
+  } else {
+    stream.markdown(`**Error:** ${result.errors.join(', ')}\n`);
+  }
+
+  return {
+    metadata: {
+      command: createSourceDirs ? 'init:scaffold-with-dirs' : 'init:scaffold',
+      projectType: analysis.projectType,
+      success: result.success,
+    },
+  };
 }
 
 /**

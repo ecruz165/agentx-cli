@@ -17,8 +17,24 @@ import {
   listHistoryEntries,
   getLastHistoryEntry,
   clearHistory,
+  scaffoldProject,
+  getAiConfigPath,
+  ProjectType,
+  getIntention,
+  IntentionDefinition,
+  // Plan document management
+  loadPlanDocument,
+  savePlanDocument,
+  approvePlan,
+  rejectPlan,
+  deletePlanDocument,
+  generatePrdDocument,
+  savePrdToHistory,
+  isPlanExpired,
+  PlanDocument,
 } from '@agentx/core';
-import { executeWithVSCodeLM, isVSCodeLMAvailable } from './vscode-lm-provider';
+import * as path from 'path';
+import { executeWithVSCodeLM, isVSCodeLMAvailable, executeWithVSCodeLMStreaming } from './vscode-lm-provider';
 
 /**
  * Register all AgentX commands
@@ -433,6 +449,328 @@ ${fileList}${moreFiles}`;
     }
   );
 
+  // agentx.executeScaffold - Execute scaffolding for a project
+  const executeScaffoldCommand = vscode.commands.registerCommand(
+    'agentx.executeScaffold',
+    async (workspacePath: string, projectType: string, createSourceDirs: boolean) => {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'AgentX: Initializing project...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Creating .ai-config structure...' });
+
+          const result = await scaffoldProject({
+            projectType: projectType as ProjectType,
+            basePath: workspacePath,
+            createSourceDirs,
+            overwrite: false,
+          });
+
+          if (result.success) {
+            vscode.window.showInformationMessage(
+              `AgentX initialized! Created ${result.createdFiles.length} files in .ai-config/`
+            );
+
+            // Open the config.json file
+            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            try {
+              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
+              await vscode.window.showTextDocument(doc);
+            } catch {
+              // Config file may not exist yet
+            }
+          } else {
+            vscode.window.showErrorMessage(
+              `Initialization failed: ${result.errors.join(', ')}`
+            );
+          }
+        }
+      );
+    }
+  );
+
+  // agentx.initAnyway - Initialize even without project markers
+  const initAnywayCommand = vscode.commands.registerCommand(
+    'agentx.initAnyway',
+    async (workspacePath: string) => {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'AgentX: Initializing project...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Creating .ai-config structure...' });
+
+          const result = await scaffoldProject({
+            projectType: 'typescript', // Default to TypeScript
+            basePath: workspacePath,
+            createSourceDirs: false,
+            overwrite: false,
+          });
+
+          if (result.success) {
+            vscode.window.showInformationMessage(
+              `AgentX initialized with default TypeScript configuration.`
+            );
+
+            // Open the config.json file
+            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            try {
+              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
+              await vscode.window.showTextDocument(doc);
+            } catch {
+              // Config file may not exist yet
+            }
+          } else {
+            vscode.window.showErrorMessage(
+              `Initialization failed: ${result.errors.join(', ')}`
+            );
+          }
+        }
+      );
+    }
+  );
+
+  // agentx.reinitialize - Reinitialize preserving existing files
+  const reinitializeCommand = vscode.commands.registerCommand(
+    'agentx.reinitialize',
+    async (workspacePath: string, projectType: string) => {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'AgentX: Reinitializing project...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Updating .ai-config structure...' });
+
+          const result = await scaffoldProject({
+            projectType: (projectType || 'typescript') as ProjectType,
+            basePath: workspacePath,
+            createSourceDirs: false,
+            overwrite: false, // Preserve existing files
+          });
+
+          if (result.success) {
+            const message =
+              result.createdFiles.length > 0
+                ? `Added ${result.createdFiles.length} new files. ${result.skippedPaths.length} existing files preserved.`
+                : `All files already exist. ${result.skippedPaths.length} files preserved.`;
+
+            vscode.window.showInformationMessage(message);
+          } else {
+            vscode.window.showErrorMessage(
+              `Reinitialization failed: ${result.errors.join(', ')}`
+            );
+          }
+        }
+      );
+    }
+  );
+
+  // agentx.reinitializeOverwrite - Reinitialize and overwrite existing files
+  const reinitializeOverwriteCommand = vscode.commands.registerCommand(
+    'agentx.reinitializeOverwrite',
+    async (workspacePath: string, projectType: string) => {
+      const confirm = await vscode.window.showWarningMessage(
+        'This will overwrite existing .ai-config files. Continue?',
+        { modal: true },
+        'Overwrite'
+      );
+
+      if (confirm !== 'Overwrite') {
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'AgentX: Reinitializing project...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Overwriting .ai-config structure...' });
+
+          const result = await scaffoldProject({
+            projectType: (projectType || 'typescript') as ProjectType,
+            basePath: workspacePath,
+            createSourceDirs: false,
+            overwrite: true,
+          });
+
+          if (result.success) {
+            vscode.window.showInformationMessage(
+              `AgentX reinitialized! Updated ${result.createdFiles.length} files.`
+            );
+
+            // Open the config.json file
+            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            try {
+              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
+              await vscode.window.showTextDocument(doc);
+            } catch {
+              // Config file may not exist yet
+            }
+          } else {
+            vscode.window.showErrorMessage(
+              `Reinitialization failed: ${result.errors.join(', ')}`
+            );
+          }
+        }
+      );
+    }
+  );
+
+  // agentx.executePlan - Execute and approve a plan, saving PRD to history
+  const executePlanCommand = vscode.commands.registerCommand(
+    'agentx.executePlan',
+    async (planId: string) => {
+      // Load plan document from disk
+      const plan = loadPlanDocument(planId);
+
+      if (!plan) {
+        vscode.window.showErrorMessage(
+          'Plan not found. Please regenerate the plan.'
+        );
+        return;
+      }
+
+      if (isPlanExpired(plan)) {
+        deletePlanDocument(planId);
+        vscode.window.showErrorMessage(
+          'Plan has expired. Please regenerate the plan.'
+        );
+        return;
+      }
+
+      if (plan.status !== 'ready') {
+        vscode.window.showWarningMessage(
+          `Plan is not ready (status: ${plan.status}). Please provide all required information first.`
+        );
+        return;
+      }
+
+      // Check if VS Code LM API is available
+      if (!isVSCodeLMAvailable()) {
+        vscode.window.showErrorMessage(
+          'VS Code Language Model API not available. Please update VS Code to version 1.90 or later.'
+        );
+        return;
+      }
+
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `AgentX: Executing plan for ${plan.alias}:${plan.intention.id}`,
+          cancellable: true,
+        },
+        async (progress, token) => {
+          progress.report({ message: 'Approving plan and generating PRD...' });
+
+          // Approve the plan
+          const approvedPlan = approvePlan(plan);
+          savePlanDocument(approvedPlan);
+
+          // Generate PRD document
+          const prd = generatePrdDocument(approvedPlan);
+
+          // Save PRD to history
+          progress.report({ message: 'Saving PRD to history...' });
+          const { prdPath } = savePrdToHistory(prd, approvedPlan.contextContent);
+
+          // Create output channel for streaming implementation
+          const outputChannel = vscode.window.createOutputChannel('AgentX Plan Execution', 'markdown');
+          outputChannel.show(true);
+
+          outputChannel.appendLine(`# AgentX Plan Execution\n`);
+          outputChannel.appendLine(`**Alias:** ${plan.alias}`);
+          outputChannel.appendLine(`**Intention:** ${plan.intention.name}`);
+          outputChannel.appendLine(`**Prompt:** ${plan.originalPrompt}\n`);
+          outputChannel.appendLine(`**PRD Saved:** ${prdPath}\n`);
+          outputChannel.appendLine(`---\n`);
+          outputChannel.appendLine(`## Requirements\n`);
+          for (const req of plan.gathered) {
+            outputChannel.appendLine(`- **${req.name}:** ${req.value}`);
+          }
+          outputChannel.appendLine(`\n---\n`);
+          outputChannel.appendLine(`## Plan\n`);
+          outputChannel.appendLine(plan.implementationPlan || '');
+          outputChannel.appendLine(`\n---\n`);
+          outputChannel.appendLine(`## Implementation\n`);
+
+          progress.report({ message: 'Executing implementation...' });
+
+          // Build refined prompt from gathered requirements
+          const requirementsSummary = plan.gathered
+            .map(r => `- ${r.name}: ${r.value}`)
+            .join('\n');
+
+          const implementationPrompt = `Based on the following approved plan, implement the solution:
+
+## Intention: ${plan.intention.name}
+${plan.intention.description}
+
+## Requirements
+${requirementsSummary}
+
+## Original Request
+${plan.originalPrompt}
+
+## Implementation Plan
+${plan.implementationPlan}
+
+Please implement the solution according to the plan above. Follow all conventions from the context provided.`;
+
+          const result = await executeWithVSCodeLM(
+            implementationPrompt,
+            plan.contextContent || '',
+            token
+          );
+
+          if (!result.success) {
+            outputChannel.appendLine(`\n❌ **Error:** ${result.error}`);
+            vscode.window.showErrorMessage(`Error: ${result.error}`);
+            return;
+          }
+
+          outputChannel.appendLine(result.response || '');
+
+          // Clean up plan document after successful execution
+          deletePlanDocument(planId);
+
+          vscode.window.showInformationMessage(
+            `Plan executed successfully! PRD saved to: ${prdPath}`
+          );
+        }
+      );
+    }
+  );
+
+  // agentx.rejectPlan - Reject a plan and clean up
+  const rejectPlanCommand = vscode.commands.registerCommand(
+    'agentx.rejectPlan',
+    async (planId: string) => {
+      const plan = loadPlanDocument(planId);
+
+      if (plan) {
+        // Mark as rejected and save
+        const rejectedPlan = rejectPlan(plan);
+        savePlanDocument(rejectedPlan);
+
+        // Delete the plan file
+        deletePlanDocument(planId);
+
+        vscode.window.showInformationMessage(
+          'Plan cancelled. You can modify your prompt and try again.'
+        );
+      }
+    }
+  );
+
   context.subscriptions.push(
     execCommand,
     aliasListCommand,
@@ -444,7 +782,13 @@ ${fileList}${moreFiles}`;
     showConfigCommand,
     openLastContextCommand,
     browseHistoryCommand,
-    clearHistoryCommand
+    clearHistoryCommand,
+    executeScaffoldCommand,
+    initAnywayCommand,
+    reinitializeCommand,
+    reinitializeOverwriteCommand,
+    executePlanCommand,
+    rejectPlanCommand
   );
 }
 

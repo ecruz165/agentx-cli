@@ -239,3 +239,133 @@ export async function getAvailableCopilotModels(): Promise<string[]> {
   }
 }
 
+/**
+ * Plan generation result
+ */
+export interface PlanResult {
+  success: boolean;
+  plan?: string;
+  error?: string;
+}
+
+/**
+ * Generate a plan using the LLM before execution
+ * This is used for plan mode when an intention is specified
+ */
+export async function generatePlanWithVSCodeLM(
+  intentionName: string,
+  intentionDescription: string,
+  requirements: string,
+  prompt: string,
+  context: string,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<PlanResult> {
+  try {
+    if (!vscode.lm) {
+      return {
+        success: false,
+        error: 'VS Code Language Model API not available.',
+      };
+    }
+
+    // Select a chat model
+    const models = await vscode.lm.selectChatModels({
+      vendor: 'copilot',
+      family: 'gpt-4',
+    });
+
+    if (models.length === 0) {
+      const fallbackModels = await vscode.lm.selectChatModels({
+        vendor: 'copilot',
+      });
+
+      if (fallbackModels.length === 0) {
+        return {
+          success: false,
+          error: 'No Copilot language models available.',
+        };
+      }
+
+      models.push(...fallbackModels);
+    }
+
+    const model = models[0];
+
+    // Get token limit from model or use default
+    const maxTokens = model.maxInputTokens || DEFAULT_TOKEN_LIMIT;
+
+    // Truncate context if needed
+    const { context: truncatedContext } = truncateContextForTokenLimit(
+      context,
+      prompt,
+      maxTokens
+    );
+
+    // Build the planning prompt
+    const planningPrompt = `You are a technical architect helping to plan an implementation.
+
+## Intention: ${intentionName}
+${intentionDescription}
+
+## Requirements Gathered
+${requirements}
+
+## User Request
+${prompt}
+
+## Task
+Based on the context provided and the user's request, create a detailed implementation plan. The plan should:
+
+1. **Summary**: Brief overview of what will be implemented
+2. **Components/Files**: List the files that will be created or modified
+3. **Implementation Steps**: Step-by-step breakdown of the implementation
+4. **API Design** (if applicable): Endpoints, request/response formats
+5. **Data Model** (if applicable): Entity definitions, relationships
+6. **Testing Strategy**: How to test the implementation
+7. **Potential Considerations**: Edge cases, security concerns, performance
+
+Be specific and actionable. The user will review this plan before implementation begins.`;
+
+    // Build messages
+    const messages: vscode.LanguageModelChatMessage[] = [];
+
+    if (truncatedContext) {
+      messages.push(
+        vscode.LanguageModelChatMessage.User(
+          `Here is the relevant context from the knowledge base:\n\n${truncatedContext}\n\n---\n\nUse this context to inform your implementation plan.`
+        )
+      );
+    }
+
+    messages.push(vscode.LanguageModelChatMessage.User(planningPrompt));
+
+    // Send request and stream response
+    const response = await model.sendRequest(messages, {}, token);
+
+    let fullPlan = '';
+    for await (const chunk of response.text) {
+      fullPlan += chunk;
+      stream.markdown(chunk);
+    }
+
+    return {
+      success: true,
+      plan: fullPlan,
+    };
+  } catch (error) {
+    if (error instanceof vscode.CancellationError) {
+      return {
+        success: false,
+        error: 'Request was cancelled.',
+      };
+    }
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      error: `Language Model error: ${errorMessage}`,
+    };
+  }
+}
+
