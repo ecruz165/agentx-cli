@@ -1,0 +1,36 @@
+---
+title: "Sending Email"
+source: spring-boot-docs-v4
+tokens: ~208
+---
+
+# Sending Email
+
+The Spring Framework provides an abstraction for sending email by using the `JavaMailSender` interface, and Spring Boot provides auto-configuration for it as well as a starter module.
+
+> **Tip:** See the /integration/email.html[reference documentation] for a detailed explanation of how you can use `JavaMailSender`.
+
+If `spring.mail.host` and the relevant libraries (as defined by `spring-boot-starter-mail`) are available, a default `JavaMailSender` is created if none exists.
+The sender can be further customized by configuration items from the `spring.mail` namespace.
+See `MailProperties` for more details.
+
+In particular, certain default timeout values are infinite, and you may want to change that to avoid having a thread blocked by an unresponsive mail server, as shown in the following example:
+
+```yaml
+spring:
+  mail:
+    properties:
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 5000
+```
+
+It is also possible to configure a `JavaMailSender` with an existing `Session` from JNDI:
+
+```yaml
+spring:
+  mail:
+    jndi-name: "mail/Session"
+```
+
+When a `jndi-name` is set, it takes precedence over all other Session-related settings.

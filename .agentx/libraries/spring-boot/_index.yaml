@@ -1,0 +1,489 @@
+# Spring Boot Documentation Library
+# Auto-generated index for agentx-cli
+# 
+# Total chunks: 87
+# Total tokens: ~139,493
+#
+# Usage in aliases:
+#   libraries:
+#     - spring-boot
+#
+# Or selective loading:
+#   contextFiles:
+#     - libraries/spring-boot/core/*.md
+#     - libraries/spring-boot/web/servlet.md
+
+library:
+  id: spring-boot
+  name: Spring Boot
+  version: "4.0.1"
+  docsRevision: 1
+  source:
+    repo: https://github.com/spring-projects/spring-boot
+    tag: v4.0.1
+    path: documentation
+    download: https://download-directory.github.io/?url=https://github.com/spring-projects/spring-boot/tree/v4.0.1/documentation
+    copiedAt: "2025-12-23"
+    commitsBehind: 49                  # Commits to main since v4.0.1
+  lastUpdated: "2025-12-23"
+  compatibility:
+    min: "4.0.0"
+    max: "4.0.x"
+  totalTokens: 139493
+
+chunks:
+  # actuator
+  - id: actuator-auditing
+    title: "Auditing"
+    path: actuator/auditing.md
+    tokens: 203
+    tags: [actuator, auditing, environment, repository, security, authentication, authorization]
+  - id: actuator-enabling
+    title: "Enabling Actuator"
+    path: actuator/enabling.md
+    tokens: 139
+    tags: [actuator, enabling, starter]
+  - id: actuator-endpoints
+    title: "Actuator Endpoints"
+    path: actuator/endpoints.md
+    tokens: 8862
+    tags: [actuator, endpoints, autoconfiguration, beans, properties, yaml, environment, logging]
+  - id: actuator-http-exchanges
+    title: "HTTP Exchanges"
+    path: actuator/http-exchanges.md
+    tokens: 174
+    tags: [actuator, http, exchanges, environment, repository, endpoint]
+  - id: actuator-jmx
+    title: "Monitoring over JMX"
+    path: actuator/jmx.md
+    tokens: 397
+    tags: [actuator, monitoring, over, autoconfiguration, beans, properties, yaml, log4j]
+  - id: actuator-loggers
+    title: "Loggers"
+    path: actuator/loggers.md
+    tokens: 354
+    tags: [actuator, loggers, yaml, logging, logback, log4j, repository, entity]
+  - id: actuator-metrics
+    title: "Metrics"
+    path: actuator/metrics.md
+    tokens: 6477
+    tags: [actuator, metrics, autoconfiguration, beans, properties, yaml, yml, environment]
+  - id: actuator-monitoring
+    title: "Monitoring over HTTP"
+    path: actuator/monitoring.md
+    tokens: 842
+    tags: [actuator, monitoring, over, http, properties, yaml, mvc, webflux]
+  - id: actuator-observability
+    title: "Observability"
+    path: actuator/observability.md
+    tokens: 1548
+    tags: [actuator, observability, autoconfiguration, beans, properties, yaml, environment, logging]
+  - id: actuator-process-monitoring
+    title: "Process Monitoring"
+    path: actuator/process-monitoring.md
+    tokens: 204
+    tags: [actuator, process, monitoring]
+  - id: actuator-tracing
+    title: "Tracing"
+    path: actuator/tracing.md
+    tokens: 1231
+    tags: [actuator, tracing, autoconfiguration, beans, properties, yaml, logging, logback]
+
+  # core
+  - id: core-aop
+    title: "AOP"
+    path: core/aop.md
+    tokens: 98
+    tags: [core, autoconfiguration, aop, aspect]
+  - id: core-dev-services
+    title: "Development Services"
+    path: core/dev-services.md
+    tokens: 2945
+    tags: [core, development, services, autoconfiguration, beans, properties, yaml, yml]
+  - id: core-developing-auto-configuration
+    title: "Developing Auto-configuration"
+    path: core/developing-auto-configuration.md
+    tokens: 3575
+    tags: [core, developing, auto, configuration, autoconfiguration, beans, properties, environment]
+  - id: core-external-config
+    title: "Externalized Configuration"
+    path: core/external-config.md
+    tokens: 10479
+    tags: [core, externalized, configuration, autoconfiguration, beans, properties, yaml, profiles]
+  - id: core-internationalization
+    title: "Internationalization"
+    path: core/internationalization.md
+    tokens: 229
+    tags: [core, internationalization, autoconfiguration, properties, yaml]
+  - id: core-json
+    title: "JSON"
+    path: core/json.md
+    tokens: 722
+    tags: [core, json, autoconfiguration, beans, properties, mvc, webflux, reactive]
+  - id: core-kotlin
+    title: "Kotlin Support"
+    path: core/kotlin.md
+    tokens: 1270
+    tags: [core, kotlin, support, properties, rest, webflux, reactive, flux]
+  - id: core-logging
+    title: "Logging"
+    path: core/logging.md
+    tokens: 5530
+    tags: [core, logging, beans, properties, yaml, profiles, environment, logback]
+  - id: core-profiles
+    title: "Profiles"
+    path: core/profiles.md
+    tokens: 1009
+    tags: [core, profiles, beans, properties, yaml, environment, rest, metrics]
+  - id: core-spring-application
+    title: "SpringApplication"
+    path: core/spring-application.md
+    tokens: 4095
+    tags: [core, springapplication, beans, properties, yaml, profiles, environment, logging]
+  - id: core-ssl
+    title: "SSL"
+    path: core/ssl.md
+    tokens: 1108
+    tags: [core, properties, yaml, environment, rest]
+  - id: core-task-execution-scheduling
+    title: "Task Execution and Scheduling"
+    path: core/task-execution-scheduling.md
+    tokens: 1377
+    tags: [core, task, execution, scheduling, autoconfiguration, beans, properties, yaml]
+
+  # data
+  - id: data-nosql
+    title: "NoSQL Databases"
+    path: data/nosql.md
+    tokens: 4706
+    tags: [data, nosql, databases, autoconfiguration, beans, properties, yaml, environment]
+  - id: data-sql
+    title: "SQL Databases"
+    path: data/sql.md
+    tokens: 4031
+    tags: [data, databases, autoconfiguration, beans, properties, yaml, profiles, rest]
+
+  # howto
+  - id: howto-actuator
+    title: "How-to: Actuator"
+    path: howto/actuator.md
+    tokens: 393
+    tags: [howto, actuator, properties, health, metrics, endpoint]
+  - id: howto-application
+    title: "How-to: Application"
+    path: howto/application.md
+    tokens: 1305
+    tags: [howto, application, autoconfiguration, properties, yaml, environment, logging, actuator]
+  - id: howto-batch
+    title: "How-to: Batch Applications"
+    path: howto/batch.md
+    tokens: 508
+    tags: [howto, batch, applications, properties, environment, rest, datasource, transaction]
+  - id: howto-build
+    title: "How-to: Build"
+    path: howto/build.md
+    tokens: 1739
+    tags: [howto, build, properties, yaml, repository, container, starter]
+  - id: howto-data-access
+    title: "How-to: Data Access"
+    path: howto/data-access.md
+    tokens: 3348
+    tags: [howto, data, access, autoconfiguration, beans, properties, yaml, environment]
+  - id: howto-data-initialization
+    title: "How-to: Database Initialization"
+    path: howto/data-initialization.md
+    tokens: 2587
+    tags: [howto, database, initialization, beans, properties, yaml, environment, jpa]
+  - id: howto-deployment-cloud
+    title: "How-to: Deploying to Cloud"
+    path: howto/deployment-cloud.md
+    tokens: 3013
+    tags: [howto, deploying, cloud, beans, properties, yaml, yml, environment]
+  - id: howto-docker-compose
+    title: "How-to: Docker Compose"
+    path: howto/docker-compose.md
+    tokens: 270
+    tags: [howto, docker, compose, yaml, environment, jdbc]
+  - id: howto-http-clients
+    title: "How-to: HTTP Clients"
+    path: howto/http-clients.md
+    tokens: 225
+    tags: [howto, http, clients, rest, starter, starters]
+  - id: howto-installing
+    title: "How-to: Installing Applications"
+    path: howto/installing.md
+    tokens: 354
+    tags: [howto, installing, applications]
+  - id: howto-jersey
+    title: "How-to: Jersey"
+    path: howto/jersey.md
+    tokens: 259
+    tags: [howto, jersey, mvc, security, authentication, authorization, endpoint]
+  - id: howto-logging
+    title: "How-to: Logging"
+    path: howto/logging.md
+    tokens: 1463
+    tags: [howto, logging, properties, yaml, yml, logback, log4j, hibernate]
+  - id: howto-messaging
+    title: "How-to: Messaging"
+    path: howto/messaging.md
+    tokens: 156
+    tags: [howto, messaging, transaction, container, jms, starter, starters]
+  - id: howto-nosql
+    title: "How-to: NoSQL"
+    path: howto/nosql.md
+    tokens: 170
+    tags: [howto, nosql, redis, starter, starters]
+  - id: howto-properties-configuration
+    title: "How-to: Properties and Configuration"
+    path: howto/properties-configuration.md
+    tokens: 1970
+    tags: [howto, properties, configuration, yaml, yml, profiles, environment, logging]
+  - id: howto-security
+    title: "How-to: Security"
+    path: howto/security.md
+    tokens: 419
+    tags: [howto, security, properties, yaml, environment, authentication, endpoint, container]
+  - id: howto-spring-mvc
+    title: "How-to: Spring MVC"
+    path: howto/spring-mvc.md
+    tokens: 2731
+    tags: [howto, autoconfiguration, beans, properties, yaml, environment, mvc, controller]
+  - id: howto-testing
+    title: "How-to: Testing"
+    path: howto/testing.md
+    tokens: 449
+    tags: [howto, testing, beans, mvc, controller, rest, datasource, security]
+  - id: howto-traditional-deployment
+    title: "How-to: Traditional Deployment"
+    path: howto/traditional-deployment.md
+    tokens: 1412
+    tags: [howto, traditional, deployment, beans, properties, logback, mvc, webflux]
+  - id: howto-webserver
+    title: "How-to: Embedded Web Servers"
+    path: howto/webserver.md
+    tokens: 3674
+    tags: [howto, embedded, servers, beans, properties, yaml, environment, logging]
+
+  # io
+  - id: io-caching
+    title: "Caching"
+    path: io/caching.md
+    tokens: 2402
+    tags: [io, caching, autoconfiguration, beans, properties, yaml, environment, rest]
+  - id: io-email
+    title: "Sending Email"
+    path: io/email.md
+    tokens: 220
+    tags: [io, sending, email, autoconfiguration, properties, yaml, starter]
+  - id: io-hazelcast
+    title: "Hazelcast"
+    path: io/hazelcast.md
+    tokens: 354
+    tags: [io, hazelcast, yaml, yml, cache, caching]
+  - id: io-jta
+    title: "Distributed Transactions with JTA"
+    path: io/jta.md
+    tokens: 504
+    tags: [io, distributed, transactions, autoconfiguration, beans, environment, jpa, datasource]
+  - id: io-quartz
+    title: "Quartz Scheduler"
+    path: io/quartz.md
+    tokens: 549
+    tags: [io, quartz, scheduler, beans, properties, yaml, rest, jdbc]
+  - id: io-rest-client
+    title: "REST Clients"
+    path: io/rest-client.md
+    tokens: 3406
+    tags: [io, rest, clients, autoconfiguration, beans, properties, yaml, mvc]
+  - id: io-spring-batch
+    title: "Spring Batch"
+    path: io/spring-batch.md
+    tokens: 330
+    tags: [io, batch, autoconfiguration, beans, properties, yaml, jdbc, repository]
+  - id: io-validation
+    title: "Validation"
+    path: io/validation.md
+    tokens: 231
+    tags: [io, validation, beans, properties, hibernate, validator]
+  - id: io-webservices
+    title: "Web Services"
+    path: io/webservices.md
+    tokens: 263
+    tags: [io, services, autoconfiguration, beans, yaml, endpoint, starter]
+
+  # messaging
+  - id: messaging-amqp
+    title: "AMQP (RabbitMQ)"
+    path: messaging/amqp.md
+    tokens: 1061
+    tags: [messaging, amqp, (rabbitmq), autoconfiguration, beans, properties, yaml, endpoint]
+  - id: messaging-jms
+    title: "JMS"
+    path: messaging/jms.md
+    tokens: 1624
+    tags: [messaging, autoconfiguration, beans, properties, yaml, transaction, endpoint, container]
+  - id: messaging-kafka
+    title: "Apache Kafka"
+    path: messaging/kafka.md
+    tokens: 1134
+    tags: [messaging, apache, kafka, autoconfiguration, beans, properties, yaml, transaction]
+  - id: messaging-pulsar
+    title: "Apache Pulsar"
+    path: messaging/pulsar.md
+    tokens: 1543
+    tags: [messaging, apache, pulsar, autoconfiguration, beans, properties, yaml, environment]
+  - id: messaging-rsocket
+    title: "RSocket"
+    path: messaging/rsocket.md
+    tokens: 615
+    tags: [messaging, rsocket, autoconfiguration, beans, properties, yaml, mvc, controller]
+  - id: messaging-spring-integration
+    title: "Spring Integration"
+    path: messaging/spring-integration.md
+    tokens: 306
+    tags: [messaging, integration, autoconfiguration, properties, yaml, jdbc, endpoint, scheduler]
+  - id: messaging-websockets
+    title: "WebSockets"
+    path: messaging/websockets.md
+    tokens: 114
+    tags: [messaging, websockets, autoconfiguration, mvc, webflux, reactive, flux, container]
+
+  # packaging
+  - id: packaging-aot
+    title: "Ahead-of-Time Processing"
+    path: packaging/aot.md
+    tokens: 257
+    tags: [packaging, ahead, time, processing, beans, properties, rest, cache]
+  - id: packaging-buildpacks
+    title: "Cloud Native Buildpacks"
+    path: packaging/buildpacks.md
+    tokens: 311
+    tags: [packaging, cloud, native, buildpacks, docker, container, buildpack, cache]
+  - id: packaging-dockerfiles
+    title: "Dockerfiles"
+    path: packaging/dockerfiles.md
+    tokens: 800
+    tags: [packaging, dockerfiles, docker, cache]
+  - id: packaging-efficient-images
+    title: "Efficient Container Images"
+    path: packaging/efficient-images.md
+    tokens: 510
+    tags: [packaging, efficient, container, images, yaml, environment, docker, cache]
+  - id: packaging-efficient
+    title: "Efficient Packaging"
+    path: packaging/efficient.md
+    tokens: 261
+    tags: [packaging, efficient, cache]
+  - id: packaging-graalvm
+    title: "GraalVM Native Images"
+    path: packaging/graalvm.md
+    tokens: 1625
+    tags: [packaging, graalvm, native, images, autoconfiguration, beans, properties, rest]
+
+  # testing
+  - id: testing-spring-boot-applications
+    title: "Testing Spring Boot Applications"
+    path: testing/spring-boot-applications.md
+    tokens: 9014
+    tags: [testing, applications, autoconfiguration, beans, properties, profiles, environment, logging]
+  - id: testing-test-dependencies
+    title: "Test Scope Dependencies"
+    path: testing/test-dependencies.md
+    tokens: 164
+    tags: [testing, test, scope, dependencies, rest, mockito, junit, async]
+  - id: testing-test-utilities
+    title: "Test Utilities"
+    path: testing/test-utilities.md
+    tokens: 642
+    tags: [testing, test, utilities, autoconfiguration, properties, environment, rest, webflux]
+  - id: testing-testcontainers
+    title: "Testcontainers"
+    path: testing/testcontainers.md
+    tokens: 2046
+    tags: [testing, testcontainers, autoconfiguration, beans, properties, environment, logging, jdbc]
+
+  # using
+  - id: using-auto-configuration
+    title: "Auto-configuration"
+    path: using/auto-configuration.md
+    tokens: 530
+    tags: [using, auto, configuration, autoconfiguration, beans, datasource, aspect]
+  - id: using-build-systems
+    title: "Build Systems"
+    path: using/build-systems.md
+    tokens: 984
+    tags: [using, build, systems, logging, jpa, repository, starter, starters]
+  - id: using-configuration-classes
+    title: "Configuration Classes"
+    path: using/configuration-classes.md
+    tokens: 217
+    tags: [using, configuration, classes]
+  - id: using-dependency-injection
+    title: "Spring Beans and Dependency Injection"
+    path: using/dependency-injection.md
+    tokens: 225
+    tags: [using, beans, dependency, injection, controller, repository]
+  - id: using-devtools
+    title: "Developer Tools"
+    path: using/devtools.md
+    tokens: 4009
+    tags: [using, developer, tools, autoconfiguration, beans, properties, yaml, yml]
+  - id: using-packaging-production
+    title: "Packaging for Production"
+    path: using/packaging-production.md
+    tokens: 88
+    tags: [using, packaging, production, rest, actuator, health]
+  - id: using-running-application
+    title: "Running Your Application"
+    path: using/running-application.md
+    tokens: 696
+    tags: [using, running, your, application, environment, rest]
+  - id: using-springbootapplication
+    title: "@SpringBootApplication"
+    path: using/springbootapplication.md
+    tokens: 272
+    tags: [using, @springbootapplication, autoconfiguration, beans, properties]
+  - id: using-structuring-code
+    title: "Structuring Your Code"
+    path: using/structuring-code.md
+    tokens: 398
+    tags: [using, structuring, your, code, autoconfiguration, properties, controller, jpa]
+
+  # web
+  - id: web-graceful-shutdown
+    title: "Graceful Shutdown"
+    path: web/graceful-shutdown.md
+    tokens: 341
+    tags: [web, graceful, shutdown, beans, yaml, reactive]
+  - id: web-reactive
+    title: "Reactive Web Applications"
+    path: web/reactive.md
+    tokens: 2798
+    tags: [web, reactive, applications, autoconfiguration, beans, properties, yaml, environment]
+  - id: web-servlet
+    title: "Servlet Web Applications"
+    path: web/servlet.md
+    tokens: 6492
+    tags: [web, servlet, applications, autoconfiguration, beans, properties, yaml, environment]
+  - id: web-spring-graphql
+    title: "Spring GraphQL"
+    path: web/spring-graphql.md
+    tokens: 1135
+    tags: [web, graphql, autoconfiguration, beans, properties, yaml, mvc, controller]
+  - id: web-spring-hateoas
+    title: "Spring HATEOAS"
+    path: web/spring-hateoas.md
+    tokens: 243
+    tags: [web, hateoas, autoconfiguration, beans, properties, mvc, rest, restful]
+  - id: web-spring-security
+    title: "Spring Security"
+    path: web/spring-security.md
+    tokens: 2410
+    tags: [web, security, autoconfiguration, beans, properties, yaml, environment, logging]
+  - id: web-spring-session
+    title: "Spring Session"
+    path: web/spring-session.md
+    tokens: 319
+    tags: [web, session, autoconfiguration, properties, yaml, reactive, jdbc, repository]
+

@@ -2,7 +2,15 @@
 
 > AI-Enhanced Enterprise CLI Tool for context-aware development
 
-AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that wraps AI assistants (GitHub Copilot, Claude, OpenAI) with enhanced functionality including context-aware assistance through alias-based file injection, **intentions framework** for structured prompts, **personas** for scoping the perspective of context, role-based context filtering, and enterprise knowledge integration.
+AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that wraps AI assistants (GitHub Copilot, Claude, OpenAI) with enhanced functionality including:
+
+- **Context-aware assistance** through alias-based file injection
+- **Intentions framework** for structured prompts with requirement gathering
+- **Workflows** for multi-step task orchestration
+- **Skills** for reusable executable capabilities
+- **Personas** for role-based context filtering and perspective scoping
+- **Context history** for tracking and debugging AI interactions
+- Enterprise knowledge integration
 
 ## Table of Contents
 
@@ -15,7 +23,10 @@ AgentX is a TypeScript monorepo providing a CLI tool and VS Code extension that 
   - [alias](#alias---manage-context-aliases)
   - [config](#config---manage-configuration)
 - [Intentions Framework](#intentions-framework)
+- [Workflows](#workflows)
+- [Skills](#skills)
 - [Personas](#personas)
+- [Context History](#context-history)
 - [VS Code Extension](#vs-code-extension)
 - [Configuration](#configuration)
 - [Aliases](#aliases)
@@ -547,30 +558,32 @@ agentx config path
 
 AgentX looks for configuration files in the following order:
 
-1. `.ai-config/config.json` (project-local)
-2. `.agentx.json` (project root)
-3. `~/.agentx/config.json` (user home)
+1. `.agentx/config.json` (project-local)
+2. `~/.agentx/config.json` (user home)
 
 ### Configuration Options
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `provider` | string | `copilot` | AI provider (`copilot`, `claude`, `openai`) |
-| `knowledgeBase` | string | `~/agentx-enterprise-docs` | Path to knowledge base |
-| `maxContextSize` | number | `32768` | Maximum context size in bytes |
+| `provider` | string | `copilot` | AI provider (`copilot`, `claude`, `openai`, `mock`) |
+| `model` | string | `gpt-4` | Default model to use |
+| `knowledgeBase` | string | `./default-knowledge-base` | Path to knowledge base |
+| `maxContextSize` | number | `65536` | Maximum context size in bytes |
 | `contextFormat` | string | `hybrid` | Context format (`hybrid`, `raw`, `structured`) |
 | `cacheEnabled` | boolean | `true` | Enable context caching |
 | `frameworks` | object | `{...}` | Framework configurations |
 | `outputFormat` | string | `markdown` | Default output format (`toon`, `json`, `markdown`, `raw`) |
 | `outputLocation` | string | `./agentx-output` | Default directory for saved outputs |
+| `toonConversion` | object | `{...}` | TOON conversion settings per content type |
 
 ### Example Configuration
 
 ```json
 {
-  "provider": "copilot",
-  "knowledgeBase": "~/agentx-enterprise-docs",
-  "maxContextSize": 32768,
+  "provider": "mock",
+  "model": "gpt-4",
+  "knowledgeBase": "./default-knowledge-base",
+  "maxContextSize": 65536,
   "contextFormat": "hybrid",
   "cacheEnabled": true,
   "frameworks": {
@@ -579,9 +592,30 @@ AgentX looks for configuration files in the following order:
     "bmad": { "name": "bmad", "enabled": true }
   },
   "outputFormat": "markdown",
-  "outputLocation": "./agentx-output"
+  "outputLocation": "./agentx-output",
+  "toonConversion": {
+    "patterns": true,
+    "reference": true,
+    "skills": false,
+    "templates": false,
+    "frameworks": true,
+    "intentions": true
+  }
 }
 ```
+
+### TOON Conversion Settings
+
+The `toonConversion` object controls which content types are converted to TOON format for token efficiency:
+
+| Key | Description |
+|-----|-------------|
+| `patterns` | Convert architecture patterns to TOON |
+| `reference` | Convert reference docs to TOON |
+| `skills` | Convert skill definitions to TOON |
+| `templates` | Convert templates to TOON |
+| `frameworks` | Convert framework docs to TOON |
+| `intentions` | Convert intention configs to TOON |
 
 ---
 
@@ -598,7 +632,7 @@ Intentions provide structured prompt generation with requirement gathering. They
 
 ### Intention Definition
 
-Intentions are defined in `.ai-config/intentions/`:
+Intentions are defined in `.agentx/intentions/`:
 
 ```json
 {
@@ -623,13 +657,13 @@ Intentions are defined in `.ai-config/intentions/`:
       "question": "What fields should the request contain?"
     }
   ],
-  "promptTemplatePath": ".ai-templates/intentions/create-new.prompt.toon"
+  "promptTemplatePath": ".agentx/templates/intentions/create-new.prompt.toon"
 }
 ```
 
 ### TOON Templates
 
-Templates in `.ai-templates/intentions/` use TOON format for token efficiency:
+Templates in `.agentx/templates/intentions/` use TOON format for token efficiency:
 
 ```toon
 task: Create REST Endpoint
@@ -669,42 +703,302 @@ agentx exec be-endpoint -i create-new "event management"
 
 ---
 
+## Workflows
+
+Workflows define multi-step execution plans that orchestrate skills to accomplish complex tasks. They are referenced by intentions and execute after the user approves a PRD (Product Requirements Document).
+
+### How Workflows Work
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  INTENTION                                                  │
+│  └── Questions → Answers → PRD → [Approve]                  │
+│                                                             │
+│  WORKFLOW EXECUTION                                         │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ Context: { entityName: "Student", fields: [...] }   │    │
+│  └─────────────────────────────────────────────────────┘    │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌─────────────────┐                                        │
+│  │ Step 1: Entity  │ skills: [generate_entity]              │
+│  └────────┬────────┘                                        │
+│           │ outputs: { entityPath, className }              │
+│           ▼                                                 │
+│  ┌─────────────────┐                                        │
+│  │ Step 2: Service │ skills: [generate_service]             │
+│  └────────┬────────┘                                        │
+│           │ outputs: { servicePath }                        │
+│           ▼                                                 │
+│  ┌─────────────────┐                                        │
+│  │ Step 3: Tests   │ condition: {{includeTests}}            │
+│  └────────┬────────┘                                        │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌─────────────────┐                                        │
+│  │ COMPLETE        │ All outputs collected                  │
+│  └─────────────────┘                                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Workflow Definition
+
+Workflows are defined in `.agentx/workflows/` as YAML files:
+
+```yaml
+# .agentx/workflows/spring-crud-endpoint.yaml
+id: spring-crud-endpoint
+name: Spring CRUD Endpoint
+description: Generates a complete CRUD endpoint with entity, repository, service, and controller
+
+inputs:
+  - name: entityName
+    type: string
+    required: true
+    description: Name of the entity (PascalCase)
+  - name: fields
+    type: array
+    required: true
+    description: Entity fields as [{name, type}]
+  - name: includeTests
+    type: boolean
+    default: true
+
+steps:
+  - id: generate-entity
+    name: Generate JPA Entity
+    skills: [generate_entity]
+    prompt: |
+      Create JPA entity {{entityName}} with fields: {{fields}}
+    outputs:
+      - name: entityPath
+        type: string
+      - name: className
+        type: string
+
+  - id: generate-service
+    name: Generate Service
+    skills: [generate_service]
+    prompt: |
+      Create service for {{steps.generate-entity.className}}
+    outputs:
+      - name: servicePath
+        type: string
+
+  - id: generate-tests
+    name: Generate Tests
+    condition: "{{includeTests}}"
+    skills: [generate_tests]
+    outputs:
+      - name: testPaths
+        type: array
+
+outputs:
+  - entityPath
+  - servicePath
+  - testPaths
+```
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Sequential Steps** | Steps execute in order, with outputs available to subsequent steps |
+| **Variable Interpolation** | Use `{{variable}}` and `{{steps.stepId.output}}` syntax |
+| **Conditional Execution** | Skip steps with `condition: "{{includeTests}}"` |
+| **Step PRD Refinement** | Use `refinePrd: true` to gather additional info per step |
+| **Error Handling** | `continueOnError: true` and `retryCount: 3` options |
+| **Hooks** | `beforeStep` and `afterStep` for pre/post actions |
+
+### Built-in Variables
+
+| Variable | Description |
+|----------|-------------|
+| `{{workspaceFolder}}` | Workspace root path |
+| `{{date}}` | Current date (YYYY-MM-DD) |
+| `{{timestamp}}` | Current timestamp |
+| `{{workflow.id}}` | Current workflow ID |
+| `{{step.id}}` | Current step ID |
+
+### Helpers
+
+```yaml
+prompt: |
+  Path: /api/{{lowercase entityName}}s
+  Class: {{pascalCase serviceName}}Service
+```
+
+| Helper | Input | Output |
+|--------|-------|--------|
+| `lowercase` | `UserAccount` | `useraccount` |
+| `uppercase` | `UserAccount` | `USERACCOUNT` |
+| `pascalCase` | `user account` | `UserAccount` |
+| `camelCase` | `user account` | `userAccount` |
+| `kebabCase` | `UserAccount` | `user-account` |
+| `snakeCase` | `UserAccount` | `user_account` |
+
+For complete workflow documentation, see [.agentx/workflows/README.md](.agentx/workflows/README.md).
+
+---
+
+## Skills
+
+Skills are reusable executable capabilities that workflow steps invoke. They wrap scripts, Make targets, or LLM prompts with a unified interface for inputs and outputs.
+
+### Skill Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `script` | Shell/Python/Node.js scripts | File operations, migrations |
+| `make` | Make targets | Build tasks, test execution |
+| `llm` | Language model prompts | Code generation |
+
+### Script Skill Example
+
+```yaml
+# .agentx/skills/create_migration.yaml
+id: create_migration
+type: script
+name: Create Migration
+description: Creates a new Flyway migration file
+
+run: ./scripts/create-migration.sh
+shell: bash
+
+args:
+  - name: migrationName
+    flag: --name
+    required: true
+  - name: description
+    flag: --desc
+
+outputs:
+  - name: filePath
+    extract: pattern
+    pattern: "Created: (.+\\.sql)"
+
+timeout: 30
+```
+
+### LLM Skill Example
+
+```yaml
+# .agentx/skills/generate_entity.yaml
+id: generate_entity
+type: llm
+name: Generate JPA Entity
+description: Generates a JPA entity class
+
+prompt: |
+  Create a JPA entity class:
+
+  Entity Name: {{entityName}}
+  Package: {{package}}
+  Fields: {{fields}}
+
+  Requirements:
+  - Use Lombok @Data, @Entity, @Table
+  - Include @Id with @GeneratedValue
+
+  Return only Java code.
+
+inputs:
+  - name: entityName
+    required: true
+  - name: package
+    required: true
+  - name: fields
+    required: true
+
+outputs:
+  - name: code
+    extract: full
+  - name: className
+    extract: pattern
+    pattern: "public class (\\w+)"
+
+temperature: 0.2
+```
+
+### Make Skill Example
+
+```yaml
+# .agentx/skills/build_module.yaml
+id: build_module
+type: make
+name: Build Module
+description: Builds a specific module
+
+target: build-module
+makefile: ./Makefile
+
+args:
+  - name: module
+    env: MODULE
+    required: true
+  - name: profile
+    env: PROFILE
+    default: dev
+
+outputs:
+  - name: artifactPath
+    extract: pattern
+    pattern: "Built: (.+\\.jar)"
+
+timeout: 120
+```
+
+### Output Extraction
+
+| Mode | Description |
+|------|-------------|
+| `full` | Entire stdout/response |
+| `stdout` | Standard output only |
+| `stderr` | Standard error only |
+| `pattern` | Regex pattern extraction |
+| `json` | JSONPath extraction |
+| `file` | Read from file |
+
+For complete skills documentation, see [.agentx/skills/README.md](.agentx/skills/README.md).
+
+---
+
 ## Personas
 
 Personas enable role-based context filtering and perspective scoping. Different team members see only the aliases relevant to their role, and the AI responds with the appropriate tone and focus.
 
 ### Persona Definition
 
-Personas are defined in `.ai-config/config.json`:
+Personas are defined in `.agentx/personas/` as individual JSON files:
 
 ```json
+// .agentx/personas/backend.json
 {
-  "personas": [
-    {
-      "id": "backend",
-      "name": "Backend Developer",
-      "description": "Java/Spring Boot backend development",
-      "aliasPatterns": ["be-*", "db-*", "auth-*"],
-      "perspective": "You are a senior backend developer focused on building robust, scalable APIs.",
-      "tone": "technical, precise, security-conscious",
-      "focusAreas": ["performance", "security", "error handling", "API design"],
-      "avoidAreas": ["frontend concerns", "UI/UX details"]
-    },
-    {
-      "id": "architect",
-      "name": "Architect",
-      "description": "System design and architecture",
-      "aliasPatterns": ["arch-*", "adr-*"],
-      "systemPrompt": "You are a senior software architect. Focus on high-level design decisions and trade-offs.",
-      "perspective": "Approach problems from a systems thinking perspective.",
-      "tone": "strategic, analytical, forward-thinking",
-      "focusAreas": ["system design", "scalability", "maintainability"],
-      "avoidAreas": ["implementation details", "specific code syntax"]
-    }
-  ],
-  "activePersona": "backend"
+  "id": "backend",
+  "name": "Backend Developer",
+  "description": "Spring Boot, Rust auth, database, APIs",
+  "aliasPatterns": ["be-*", "api-*", "db-*", "auth-*"],
+  "contextProviders": ["tools/context-providers/java-project-context.ts"],
+  "defaultModel": "claude-sonnet",
+  "perspective": "You are a senior backend developer focused on building robust, scalable APIs and services.",
+  "tone": "technical, precise, security-conscious",
+  "focusAreas": ["performance", "security", "error handling", "API design", "database optimization"],
+  "avoidAreas": ["frontend concerns", "UI/UX details"]
 }
 ```
+
+### Available Personas
+
+| Persona | ID | Focus Areas |
+|---------|-----|-------------|
+| **Backend Developer** | `backend` | APIs, databases, security, performance |
+| **Frontend Developer** | `frontend` | React, UI components, accessibility, state management |
+| **Fullstack Developer** | `fullstack` | End-to-end features, integration, full system understanding |
+| **Architect** | `architect` | System design, scalability, trade-offs, ADRs |
+| **Designer** | `designer` | UI/UX, design systems, accessibility, user experience |
+| **DevOps Engineer** | `devops` | CI/CD, infrastructure, deployment, monitoring |
+| **QA Engineer** | `qa` | Testing strategies, test automation, quality assurance |
+| **Product Manager** | `product` | Requirements, user stories, feature prioritization |
 
 ### Persona Properties
 
@@ -757,9 +1051,62 @@ Avoid: implementation details, specific code syntax
 
 ---
 
+## Context History
+
+AgentX automatically persists the composed context from every `/exec` command for better debuggability and reproducibility.
+
+### How It Works
+
+Every time you run an `exec` command, AgentX saves the full context to `.agentx/.history/`:
+
+```
+.agentx/.history/
+└── 2024-01-15/
+    ├── 103045-be-endpoint-create-new/
+    │   ├── context.md        # Full composed context
+    │   └── manifest.json     # Metadata (alias, intention, files)
+    └── 143022-bff-refactor/
+        ├── context.md
+        └── manifest.json
+```
+
+### Manifest Format
+
+```json
+{
+  "timestamp": "2024-01-15T10:30:45.123Z",
+  "alias": "be-endpoint",
+  "intention": "create-new",
+  "prompt": "event management",
+  "files": [
+    {"path": "reference/bff/architecture.md", "size": 3245},
+    {"path": "patterns/rest-api.md", "size": 1820}
+  ],
+  "totalSize": 24500,
+  "provider": "copilot"
+}
+```
+
+### VS Code Extension Commands
+
+| Command | Description |
+|---------|-------------|
+| `AgentX: Open Last Context` | Open the most recent context file |
+| `AgentX: Browse History` | Browse all historical contexts |
+| `AgentX: Clear History` | Clear context history |
+
+### Benefits
+
+- **Debugging**: See exactly what context was sent to the AI
+- **Reproducibility**: Re-run prompts with identical context
+- **Optimization**: Analyze context size and composition
+- **Audit Trail**: Track what information was used in AI interactions
+
+---
+
 ## VS Code Extension
 
-The VS Code extension integrates AgentX with GitHub Copilot Chat.
+The VS Code extension integrates AgentX with GitHub Copilot Chat and VS Code's Language Model API.
 
 ### Installation
 
@@ -769,9 +1116,23 @@ pnpm run package
 code --install-extension agentx-vscode-1.0.0.vsix
 ```
 
-### Commands
+### Persona Participants
 
-In VS Code Chat, use `@agentx` followed by:
+The extension provides role-specific chat participants:
+
+| Participant | Description |
+|-------------|-------------|
+| `@agentx` | Default participant |
+| `@agentx-backend` | Backend development focus |
+| `@agentx-frontend` | Frontend development focus |
+| `@agentx-fullstack` | Full-stack development |
+| `@agentx-architect` | Architecture and design |
+| `@agentx-designer` | UI/UX design |
+| `@agentx-devops` | DevOps and infrastructure |
+| `@agentx-qa` | Quality assurance |
+| `@agentx-product` | Product management |
+
+### Chat Commands
 
 ```
 @agentx /exec be-endpoint "Design an API for events"
@@ -783,6 +1144,17 @@ In VS Code Chat, use `@agentx` followed by:
 @agentx /config show
 @agentx /help
 ```
+
+### VS Code Commands
+
+| Command | Description |
+|---------|-------------|
+| `AgentX: Execute with Alias` | Run prompt with selected alias |
+| `AgentX: Open Last Context` | View most recent context |
+| `AgentX: Browse History` | Browse context history |
+| `AgentX: Clear History` | Clear context history |
+| `AgentX: Initialize Project` | Scaffold AgentX config |
+| `AgentX: Reinitialize` | Add missing config files |
 
 ### Completions
 
@@ -796,7 +1168,7 @@ The extension provides intelligent completions:
 
 ## Aliases
 
-Aliases are predefined collections of file patterns that provide context to AI prompts. They are defined as JSON files in the knowledge base directory under `.ai-config/aliases/`.
+Aliases are predefined collections of file patterns that provide context to AI prompts. They are defined as JSON files in `.agentx/aliases/`.
 
 ### Alias Definition Format
 
@@ -826,16 +1198,16 @@ Aliases are predefined collections of file patterns that provide context to AI p
 
 ### Creating Custom Aliases
 
-1. Create a JSON file in `<knowledgeBase>/.ai-config/aliases/`:
+1. Create a JSON file in `.agentx/aliases/`:
 
 ```bash
-mkdir -p ~/agentx-enterprise-docs/.ai-config/aliases
+mkdir -p .agentx/aliases
 ```
 
 2. Add your alias definition:
 
 ```json
-// ~/agentx-enterprise-docs/.ai-config/aliases/my-alias.json
+// .agentx/aliases/my-alias.json
 {
   "name": "my-alias",
   "description": "My custom context",
@@ -938,7 +1310,11 @@ agentx-cli/
 │   │       ├── context/         # Context file aggregation
 │   │       ├── intention/       # Intentions framework
 │   │       ├── providers/       # AI provider abstraction
-│   │       └── toon/            # TOON conversion utilities
+│   │       ├── toon/            # TOON conversion utilities
+│   │       ├── bootstrap/       # Project detection and scaffolding
+│   │       ├── history/         # Context history management
+│   │       ├── plan/            # LLM plan visualization
+│   │       └── workflow/        # Workflow execution engine
 │   ├── cli/                     # @agentx/cli - Command-line interface
 │   │   └── src/
 │   │       ├── commands/        # CLI commands (exec, init, alias, config)
@@ -947,21 +1323,42 @@ agentx-cli/
 │       └── src/
 │           ├── extension.ts     # Extension entry point
 │           ├── participant.ts   # Copilot Chat participant
-│           └── commands.ts      # VS Code commands
+│           ├── commands.ts      # VS Code commands
+│           └── vscode-lm-provider.ts  # VS Code LM API provider
+├── .agentx/                     # AgentX configuration directory
+│   ├── config.json              # Main configuration
+│   ├── aliases/                 # Alias definitions
+│   ├── intentions/              # Intention definitions
+│   ├── personas/                # Persona definitions (8 roles)
+│   ├── workflows/               # Multi-step workflow definitions
+│   ├── skills/                  # Reusable skill definitions
+│   ├── templates/               # Prompt templates
+│   ├── scripts/                 # Custom scripts for skills
+│   ├── .history/                # Context history (auto-generated)
+│   └── .plans/                  # LLM plans (auto-generated)
 ├── default-knowledge-base/      # Example knowledge base
-│   ├── .ai-config/
-│   │   ├── config.json          # Configuration with personas
-│   │   ├── aliases/             # Alias definitions
-│   │   └── intentions/          # Intention definitions
-│   ├── .ai-templates/
-│   │   └── intentions/          # TOON prompt templates
-│   ├── .ai-skill/               # AI behavior instructions
 │   ├── patterns/                # Architecture patterns
 │   └── reference/               # Technical reference docs
 ├── pnpm-workspace.yaml          # Monorepo configuration
 ├── tsconfig.base.json           # Shared TypeScript config
 └── README.md
 ```
+
+### .agentx Directory
+
+The `.agentx/` directory contains all AgentX configuration and state:
+
+| Directory | Purpose |
+|-----------|---------|
+| `aliases/` | Context alias definitions (JSON files) |
+| `intentions/` | Structured prompt intentions (JSON files) |
+| `personas/` | Role-based personas (JSON files) |
+| `workflows/` | Multi-step workflows (YAML files) |
+| `skills/` | Reusable skills for workflows (YAML files) |
+| `templates/` | Prompt templates for intentions |
+| `scripts/` | Custom scripts invoked by skills |
+| `.history/` | Auto-generated context history |
+| `.plans/` | Auto-generated LLM plan files |
 
 ---
 
@@ -1097,22 +1494,42 @@ agentx alias show <alias>                                   # Show alias details
 agentx config show                                          # View configuration
 agentx config set <key> <value>                             # Update configuration
 
-# Exec with Intentions
+# Exec with Intentions & Workflows
 agentx exec be-endpoint --intention create-new "event management"
 agentx exec be-endpoint -i create-new "event management"    # Interactive
 agentx exec be-service --intention refactor "improve error handling"
 
+# Output Options
+agentx exec bff "Design API" --browser                      # Open in browser
+agentx exec bff "Design API" --file response.md             # Save to file
+agentx exec bff "Design API" --output-format toon           # TOON format
+
 # Persona Management
 agentx config set activePersona backend
 agentx config set activePersona frontend
-agentx config set activePersona fullstack
+agentx config set activePersona architect
 
-# VS Code Extension
+# VS Code Extension - Chat Participants
 @agentx /exec be-endpoint "Design an API"
-@agentx /exec be-endpoint --intention create-new "events"
+@agentx-backend /exec be-service "Add authentication"
+@agentx-architect /exec arch-review "Evaluate microservices approach"
+@agentx-frontend /exec fe-component "Create login form"
+
+# VS Code Extension - Commands
 @agentx /intentions list
 @agentx /alias list
 @agentx /help
+```
+
+### Key Directories
+
+```bash
+.agentx/aliases/      # Context alias definitions
+.agentx/intentions/   # Structured prompt intentions
+.agentx/personas/     # Role-based personas
+.agentx/workflows/    # Multi-step workflows
+.agentx/skills/       # Reusable skills
+.agentx/.history/     # Context history (auto-generated)
 ```
 
 ---

@@ -1,0 +1,230 @@
+---
+title: "How-to: Spring MVC"
+source: spring-boot-docs-v4
+tokens: ~2718
+---
+
+# Spring MVC
+
+Spring Boot has a number of starters that include Spring MVC.
+Note that some starters include a dependency on Spring MVC rather than include it directly.
+This section answers common questions about Spring MVC and Spring Boot.
+
+## Write a JSON REST Service
+
+Any Spring `@RestController` in a Spring Boot application should render JSON response by default as long as Jackson 3 is on the classpath, as shown in the following example:
+
+```java
+// Example: MyController
+```
+
+As long as `MyThing` can be serialized by Jackson 3 (true for a normal POJO or Groovy object), then `<http://localhost:8080/thing`> serves a JSON representation of it by default.
+Note that, in a browser, you might sometimes see XML responses, because browsers tend to send accept headers that prefer XML.
+
+## Write an XML REST Service
+
+If you have the Jackson XML extension (`jackson-dataformat-xml`) on the classpath, you can use it to render XML responses.
+The previous example that we used for JSON would work.
+To use the Jackson XML renderer, add the following dependency to your project:
+
+```xml
+<dependency>
+	<groupId>tools.jackson.dataformat</groupId>
+	<artifactId>jackson-dataformat-xml</artifactId>
+</dependency>
+```
+
+If Jackson's XML extension is not available and JAXB is available, XML can be rendered with the additional requirement of having `MyThing` annotated as `@XmlRootElement`, as shown in the following example:
+
+```java
+// Example: MyThing
+```
+
+You will need to ensure that the JAXB library is part of your project, for example by adding:
+
+```xml
+<dependency>
+	<groupId>org.glassfish.jaxb</groupId>
+	<artifactId>jaxb-runtime</artifactId>
+</dependency>
+```
+
+> **Note:** To get the server to render XML instead of JSON, you might have to send an `Accept: text/xml` header (or use a browser).
+
+## Customize the Jackson JsonMapper
+
+You can configure the `JsonMapper` by using the environment.
+Jackson provides an extensive suite of on/off features that can be used to configure various aspects of its processing.
+These features are described in several enums (in Jackson) that map onto properties in the environment:
+
+| Enum | Property | Values
+| --- | --- |
+| `DateTimeFeature`
+| `spring.jackson.datatype.datetime.<feature_name>`
+| `true`, `false`
+| `EnumFeature`
+| `spring.jackson.datatype.enum.<feature_name>`
+| `true`, `false`
+| `JsonNodeFeature`
+| `spring.jackson.datatype.json-node.<feature_name>`
+| `true`, `false`
+| javadoc:com.fasterxml.jackson.annotation.JsonInclude$Include[]
+| `spring.jackson.default-property-inclusion`
+| `always`, `non*null`, `non*absent`, `non*default`, `non*empty`
+| `DeserializationFeature`
+| `spring.jackson.deserialization.<feature_name>`
+| `true`, `false`
+| `JsonReadFeature`
+| `spring.jackson.json.read.<feature_name>`
+| `true`, `false`
+| `JsonWriteFeature`
+| `spring.jackson.json.write.<feature_name>`
+| `true`, `false`
+| `MapperFeature`
+| `spring.jackson.mapper.<feature_name>`
+| `true`, `false`
+| `SerializationFeature`
+| `spring.jackson.serialization.<feature_name>`
+| `true`, `false`
+
+For example, to enable pretty print, set `spring.jackson.serialization.indent_output=true`.
+Note that, thanks to the use of relaxed binding, the case of `indent*output` does not have to match the case of the corresponding enum constant, which is `INDENT*OUTPUT`.
+
+This environment-based configuration is applied to the auto-configured javadoc:tools.jackson.databind.json.JsonMapper$Builder[] bean and applies to any mappers created by using the builder, including the auto-configured `JsonMapper` bean.
+
+To ease the migration when working on an application that previously used Jackson 2, the auto-configured `JsonMapper` can be configured to use defaults that are as close as possible to those that Spring Boot used for Jackson 2. To enable these defaults, set `spring.jackson.use-jackson2-defaults` to `true`.
+
+The context's javadoc:tools.jackson.databind.json.JsonMapper$Builder[] can be customized by one or more `JsonMapperBuilderCustomizer` beans.
+Such customizer beans can be ordered (Boot's own customizer has an order of 0), letting additional customization be applied both before and after Boot's customization.
+
+Any beans of type `JacksonModule` are automatically registered with the auto-configured javadoc:tools.jackson.databind.json.JsonMapper$Builder[] and are applied to any `JsonMapper` instances that it creates.
+This provides an application-wide mechanism for contributing custom modules when you add new features to your application.
+
+Any modules that participate in the Java `ServiceLoader` mechanism are, by default, found and added to the auto-configured javadoc:tools.jackson.databind.json.JsonMapper$Builder[]. To disable this behavior, set `spring.jackson.find-and-add-modules` to `false`.
+
+If you want to replace the default `JsonMapper` completely, either define a `@Bean` of that type or, if you prefer the builder-based approach, define a javadoc:tools.jackson.databind.json.JsonMapper$Builder[] `@Bean`.
+When defining an `JsonMapper` bean, marking it as `@Primary` is recommended as the auto-configuration's `JsonMapper` that it will replace is `@Primary`.
+Note that, in either case, doing so disables all auto-configuration of the `JsonMapper`.
+
+If you provide any `@Bean`s of type `JacksonJsonHttpMessageConverter`, they replace the default value in the MVC configuration.
+Also, a convenience bean of type `HttpMessageConverters` is provided (and is always available if you use the default MVC configuration).
+It has some useful methods to access the default and user-enhanced message converters.
+
+See the  section and the /autoconfigure/WebMvcAutoConfiguration.java[`WebMvcAutoConfiguration`] source code for more details.
+
+## Customize the @ResponseBody Rendering
+
+Spring uses `HttpMessageConverters` to render `@ResponseBody` (or responses from `@RestController`).
+You can contribute additional converters by adding beans of the appropriate type in a Spring Boot context.
+If a bean you add is of a type that would have been included by default anyway (such as `JacksonJsonHttpMessageConverter` for JSON conversions), it replaces the default value.
+A convenience bean of type `HttpMessageConverters` is provided and is always available if you use the default MVC configuration.
+It has some useful methods to access the default and user-enhanced message converters (For example, it can be useful if you want to manually inject them into a custom `RestTemplate`).
+
+As in normal MVC usage, any `WebMvcConfigurer` beans that you provide can also contribute converters by overriding the `configureMessageConverters` method.
+However, unlike with normal MVC, you can supply only additional converters that you need (because Spring Boot uses the same mechanism to contribute its defaults).
+Finally, if you opt out of the default Spring Boot MVC configuration by providing your own `@EnableWebMvc` configuration, you can take control completely and do everything manually by using `getMessageConverters` from `WebMvcConfigurationSupport`.
+
+See the /autoconfigure/WebMvcAutoConfiguration.java[`WebMvcAutoConfiguration`] source code for more details.
+
+## Handling Multipart File Uploads
+
+Spring Boot embraces the servlet 5 `Part` API to support uploading files.
+By default, Spring Boot configures Spring MVC with a maximum size of 1MB per file and a maximum of 10MB of file data in a single request.
+You may override these values, the location to which intermediate data is stored (for example, to the `/tmp` directory), and the threshold past which data is flushed to disk by using the properties exposed in the `MultipartProperties` class.
+For example, if you want to specify that files be unlimited, set the `spring.servlet.multipart.max-file-size` property to `-1`.
+
+The multipart support is helpful when you want to receive multipart encoded file data as a `@RequestParam`-annotated parameter of type `MultipartFile` in a Spring MVC controller handler method.
+
+See the /autoconfigure/MultipartAutoConfiguration.java[`MultipartAutoConfiguration`] source for more details.
+
+> **Note:** It is recommended to use the container's built-in support for multipart uploads rather than introduce an additional dependency such as Apache Commons File Upload.
+
+## Switch Off the Spring MVC DispatcherServlet
+
+By default, all content is served from the root of your application (`/`).
+If you would rather map to a different path, you can configure one as follows:
+
+```yaml
+spring:
+  mvc:
+    servlet:
+      path: "/mypath"
+```
+
+If you have additional servlets you can declare a `@Bean` of type `Servlet` or `ServletRegistrationBean` for each and Spring Boot will register them transparently to the container.
+It is also possible to use `@ServletRegistration` as an annotation-based alternative to `ServletRegistrationBean`.
+Because servlets are registered that way, they can be mapped to a sub-context of the `DispatcherServlet` without invoking it.
+
+Configuring the `DispatcherServletPath` yourself is unusual but if you really need to do it, a `@Bean` of type `DispatcherServletPath` must be provided as well to provide the path of your custom `DispatcherServlet`.
+
+## Switch Off the Default MVC Configuration
+
+The easiest way to take complete control over MVC configuration is to provide your own `@Configuration` with the `@EnableWebMvc` annotation.
+Doing so leaves all MVC configuration in your hands.
+
+## Customize ViewResolvers
+
+A `ViewResolver` is a core component of Spring MVC, translating view names in `@Controller` to actual `View` implementations.
+Note that view resolvers are mainly used in UI applications, rather than REST-style services (a `View` is not used to render a `@ResponseBody`).
+There are many implementations of `ViewResolver` to choose from, and Spring on its own is not opinionated about which ones you should use.
+Spring Boot, on the other hand, installs one or two for you, depending on what it finds on the classpath and in the application context.
+The `DispatcherServlet` uses all the resolvers it finds in the application context, trying each one in turn until it gets a result.
+If you add your own, you have to be aware of the order and in which position your resolver is added.
+
+`WebMvcAutoConfiguration` adds the following `ViewResolver` beans to your context:
+
+* An `InternalResourceViewResolver` named '`defaultViewResolver`'.
+  This one locates physical resources that can be rendered by using the `DefaultServlet` (including static resources and JSP pages, if you use those).
+  It applies a prefix and a suffix to the view name and then looks for a physical resource with that path in the servlet context (the defaults are both empty but are accessible for external configuration through `spring.mvc.view.prefix` and `spring.mvc.view.suffix`).
+  You can override it by providing a bean of the same type.
+* A `BeanNameViewResolver` named '`beanNameViewResolver`'.
+  This is a useful member of the view resolver chain and picks up any beans with the same name as the `View` being resolved.
+  It should not be necessary to override or replace it.
+* A `ContentNegotiatingViewResolver` named '`viewResolver`' is added only if there **are** actually beans of type `View` present.
+  This is a composite resolver, delegating to all the others and attempting to find a match to the '`Accept`' HTTP header sent by the client.
+  There is a useful [blog about `ContentNegotiatingViewResolver`](https://spring.io/blog/2013/06/03/content-negotiation-using-views) that you might like to study to learn more, and you might also look at the source code for detail.
+  You can switch off the auto-configured `ContentNegotiatingViewResolver` by defining a bean named '`viewResolver`'.
+* If you use Thymeleaf, you also have a `ThymeleafViewResolver` named '`thymeleafViewResolver`'.
+  It looks for resources by surrounding the view name with a prefix and suffix.
+  The prefix is `spring.thymeleaf.prefix`, and the suffix is `spring.thymeleaf.suffix`.
+  The values of the prefix and suffix default to '`classpath:/templates/`' and '`.html`', respectively.
+  You can override `ThymeleafViewResolver` by providing a bean of the same name.
+* If you use FreeMarker, you also have a `FreeMarkerViewResolver` named '`freeMarkerViewResolver`'.
+  It looks for resources in a loader path (which is externalized to `spring.freemarker.templateLoaderPath` and has a default value of '`classpath:/templates/`') by surrounding the view name with a prefix and a suffix.
+  The prefix is externalized to `spring.freemarker.prefix`, and the suffix is externalized to `spring.freemarker.suffix`.
+  The default values of the prefix and suffix are empty and '`.ftlh`', respectively.
+  You can override `FreeMarkerViewResolver` by providing a bean of the same name.
+  FreeMarker variables can be customized by defining a bean of type `FreeMarkerVariablesCustomizer`.
+* If you use Groovy templates (actually, if `groovy-templates` is on your classpath), you also have a `GroovyMarkupViewResolver` named '`groovyMarkupViewResolver`'.
+  It looks for resources in a loader path by surrounding the view name with a prefix and suffix (externalized to `spring.groovy.template.prefix` and `spring.groovy.template.suffix`).
+  The prefix and suffix have default values of '`classpath:/templates/`' and '`.tpl`', respectively.
+  You can override `GroovyMarkupViewResolver` by providing a bean of the same name.
+* If you use Mustache, you also have a `MustacheViewResolver` named '`mustacheViewResolver`'.
+  It looks for resources by surrounding the view name with a prefix and suffix.
+  The prefix is `spring.mustache.prefix`, and the suffix is `spring.mustache.suffix`.
+  The values of the prefix and suffix default to '`classpath:/templates/`' and '`.mustache`', respectively.
+  You can override `MustacheViewResolver` by providing a bean of the same name.
+
+For more detail, see the following sections:
+
+* /autoconfigure/WebMvcAutoConfiguration.java[`WebMvcAutoConfiguration`]
+* /autoconfigure/ThymeleafAutoConfiguration.java[`ThymeleafAutoConfiguration`]
+* /autoconfigure/FreeMarkerAutoConfiguration.java[`FreeMarkerAutoConfiguration`]
+* /autoconfigure/GroovyTemplateAutoConfiguration.java[`GroovyTemplateAutoConfiguration`]
+
+## Customize the '`whitelabel`' Error Page
+
+Spring Boot installs a '`whitelabel`' error page that you see in a browser client if you encounter a server error (machine clients consuming JSON and other media types should see a sensible response with the right error code).
+
+> **Note:** Set `spring.web.error.whitelabel.enabled` to `false` to switch the default error page off.
+Doing so restores the default of the servlet container that you are using.
+Note that Spring Boot still tries to resolve the error view, so you should probably add your own error page rather than disabling it completely.
+
+Overriding the error page with your own depends on the templating technology that you use.
+For example, if you use Thymeleaf, you can add an `error.html` template.
+If you use FreeMarker, you can add an `error.ftlh` template.
+In general, you need a `View` that resolves with a name of `error` or a `@Controller` that handles the `/error` path.
+Unless you replaced some of the default configuration, you should find a `BeanNameViewResolver` in your `ApplicationContext`, so a `@Bean` named `error` would be one way of doing that.
+See /autoconfigure/error/ErrorMvcAutoConfiguration.java[`ErrorMvcAutoConfiguration`] for more options.
+
+See also the section on  for details of how to register handlers in the servlet container.
