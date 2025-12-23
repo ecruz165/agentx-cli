@@ -2,7 +2,7 @@
  * Context History Persistence for AgentX
  * 
  * Saves composed context on every /exec command for debuggability and reproducibility.
- * Creates context.md and manifest.json files in .agentx/history/{date}/{timestamp}-{alias}-{intent}/
+ * Creates context.md and manifest.json files in .agentx/.history/{date}/{timestamp}-{alias}-{intent}/
  */
 
 import fs from 'fs';
@@ -17,7 +17,7 @@ export const DEFAULT_HISTORY_CONFIG: HistoryConfig = {
   enabled: true,
   retainDays: 7,
   maxEntries: 100,
-  location: '.agentx/history',
+  location: '.agentx/.history',
   includeWorkspaceFiles: true,
   compressAfterDays: 1,
 };
@@ -347,8 +347,8 @@ export function isHistoryInGitignore(config?: Partial<HistoryConfig>): boolean {
     const patterns = [
       historyLocation,
       `${historyLocation}/`,
-      `.agentx/history`,
-      `.agentx/history/`,
+      `.agentx/.history`,
+      `.agentx/.history/`,
       `.agentx/`,
       `.agentx`,
     ];

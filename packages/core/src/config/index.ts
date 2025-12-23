@@ -82,7 +82,7 @@ const DEFAULT_CONFIG: AgentXConfig = {
     enabled: true,
     retainDays: 7,
     maxEntries: 100,
-    location: '.agentx/history',
+    location: '.agentx/.history',
     includeWorkspaceFiles: true,
     compressAfterDays: 1,
   },

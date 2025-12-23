@@ -80,3 +80,7 @@ node_modules/
 tasks/task_*.txt
 /app-service/.mcp.json
 app-ui/.temp/*.taskmaster
+
+
+.agentx/.plans/
+.agentx/.history
