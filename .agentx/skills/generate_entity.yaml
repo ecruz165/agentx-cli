@@ -1,0 +1,52 @@
+# LLM Skill: Generate JPA Entity
+# Generates a Spring JPA entity class
+
+id: generate_entity
+type: llm
+name: Generate JPA Entity
+description: Generates a Spring JPA entity class with annotations and Lombok
+
+prompt: |
+  Create a JPA entity class for {{entityName}}.
+
+  Package: {{basePackage}}.domain
+
+  Fields:
+  {{fields}}
+
+  Requirements:
+  - @Entity annotation
+  - @Id with @GeneratedValue(strategy = GenerationType.IDENTITY)
+  - Lombok @Data, @Builder, @NoArgsConstructor, @AllArgsConstructor
+  - Appropriate JPA column annotations
+  - @CreatedDate and @LastModifiedDate for audit fields if applicable
+
+  Return only valid Java code. No markdown fences. No explanation.
+
+inputs:
+  - name: entityName
+    required: true
+    description: Name of the entity (e.g., Student, Product)
+  - name: fields
+    required: true
+    type: array
+    description: List of field definitions (name:type format)
+  - name: basePackage
+    required: true
+    description: Base package for generated class
+
+outputs:
+  - name: code
+    extract: full
+  - name: className
+    extract: pattern
+    pattern: "public class (\\w+)"
+  - name: imports
+    extract: pattern
+    pattern: "^import .+;$"
+    flags: gm
+    multiple: true
+
+model: default
+temperature: 0.2
+maxTokens: 2000

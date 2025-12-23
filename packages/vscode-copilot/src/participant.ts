@@ -58,6 +58,11 @@ import {
   MissingRequirement,
   PlanDocument,
 } from '@agentx/core';
+import {
+  handleWorkflowCommand,
+  continueInputCollection,
+  getActiveInputSession,
+} from './workflow';
 
 /**
  * Represents extracted context from chat references
@@ -510,6 +515,23 @@ async function handleChatRequest(
 
   if (command === 'help') {
     return handleHelpCommand(stream);
+  }
+
+  // Workflow commands
+  if (command === 'workflow' || command === 'run-workflow') {
+    return handleWorkflowCommand(command, prompt, request, stream, token);
+  }
+
+  if (command === 'list-workflows') {
+    return handleWorkflowCommand('list-workflows', prompt, request, stream, token);
+  }
+
+  if (command === 'resume') {
+    return handleWorkflowCommand('resume', prompt, request, stream, token);
+  }
+
+  if (command === 'status') {
+    return handleWorkflowCommand('status', prompt, request, stream, token);
   }
 
   // Fallback: check for inline /commands in prompt (for backwards compatibility)
@@ -1645,6 +1667,14 @@ async function handleHelpCommand(
 
   stream.markdown(`### Project\n`);
   stream.markdown(`- \`/init\` - Show project initialization guidance\n\n`);
+
+  stream.markdown(`### Workflows\n`);
+  stream.markdown(`- \`/workflow <id> [inputs]\` - Run a workflow by ID\n`);
+  stream.markdown(`- \`/list-workflows\` - List all available workflows\n`);
+  stream.markdown(`- \`/resume [execution-id]\` - Resume a paused/failed workflow\n`);
+  stream.markdown(`- \`/status\` - Show recent workflow executions\n\n`);
+  stream.markdown(`**Examples:**\n`);
+  stream.markdown(`- \`/workflow spring-crud-endpoint entityName:Product fields:name,price\`\n\n`);
 
   stream.markdown(`### Help\n`);
   stream.markdown(`- \`/help\` - Show this help message\n\n`);

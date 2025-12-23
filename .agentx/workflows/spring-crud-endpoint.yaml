@@ -1,0 +1,156 @@
+id: spring-crud-endpoint
+name: Spring Boot CRUD Endpoint
+description: Generates a complete CRUD endpoint with entity, repository, service, controller, and tests
+
+inputs:
+  - name: entityName
+    type: string
+    required: true
+    description: Name of the entity (e.g., Student, Product)
+  - name: fields
+    type: array
+    required: true
+    description: List of field definitions (name:type format)
+  - name: basePackage
+    type: string
+    default: "com.example"
+    description: Base package for generated classes
+  - name: includeTests
+    type: boolean
+    default: true
+    description: Whether to generate test classes
+
+steps:
+  - id: generate-entity
+    name: Generate JPA Entity
+    skills: [create_file]
+    prompt: |
+      Create a JPA entity class for {{entityName}} with the following fields:
+      {{fields}}
+
+      Package: {{basePackage}}.domain
+
+      Include:
+      - @Entity annotation
+      - @Id with @GeneratedValue
+      - Lombok @Data, @Builder, @NoArgsConstructor, @AllArgsConstructor
+      - Appropriate JPA column annotations
+    inputs: [entityName, fields, basePackage]
+    outputs:
+      - name: entityFilePath
+        type: string
+        description: Path to created entity file
+
+  - id: generate-migration
+    name: Generate Flyway Migration
+    refinePrd: true
+    prdQuestions:
+      - id: includeRollback
+        prompt: Include rollback DDL?
+        type: confirm
+        default: true
+      - id: indexes
+        prompt: Which fields need indexes?
+        type: multiselect
+        options: "{{fields}}"
+    skills: [create_file]
+    prompt: |
+      Create a Flyway migration for the {{entityName}} table.
+
+      Fields: {{fields}}
+      Include indexes on: {{indexes}}
+      Include rollback: {{includeRollback}}
+
+      Use naming convention: V{next_version}__create_{{entityName}}_table.sql
+    inputs: [entityName, fields, indexes, includeRollback]
+    outputs:
+      - name: migrationFilePath
+        type: string
+
+  - id: generate-repository
+    name: Generate Repository Interface
+    skills: [create_file]
+    prompt: |
+      Create a Spring Data JPA repository interface for {{entityName}}.
+
+      Package: {{basePackage}}.repository
+      Entity: {{steps.generate-entity.entityFilePath}}
+
+      Include common query methods based on the entity fields.
+    inputs: [entityName, basePackage]
+    outputs:
+      - name: repositoryFilePath
+        type: string
+
+  - id: generate-service
+    name: Generate Service Layer
+    skills: [create_file]
+    prompt: |
+      Create a service class for {{entityName}} with CRUD operations.
+
+      Package: {{basePackage}}.service
+      Repository: {{steps.generate-repository.repositoryFilePath}}
+
+      Include:
+      - @Service annotation
+      - Constructor injection
+      - CRUD methods: create, findById, findAll, update, delete
+      - Proper exception handling
+    inputs: [entityName, basePackage]
+    outputs:
+      - name: serviceFilePath
+        type: string
+
+  - id: generate-controller
+    name: Generate REST Controller
+    skills: [create_file]
+    prompt: |
+      Create a REST controller for {{entityName}} with standard CRUD endpoints.
+
+      Package: {{basePackage}}.controller
+      Service: {{steps.generate-service.serviceFilePath}}
+
+      Endpoints:
+      - POST /api/{{entityName | lowercase}}s - Create
+      - GET /api/{{entityName | lowercase}}s/{id} - Read
+      - GET /api/{{entityName | lowercase}}s - List all
+      - PUT /api/{{entityName | lowercase}}s/{id} - Update
+      - DELETE /api/{{entityName | lowercase}}s/{id} - Delete
+
+      Include proper response codes and validation.
+    inputs: [entityName, basePackage]
+    outputs:
+      - name: controllerFilePath
+        type: string
+
+  - id: generate-tests
+    name: Generate Test Suite
+    condition: "{{includeTests}} == true"
+    skills: [create_file]
+    prompt: |
+      Create integration tests for {{entityName}} controller and service.
+
+      Package: {{basePackage}}
+
+      Include:
+      - Controller tests with MockMvc
+      - Service tests with mocked repository
+      - Test data builders
+    inputs: [entityName, basePackage]
+    outputs:
+      - name: testFilePaths
+        type: array
+
+outputs:
+  - entityFilePath
+  - migrationFilePath
+  - repositoryFilePath
+  - serviceFilePath
+  - controllerFilePath
+  - testFilePaths
+
+tags:
+  - spring-boot
+  - crud
+  - jpa
+  - rest-api

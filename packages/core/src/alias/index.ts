@@ -6,15 +6,14 @@ import fs from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import { AliasDefinition, ResolvedFile, PersonaDefinition } from '../types';
-import { loadConfig, resolveKnowledgeBasePath } from '../config';
+import { loadConfig, resolveKnowledgeBasePath, getBasePath } from '../config';
 
 /**
  * Get the alias directory path
+ * Aliases are stored in .agentx/aliases/ at the project root
  */
 function getAliasDir(): string {
-  const config = loadConfig();
-  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
-  return path.join(knowledgeBase, '.ai-config', 'aliases');
+  return path.join(getBasePath(), '.agentx', 'aliases');
 }
 
 /**
@@ -134,11 +133,10 @@ export function getAliasDirectoryPath(): string {
 
 /**
  * Get the personas directory path
+ * Personas are stored in .agentx/personas/ at the project root
  */
 function getPersonasDir(): string {
-  const config = loadConfig();
-  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
-  return path.join(knowledgeBase, '.ai-config', 'personas');
+  return path.join(getBasePath(), '.agentx', 'personas');
 }
 
 /**

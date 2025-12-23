@@ -11,15 +11,14 @@ import {
   ExtractedRequirement,
   RequirementGatheringResult,
 } from '../types';
-import { loadConfig, resolveKnowledgeBasePath } from '../config';
+import { getBasePath, loadConfig, resolveKnowledgeBasePath } from '../config';
 
 /**
  * Get the intentions directory path
+ * Intentions are stored in .agentx/intentions/ at the project root
  */
 function getIntentionsDir(): string {
-  const config = loadConfig();
-  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
-  return path.join(knowledgeBase, '.ai-config', 'intentions');
+  return path.join(getBasePath(), '.agentx', 'intentions');
 }
 
 /**
@@ -263,8 +262,17 @@ function buildRefinedPrompt(
 
 /**
  * Load a prompt template from file
+ * Checks .agentx/ first, then falls back to knowledge base
  */
 function loadPromptTemplate(templatePath: string): string | null {
+  // First check in .agentx/intentions/ if it's a simple filename
+  const intentionsDir = getIntentionsDir();
+  const agentxPath = path.join(intentionsDir, templatePath);
+  if (fs.existsSync(agentxPath)) {
+    return fs.readFileSync(agentxPath, 'utf-8');
+  }
+
+  // Fall back to knowledge base for full paths
   const config = loadConfig();
   const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
   const fullPath = path.join(knowledgeBase, templatePath);
@@ -469,16 +477,21 @@ export function renderRefinedPrompt(
 
 /**
  * Load prompt template by intention ID
+ * Templates are stored in .agentx/intentions/ alongside the intention definitions
  */
 export function loadIntentionTemplate(intentionId: string): string | null {
-  const config = loadConfig();
-  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
-  const templatePath = path.join(knowledgeBase, '.ai-templates', 'intentions', `${intentionId}.prompt.md`);
+  const intentionsDir = getIntentionsDir();
 
-  if (!fs.existsSync(templatePath)) {
-    return null;
+  // Check for .prompt.toon first, then .prompt.md
+  const extensions = ['.prompt.toon', '.prompt.md'];
+
+  for (const ext of extensions) {
+    const templatePath = path.join(intentionsDir, `${intentionId}${ext}`);
+    if (fs.existsSync(templatePath)) {
+      return fs.readFileSync(templatePath, 'utf-8');
+    }
   }
 
-  return fs.readFileSync(templatePath, 'utf-8');
+  return null;
 }
 

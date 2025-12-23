@@ -1,0 +1,29 @@
+# Script Skill: Create File
+# Creates a new file with the given content
+
+id: create_file
+type: script
+name: Create File
+description: Creates a new file at the specified path with the given content
+
+run: echo "${CONTENT}" > "${FILE_PATH}"
+shell: bash
+
+args:
+  - name: filePath
+    required: true
+    env: FILE_PATH
+    description: Path to the file to create
+  - name: content
+    required: true
+    env: CONTENT
+    description: Content to write to the file
+
+outputs:
+  - name: filePath
+    extract: stdout
+    pattern: ".*"
+
+workdir: ${workspaceFolder}
+timeout: 10
+confirm: false

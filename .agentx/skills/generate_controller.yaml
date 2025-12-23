@@ -1,0 +1,38 @@
+# LLM Skill: Generate REST Controller
+
+id: generate_controller
+type: llm
+name: Generate REST Controller
+description: Generates a Spring REST Controller with CRUD endpoints
+
+prompt: |
+  Create a Spring REST Controller for {{entityName}}.
+
+  Requirements:
+  - Package: {{basePackage}}.controller
+  - Inject: {{serviceClass}} via constructor
+  - Base path: /api/{{basePath}}
+  - Include proper response codes and validation
+
+  Return only valid Java code. No markdown fences.
+
+inputs:
+  - name: entityName
+    required: true
+  - name: basePackage
+    required: true
+  - name: serviceClass
+    required: true
+  - name: basePath
+    required: true
+
+outputs:
+  - name: code
+    extract: full
+  - name: className
+    extract: pattern
+    pattern: "public class (\\w+Controller)"
+
+model: default
+temperature: 0.2
+maxTokens: 2500

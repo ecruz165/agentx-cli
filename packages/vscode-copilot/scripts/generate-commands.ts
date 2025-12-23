@@ -69,9 +69,9 @@ function parseArgs(): { knowledgeBase?: string } {
   return result;
 }
 
-// Load config from knowledge base
-function loadConfig(knowledgeBasePath: string): AgentXConfig | null {
-  const configPath = path.join(knowledgeBasePath, '.ai-config', 'config.json');
+// Load config from .agentx folder at project root
+function loadConfig(projectRoot: string): AgentXConfig | null {
+  const configPath = path.join(projectRoot, '.agentx', 'config.json');
   if (!fs.existsSync(configPath)) {
     console.warn(`Config not found at: ${configPath}`);
     return null;
@@ -86,9 +86,9 @@ function loadConfig(knowledgeBasePath: string): AgentXConfig | null {
   }
 }
 
-// Load all aliases from knowledge base
-function loadAliases(knowledgeBasePath: string): AliasDefinition[] {
-  const aliasDir = path.join(knowledgeBasePath, '.ai-config', 'aliases');
+// Load all aliases from .agentx/aliases at project root
+function loadAliases(projectRoot: string): AliasDefinition[] {
+  const aliasDir = path.join(projectRoot, '.agentx', 'aliases');
   if (!fs.existsSync(aliasDir)) {
     return [];
   }
@@ -108,9 +108,9 @@ function loadAliases(knowledgeBasePath: string): AliasDefinition[] {
   return aliases;
 }
 
-// Load all intentions from knowledge base
-function loadIntentions(knowledgeBasePath: string): IntentionDefinition[] {
-  const intentionsDir = path.join(knowledgeBasePath, '.ai-config', 'intentions');
+// Load all intentions from .agentx/intentions at project root
+function loadIntentions(projectRoot: string): IntentionDefinition[] {
+  const intentionsDir = path.join(projectRoot, '.agentx', 'intentions');
   if (!fs.existsSync(intentionsDir)) {
     return [];
   }
@@ -130,9 +130,9 @@ function loadIntentions(knowledgeBasePath: string): IntentionDefinition[] {
   return intentions;
 }
 
-// Load all personas from knowledge base (from personas folder, not config)
-function loadPersonas(knowledgeBasePath: string): PersonaDefinition[] {
-  const personasDir = path.join(knowledgeBasePath, '.ai-config', 'personas');
+// Load all personas from .agentx/personas at project root
+function loadPersonas(projectRoot: string): PersonaDefinition[] {
+  const personasDir = path.join(projectRoot, '.agentx', 'personas');
   if (!fs.existsSync(personasDir)) {
     return [];
   }
@@ -290,31 +290,13 @@ function updatePackageJson(participants: ChatParticipant[]): void {
 
 // Main execution
 function main(): void {
-  const args = parseArgs();
+  // Project root is the repo root (where .agentx folder lives)
+  const projectRoot = path.resolve(__dirname, '..', '..', '..');
 
-  // Determine knowledge base path
-  let knowledgeBasePath = args.knowledgeBase;
+  console.log(`📂 Project root: ${projectRoot}`);
 
-  if (!knowledgeBasePath) {
-    // Try to find default-knowledge-base in repo root
-    const repoRoot = path.resolve(__dirname, '..', '..', '..');
-    const defaultKb = path.join(repoRoot, 'default-knowledge-base');
-
-    if (fs.existsSync(defaultKb)) {
-      knowledgeBasePath = defaultKb;
-    } else {
-      // Fall back to home directory default
-      knowledgeBasePath = path.join(os.homedir(), 'agentx-enterprise-docs');
-    }
-  }
-
-  // Expand ~ in path
-  knowledgeBasePath = knowledgeBasePath.replace(/^~/, os.homedir());
-
-  console.log(`📂 Knowledge base: ${knowledgeBasePath}`);
-
-  // Load configuration
-  const config = loadConfig(knowledgeBasePath);
+  // Load configuration from .agentx/config.json
+  const config = loadConfig(projectRoot);
   if (!config) {
     console.log('⚠️  No config found, generating minimal commands');
     updatePackageJson([{
@@ -328,10 +310,10 @@ function main(): void {
     return;
   }
 
-  // Load aliases, intentions, and personas
-  const aliases = loadAliases(knowledgeBasePath);
-  const intentions = loadIntentions(knowledgeBasePath);
-  const personas = loadPersonas(knowledgeBasePath);
+  // Load aliases, intentions, and personas from .agentx folder
+  const aliases = loadAliases(projectRoot);
+  const intentions = loadIntentions(projectRoot);
+  const personas = loadPersonas(projectRoot);
 
   console.log(`📋 Found ${aliases.length} aliases, ${intentions.length} intentions`);
   console.log(`👤 Found ${personas.length} personas`);

@@ -1,0 +1,42 @@
+# LLM Skill: Generate Service Class
+# Generates a Spring @Service class with CRUD operations
+
+id: generate_service
+type: llm
+name: Generate Service Class
+description: Generates a Spring @Service class with CRUD operations
+
+prompt: |
+  Create a Spring @Service class for {{entityName}}.
+
+  Requirements:
+  - Package: {{basePackage}}.service
+  - Inject: {{repositoryClass}} via constructor
+  - Operations: {{operations}}
+  - Use Lombok @RequiredArgsConstructor
+  - Return Optional<T> for findById
+  - Use @Transactional for write operations
+
+  Return only valid Java code. No markdown fences. No explanation.
+
+inputs:
+  - name: entityName
+    required: true
+  - name: basePackage
+    required: true
+  - name: repositoryClass
+    required: true
+  - name: operations
+    type: array
+    default: [create, read, update, delete]
+
+outputs:
+  - name: code
+    extract: full
+  - name: className
+    extract: pattern
+    pattern: "public class (\\w+Service)"
+
+model: default
+temperature: 0.2
+maxTokens: 2000

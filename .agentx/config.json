@@ -1,8 +1,8 @@
 {
   "provider": "mock",
-  "model": "claude-3-5-sonnet-20241022",
+  "model": "gpt-4",
   "knowledgeBase": "./default-knowledge-base",
-  "maxContextSize": 32768,
+  "maxContextSize": 65536,
   "contextFormat": "hybrid",
   "cacheEnabled": true,
   "frameworks": {
@@ -20,5 +20,13 @@
     }
   },
   "outputFormat": "markdown",
-  "outputLocation": "./agentx-output"
+  "outputLocation": "./agentx-output",
+  "toonConversion": {
+    "patterns": true,
+    "reference": true,
+    "skills": false,
+    "templates": false,
+    "frameworks": true,
+    "intentions": true
+  }
 }

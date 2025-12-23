@@ -182,3 +182,42 @@ export {
   DEFAULT_TEMPLATES,
 } from './bootstrap';
 
+// Workflow System
+export {
+  // Types
+  type WorkflowDefinition,
+  type WorkflowStep,
+  type WorkflowInput,
+  type WorkflowOutput,
+  type WorkflowContext,
+  type WorkflowResult,
+  type StepResult,
+  type ExecutionState,
+  type WorkflowOverrides,
+  type IntentionWithWorkflow,
+  type StepQuestion,
+  // Loader
+  loadWorkflows,
+  loadWorkflowFile,
+  getWorkflow,
+  saveWorkflow,
+  workflowsDirectoryExists,
+  getWorkflowsDirectoryPath,
+  // Engine
+  WorkflowEngine,
+  interpolate,
+  evaluateCondition,
+  generateExecutionId,
+  createWorkflowContext,
+  applyOverrides,
+  type StepExecutor,
+  // Persistence
+  saveExecutionState,
+  loadExecutionState,
+  listExecutionStates,
+  deleteExecutionState,
+  cleanupExecutionStates,
+  createExecutionState,
+  updateExecutionStatus,
+} from './workflow';
+
