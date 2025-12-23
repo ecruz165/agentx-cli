@@ -23,14 +23,14 @@
   ],
   "activationEvents": [
     "onChatParticipant:agentx.chat",
+    "onChatParticipant:agentx.architect",
     "onChatParticipant:agentx.backend",
+    "onChatParticipant:agentx.designer",
+    "onChatParticipant:agentx.devops",
     "onChatParticipant:agentx.frontend",
     "onChatParticipant:agentx.fullstack",
-    "onChatParticipant:agentx.architect",
-    "onChatParticipant:agentx.devops",
-    "onChatParticipant:agentx.qa",
     "onChatParticipant:agentx.product",
-    "onChatParticipant:agentx.designer"
+    "onChatParticipant:agentx.qa"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -595,6 +595,47 @@
         ]
       },
       {
+        "id": "agentx.architect",
+        "name": "agentx-architect",
+        "fullName": "AgentX Architect",
+        "description": "System design, patterns, ADRs",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "alias",
+            "description": "Manage context aliases (list, show)"
+          },
+          {
+            "name": "config",
+            "description": "View configuration (show, path)"
+          },
+          {
+            "name": "intentions",
+            "description": "List or show intentions"
+          },
+          {
+            "name": "init",
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
+          },
+          {
+            "name": "help",
+            "description": "Show available commands"
+          }
+        ]
+      },
+      {
         "id": "agentx.backend",
         "name": "agentx-backend",
         "fullName": "AgentX Backend Developer",
@@ -772,6 +813,188 @@
           {
             "name": "exec:db-schema:refactor",
             "description": "Refactor with db-schema"
+          }
+        ]
+      },
+      {
+        "id": "agentx.designer",
+        "name": "agentx-designer",
+        "fullName": "AgentX Designer",
+        "description": "UI/UX design, design systems, prototyping, accessibility",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "alias",
+            "description": "Manage context aliases (list, show)"
+          },
+          {
+            "name": "config",
+            "description": "View configuration (show, path)"
+          },
+          {
+            "name": "intentions",
+            "description": "List or show intentions"
+          },
+          {
+            "name": "init",
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
+          },
+          {
+            "name": "help",
+            "description": "Show available commands"
+          },
+          {
+            "name": "exec:a11y-audit",
+            "description": "Execute with a11y-audit: Accessibility audit and remediation guidance following WCAG standards"
+          },
+          {
+            "name": "exec:a11y-audit:add-field",
+            "description": "Add Field with a11y-audit"
+          },
+          {
+            "name": "exec:a11y-audit:create-new",
+            "description": "Create New with a11y-audit"
+          },
+          {
+            "name": "exec:a11y-audit:integrate",
+            "description": "Add Integration with a11y-audit"
+          },
+          {
+            "name": "exec:a11y-audit:refactor",
+            "description": "Refactor with a11y-audit"
+          },
+          {
+            "name": "exec:design-system",
+            "description": "Execute with design-system: Create and maintain design system components, tokens, and documentation"
+          },
+          {
+            "name": "exec:design-system:add-field",
+            "description": "Add Field with design-system"
+          },
+          {
+            "name": "exec:design-system:create-new",
+            "description": "Create New with design-system"
+          },
+          {
+            "name": "exec:design-system:integrate",
+            "description": "Add Integration with design-system"
+          },
+          {
+            "name": "exec:design-system:refactor",
+            "description": "Refactor with design-system"
+          },
+          {
+            "name": "exec:ui-component",
+            "description": "Execute with ui-component: Design UI component specifications with states, variants, and accessibility"
+          },
+          {
+            "name": "exec:ui-component:add-field",
+            "description": "Add Field with ui-component"
+          },
+          {
+            "name": "exec:ui-component:create-new",
+            "description": "Create New with ui-component"
+          },
+          {
+            "name": "exec:ui-component:integrate",
+            "description": "Add Integration with ui-component"
+          },
+          {
+            "name": "exec:ui-component:refactor",
+            "description": "Refactor with ui-component"
+          },
+          {
+            "name": "exec:ui-design",
+            "description": "Execute with ui-design: UI/UX design system implementation"
+          },
+          {
+            "name": "exec:ui-design:add-field",
+            "description": "Add Field with ui-design"
+          },
+          {
+            "name": "exec:ui-design:create-new",
+            "description": "Create New with ui-design"
+          },
+          {
+            "name": "exec:ui-design:integrate",
+            "description": "Add Integration with ui-design"
+          },
+          {
+            "name": "exec:ui-design:refactor",
+            "description": "Refactor with ui-design"
+          },
+          {
+            "name": "exec:ux-flow",
+            "description": "Execute with ux-flow: Design user flows, journey maps, and interaction patterns"
+          },
+          {
+            "name": "exec:ux-flow:add-field",
+            "description": "Add Field with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:create-new",
+            "description": "Create New with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:integrate",
+            "description": "Add Integration with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:refactor",
+            "description": "Refactor with ux-flow"
+          }
+        ]
+      },
+      {
+        "id": "agentx.devops",
+        "name": "agentx-devops",
+        "fullName": "AgentX DevOps Engineer",
+        "description": "CI/CD, infrastructure, deployment",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "alias",
+            "description": "Manage context aliases (list, show)"
+          },
+          {
+            "name": "config",
+            "description": "View configuration (show, path)"
+          },
+          {
+            "name": "intentions",
+            "description": "List or show intentions"
+          },
+          {
+            "name": "init",
+            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+          },
+          {
+            "name": "init:analyze",
+            "description": "Analyze project type and dependencies without scaffolding"
+          },
+          {
+            "name": "init:scaffold",
+            "description": "Scaffold .ai-config with detected project settings"
+          },
+          {
+            "name": "init:scaffold-with-dirs",
+            "description": "Scaffold .ai-config and create source directories"
+          },
+          {
+            "name": "help",
+            "description": "Show available commands"
           }
         ]
       },
@@ -1338,189 +1561,6 @@
         ]
       },
       {
-        "id": "agentx.architect",
-        "name": "agentx-architect",
-        "fullName": "AgentX Architect",
-        "description": "System design, patterns, ADRs",
-        "isSticky": true,
-        "commands": [
-          {
-            "name": "alias",
-            "description": "Manage context aliases (list, show)"
-          },
-          {
-            "name": "config",
-            "description": "View configuration (show, path)"
-          },
-          {
-            "name": "intentions",
-            "description": "List or show intentions"
-          },
-          {
-            "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
-          },
-          {
-            "name": "init:analyze",
-            "description": "Analyze project type and dependencies without scaffolding"
-          },
-          {
-            "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
-          },
-          {
-            "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
-          },
-          {
-            "name": "help",
-            "description": "Show available commands"
-          }
-        ]
-      },
-      {
-        "id": "agentx.devops",
-        "name": "agentx-devops",
-        "fullName": "AgentX DevOps Engineer",
-        "description": "CI/CD, infrastructure, deployment",
-        "isSticky": true,
-        "commands": [
-          {
-            "name": "alias",
-            "description": "Manage context aliases (list, show)"
-          },
-          {
-            "name": "config",
-            "description": "View configuration (show, path)"
-          },
-          {
-            "name": "intentions",
-            "description": "List or show intentions"
-          },
-          {
-            "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
-          },
-          {
-            "name": "init:analyze",
-            "description": "Analyze project type and dependencies without scaffolding"
-          },
-          {
-            "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
-          },
-          {
-            "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
-          },
-          {
-            "name": "help",
-            "description": "Show available commands"
-          }
-        ]
-      },
-      {
-        "id": "agentx.qa",
-        "name": "agentx-qa",
-        "fullName": "AgentX QA Engineer",
-        "description": "Testing, quality assurance, test automation",
-        "isSticky": true,
-        "commands": [
-          {
-            "name": "alias",
-            "description": "Manage context aliases (list, show)"
-          },
-          {
-            "name": "config",
-            "description": "View configuration (show, path)"
-          },
-          {
-            "name": "intentions",
-            "description": "List or show intentions"
-          },
-          {
-            "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
-          },
-          {
-            "name": "init:analyze",
-            "description": "Analyze project type and dependencies without scaffolding"
-          },
-          {
-            "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
-          },
-          {
-            "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
-          },
-          {
-            "name": "help",
-            "description": "Show available commands"
-          },
-          {
-            "name": "exec:be-test",
-            "description": "Execute with be-test: Backend testing - unit tests, integration tests, mocking"
-          },
-          {
-            "name": "exec:be-test:add-field",
-            "description": "Add Field with be-test"
-          },
-          {
-            "name": "exec:be-test:create-new",
-            "description": "Create New with be-test"
-          },
-          {
-            "name": "exec:be-test:integrate",
-            "description": "Add Integration with be-test"
-          },
-          {
-            "name": "exec:be-test:refactor",
-            "description": "Refactor with be-test"
-          },
-          {
-            "name": "exec:qa-automation",
-            "description": "Execute with qa-automation: Design and implement automated test suites - E2E, integration, performance"
-          },
-          {
-            "name": "exec:qa-automation:add-field",
-            "description": "Add Field with qa-automation"
-          },
-          {
-            "name": "exec:qa-automation:create-new",
-            "description": "Create New with qa-automation"
-          },
-          {
-            "name": "exec:qa-automation:integrate",
-            "description": "Add Integration with qa-automation"
-          },
-          {
-            "name": "exec:qa-automation:refactor",
-            "description": "Refactor with qa-automation"
-          },
-          {
-            "name": "exec:qa-testplan",
-            "description": "Execute with qa-testplan: Create comprehensive test plans with test cases and coverage analysis"
-          },
-          {
-            "name": "exec:qa-testplan:add-field",
-            "description": "Add Field with qa-testplan"
-          },
-          {
-            "name": "exec:qa-testplan:create-new",
-            "description": "Create New with qa-testplan"
-          },
-          {
-            "name": "exec:qa-testplan:integrate",
-            "description": "Add Integration with qa-testplan"
-          },
-          {
-            "name": "exec:qa-testplan:refactor",
-            "description": "Refactor with qa-testplan"
-          }
-        ]
-      },
-      {
         "id": "agentx.product",
         "name": "agentx-product",
         "fullName": "AgentX Product Manager",
@@ -1642,10 +1682,10 @@
         ]
       },
       {
-        "id": "agentx.designer",
-        "name": "agentx-designer",
-        "fullName": "AgentX Designer",
-        "description": "UI/UX design, design systems, prototyping, accessibility",
+        "id": "agentx.qa",
+        "name": "agentx-qa",
+        "fullName": "AgentX QA Engineer",
+        "description": "Testing, quality assurance, test automation",
         "isSticky": true,
         "commands": [
           {
@@ -1681,104 +1721,64 @@
             "description": "Show available commands"
           },
           {
-            "name": "exec:a11y-audit",
-            "description": "Execute with a11y-audit: Accessibility audit and remediation guidance following WCAG standards"
+            "name": "exec:be-test",
+            "description": "Execute with be-test: Backend testing - unit tests, integration tests, mocking"
           },
           {
-            "name": "exec:a11y-audit:add-field",
-            "description": "Add Field with a11y-audit"
+            "name": "exec:be-test:add-field",
+            "description": "Add Field with be-test"
           },
           {
-            "name": "exec:a11y-audit:create-new",
-            "description": "Create New with a11y-audit"
+            "name": "exec:be-test:create-new",
+            "description": "Create New with be-test"
           },
           {
-            "name": "exec:a11y-audit:integrate",
-            "description": "Add Integration with a11y-audit"
+            "name": "exec:be-test:integrate",
+            "description": "Add Integration with be-test"
           },
           {
-            "name": "exec:a11y-audit:refactor",
-            "description": "Refactor with a11y-audit"
+            "name": "exec:be-test:refactor",
+            "description": "Refactor with be-test"
           },
           {
-            "name": "exec:design-system",
-            "description": "Execute with design-system: Create and maintain design system components, tokens, and documentation"
+            "name": "exec:qa-automation",
+            "description": "Execute with qa-automation: Design and implement automated test suites - E2E, integration, performance"
           },
           {
-            "name": "exec:design-system:add-field",
-            "description": "Add Field with design-system"
+            "name": "exec:qa-automation:add-field",
+            "description": "Add Field with qa-automation"
           },
           {
-            "name": "exec:design-system:create-new",
-            "description": "Create New with design-system"
+            "name": "exec:qa-automation:create-new",
+            "description": "Create New with qa-automation"
           },
           {
-            "name": "exec:design-system:integrate",
-            "description": "Add Integration with design-system"
+            "name": "exec:qa-automation:integrate",
+            "description": "Add Integration with qa-automation"
           },
           {
-            "name": "exec:design-system:refactor",
-            "description": "Refactor with design-system"
+            "name": "exec:qa-automation:refactor",
+            "description": "Refactor with qa-automation"
           },
           {
-            "name": "exec:ui-component",
-            "description": "Execute with ui-component: Design UI component specifications with states, variants, and accessibility"
+            "name": "exec:qa-testplan",
+            "description": "Execute with qa-testplan: Create comprehensive test plans with test cases and coverage analysis"
           },
           {
-            "name": "exec:ui-component:add-field",
-            "description": "Add Field with ui-component"
+            "name": "exec:qa-testplan:add-field",
+            "description": "Add Field with qa-testplan"
           },
           {
-            "name": "exec:ui-component:create-new",
-            "description": "Create New with ui-component"
+            "name": "exec:qa-testplan:create-new",
+            "description": "Create New with qa-testplan"
           },
           {
-            "name": "exec:ui-component:integrate",
-            "description": "Add Integration with ui-component"
+            "name": "exec:qa-testplan:integrate",
+            "description": "Add Integration with qa-testplan"
           },
           {
-            "name": "exec:ui-component:refactor",
-            "description": "Refactor with ui-component"
-          },
-          {
-            "name": "exec:ui-design",
-            "description": "Execute with ui-design: UI/UX design system implementation"
-          },
-          {
-            "name": "exec:ui-design:add-field",
-            "description": "Add Field with ui-design"
-          },
-          {
-            "name": "exec:ui-design:create-new",
-            "description": "Create New with ui-design"
-          },
-          {
-            "name": "exec:ui-design:integrate",
-            "description": "Add Integration with ui-design"
-          },
-          {
-            "name": "exec:ui-design:refactor",
-            "description": "Refactor with ui-design"
-          },
-          {
-            "name": "exec:ux-flow",
-            "description": "Execute with ux-flow: Design user flows, journey maps, and interaction patterns"
-          },
-          {
-            "name": "exec:ux-flow:add-field",
-            "description": "Add Field with ux-flow"
-          },
-          {
-            "name": "exec:ux-flow:create-new",
-            "description": "Create New with ux-flow"
-          },
-          {
-            "name": "exec:ux-flow:integrate",
-            "description": "Add Integration with ux-flow"
-          },
-          {
-            "name": "exec:ux-flow:refactor",
-            "description": "Refactor with ux-flow"
+            "name": "exec:qa-testplan:refactor",
+            "description": "Refactor with qa-testplan"
           }
         ]
       }

@@ -4,9 +4,35 @@
  */
 
 import * as vscode from 'vscode';
-import { setBasePath, clearBasePath } from '@agentx/core';
+import * as path from 'path';
+import { setBasePath, clearBasePath, setDefaultKnowledgeBasePath } from '@agentx/core';
 import { registerCommands } from './commands';
 import { registerChatParticipant } from './participant';
+
+/**
+ * Get the bundled knowledge base path
+ * For development, this points to default-knowledge-base in the repo
+ * For production, this would be bundled with the extension
+ */
+function getBundledKnowledgeBasePath(context: vscode.ExtensionContext): string {
+  // In development, use the default-knowledge-base from the repo
+  // The extension is at packages/vscode-copilot, knowledge base is at default-knowledge-base
+  const devPath = path.resolve(context.extensionPath, '..', '..', 'default-knowledge-base');
+
+  // Check if we're in development mode
+  if (require('fs').existsSync(devPath)) {
+    return devPath;
+  }
+
+  // In production, use bundled knowledge base or home directory
+  const bundledPath = path.join(context.extensionPath, 'knowledge-base');
+  if (require('fs').existsSync(bundledPath)) {
+    return bundledPath;
+  }
+
+  // Fall back to home directory
+  return path.join(require('os').homedir(), 'agentx-enterprise-docs');
+}
 
 /**
  * Set the base path for the core library based on the current workspace
@@ -28,6 +54,11 @@ function updateBasePath(): void {
  */
 export function activate(context: vscode.ExtensionContext) {
   console.log('AgentX extension is now active');
+
+  // Set the default knowledge base path (used when no project config exists)
+  const bundledKbPath = getBundledKnowledgeBasePath(context);
+  setDefaultKnowledgeBasePath(bundledKbPath);
+  console.log(`AgentX: Default knowledge base set to ${bundledKbPath}`);
 
   // Set base path for core library based on workspace
   updateBasePath();

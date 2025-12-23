@@ -5,21 +5,20 @@
 
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import {
   IntentionDefinition,
   IntentionRequirement,
   ExtractedRequirement,
   RequirementGatheringResult,
 } from '../types';
-import { loadConfig } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 
 /**
  * Get the intentions directory path
  */
 function getIntentionsDir(): string {
   const config = loadConfig();
-  const knowledgeBase = config.knowledgeBase.replace(/^~/, os.homedir());
+  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
   return path.join(knowledgeBase, '.ai-config', 'intentions');
 }
 
@@ -267,7 +266,7 @@ function buildRefinedPrompt(
  */
 function loadPromptTemplate(templatePath: string): string | null {
   const config = loadConfig();
-  const knowledgeBase = config.knowledgeBase.replace(/^~/, os.homedir());
+  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
   const fullPath = path.join(knowledgeBase, templatePath);
 
   if (!fs.existsSync(fullPath)) {
@@ -473,7 +472,7 @@ export function renderRefinedPrompt(
  */
 export function loadIntentionTemplate(intentionId: string): string | null {
   const config = loadConfig();
-  const knowledgeBase = config.knowledgeBase.replace(/^~/, os.homedir());
+  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
   const templatePath = path.join(knowledgeBase, '.ai-templates', 'intentions', `${intentionId}.prompt.md`);
 
   if (!fs.existsSync(templatePath)) {

@@ -36,6 +36,22 @@ export function clearBasePath(): void {
 }
 
 /**
+ * Resolve knowledge base path (handles ~, relative, and absolute paths)
+ * This should be used whenever accessing files relative to the knowledge base
+ */
+export function resolveKnowledgeBasePath(knowledgeBase: string): string {
+  // Replace ~ with home directory
+  let resolved = knowledgeBase.replace(/^~/, os.homedir());
+
+  // If it's a relative path, resolve it against the base path
+  if (!path.isAbsolute(resolved)) {
+    resolved = path.resolve(getBasePath(), resolved);
+  }
+
+  return resolved;
+}
+
+/**
  * Default configuration values
  */
 const DEFAULT_CONFIG: AgentXConfig = {
@@ -74,12 +90,35 @@ const DEFAULT_CONFIG: AgentXConfig = {
 
 /**
  * Configuration file paths in order of priority
+ * First match wins - project-specific configs take precedence
  */
 const CONFIG_PATHS = [
-  '.ai-config/config.json',
-  '.agentx.json',
-  path.join(os.homedir(), '.agentx', 'config.json'),
+  '.agentx/config.json',      // Project-specific (new preferred location)
+  '.ai-config/config.json',   // Legacy project-specific
+  '.agentx.json',             // Project root file
+  path.join(os.homedir(), '.agentx', 'config.json'),  // User global config
 ];
+
+/**
+ * Default knowledge base path that can be overridden by extensions
+ * This allows VS Code extension to bundle a default knowledge base
+ */
+let defaultKnowledgeBasePath: string | null = null;
+
+/**
+ * Set the default knowledge base path
+ * Used by VS Code extension to provide a bundled knowledge base
+ */
+export function setDefaultKnowledgeBasePath(kbPath: string): void {
+  defaultKnowledgeBasePath = kbPath;
+}
+
+/**
+ * Get the effective default knowledge base path
+ */
+export function getDefaultKnowledgeBasePath(): string {
+  return defaultKnowledgeBasePath || path.join(os.homedir(), 'agentx-enterprise-docs');
+}
 
 /**
  * Find the first existing config file path
@@ -97,23 +136,34 @@ export function findConfigPath(): string | null {
 }
 
 /**
+ * Get effective default config with dynamic knowledge base path
+ */
+function getEffectiveDefaultConfig(): AgentXConfig {
+  return {
+    ...DEFAULT_CONFIG,
+    knowledgeBase: getDefaultKnowledgeBasePath(),
+  };
+}
+
+/**
  * Load configuration from file or return defaults
  */
 export function loadConfig(): AgentXConfig {
   const configPath = findConfigPath();
+  const effectiveDefault = getEffectiveDefaultConfig();
 
   if (configPath) {
     try {
       const content = fs.readFileSync(configPath, 'utf-8');
       const fileConfig = JSON.parse(content);
-      return { ...DEFAULT_CONFIG, ...fileConfig };
+      return { ...effectiveDefault, ...fileConfig };
     } catch (error) {
       // If parsing fails, return defaults
-      return DEFAULT_CONFIG;
+      return effectiveDefault;
     }
   }
 
-  return DEFAULT_CONFIG;
+  return effectiveDefault;
 }
 
 /**

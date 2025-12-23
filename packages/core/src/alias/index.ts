@@ -4,17 +4,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { glob } from 'glob';
 import { AliasDefinition, ResolvedFile, PersonaDefinition } from '../types';
-import { loadConfig } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 
 /**
  * Get the alias directory path
  */
 function getAliasDir(): string {
   const config = loadConfig();
-  const knowledgeBase = config.knowledgeBase.replace(/^~/, os.homedir());
+  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
   return path.join(knowledgeBase, '.ai-config', 'aliases');
 }
 
@@ -51,7 +50,7 @@ export async function loadAliases(): Promise<AliasDefinition[]> {
  */
 export async function resolveAlias(alias: AliasDefinition): Promise<ResolvedFile[]> {
   const config = loadConfig();
-  const basePath = config.knowledgeBase.replace(/^~/, os.homedir());
+  const basePath = resolveKnowledgeBasePath(config.knowledgeBase);
 
   const files: ResolvedFile[] = [];
 
@@ -134,11 +133,53 @@ export function getAliasDirectoryPath(): string {
 }
 
 /**
- * Get all personas from config
+ * Get the personas directory path
+ */
+function getPersonasDir(): string {
+  const config = loadConfig();
+  const knowledgeBase = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(knowledgeBase, '.ai-config', 'personas');
+}
+
+/**
+ * Check if personas directory exists
+ */
+export function personasDirectoryExists(): boolean {
+  return fs.existsSync(getPersonasDir());
+}
+
+/**
+ * Get the personas directory path (public)
+ */
+export function getPersonasDirectoryPath(): string {
+  return getPersonasDir();
+}
+
+/**
+ * Load all personas from the personas directory
  */
 export function getPersonas(): PersonaDefinition[] {
-  const config = loadConfig();
-  return config.personas || [];
+  const personasDir = getPersonasDir();
+
+  if (!fs.existsSync(personasDir)) {
+    return [];
+  }
+
+  const personaFiles = fs.readdirSync(personasDir).filter((f) => f.endsWith('.json'));
+  const personas: PersonaDefinition[] = [];
+
+  for (const file of personaFiles) {
+    try {
+      const content = fs.readFileSync(path.join(personasDir, file), 'utf-8');
+      const persona = JSON.parse(content) as PersonaDefinition;
+      personas.push(persona);
+    } catch (error) {
+      // Skip invalid persona files
+      continue;
+    }
+  }
+
+  return personas;
 }
 
 /**
@@ -150,14 +191,13 @@ export function getPersona(id: string): PersonaDefinition | null {
 }
 
 /**
- * Get the active persona from config
+ * Get the active persona (runtime - no longer stored in config)
+ * Returns null as activePersona is now a runtime concept
  */
 export function getActivePersona(): PersonaDefinition | null {
-  const config = loadConfig();
-  if (!config.activePersona) {
-    return null;
-  }
-  return getPersona(config.activePersona);
+  // Active persona is now a runtime concept, not stored in config
+  // The VS Code extension manages this at runtime based on which participant is used
+  return null;
 }
 
 /**

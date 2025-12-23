@@ -802,13 +802,20 @@ async function handleExecCommandWithParsed(
     const gatherResult = gatherRequirements(prompt, intention, aliasName);
 
     // Convert to plan document format
-    const gatheredReqs: GatheredRequirement[] = gatherResult.gathered.map(g => ({
-      id: g.id || g.name.toLowerCase().replace(/\s+/g, '-'),
-      name: g.name,
-      type: g.type || 'string',
-      value: g.value,
-      gatheredAt: new Date().toISOString(),
-    }));
+    // ExtractedRequirement only has id, value, confidence, source - we need to look up the name from intention.requirements
+    const gatheredReqs: GatheredRequirement[] = gatherResult.extracted.map((extracted) => {
+      const reqDef = intention.requirements.find(r => r.id === extracted.id);
+      const value = typeof extracted.value === 'string' ? extracted.value :
+                    Array.isArray(extracted.value) ? extracted.value.join(', ') :
+                    extracted.value === null ? '' : String(extracted.value);
+      return {
+        id: extracted.id,
+        name: reqDef?.name || extracted.id,
+        type: reqDef?.type || 'string',
+        value,
+        gatheredAt: new Date().toISOString(),
+      };
+    });
 
     const missingReqs: MissingRequirement[] = gatherResult.missing.map(m => ({
       id: m.id || m.name.toLowerCase().replace(/\s+/g, '-'),

@@ -19,7 +19,7 @@ print_error() { echo -e "${RED}✗${NC} $1"; }
 # Get script directory and repo root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-EXAMPLE_KB="$REPO_ROOT/example-knowledge-base"
+EXAMPLE_KB="$REPO_ROOT/default-knowledge-base"
 VSIX_FILE="$SCRIPT_DIR/agentx-vscode-1.0.0.vsix"
 
 echo ""
@@ -71,7 +71,7 @@ if [ "$COPILOT_INSTALLED" -lt 2 ]; then
 fi
 
 # Open VS Code with example knowledge base
-print_step "Opening VS Code with example-knowledge-base..."
+print_step "Opening VS Code with default-knowledge-base..."
 code "$EXAMPLE_KB"
 print_success "VS Code opened"
 

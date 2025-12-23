@@ -12,6 +12,7 @@ import {
   ProjectTemplates,
   AliasTemplateInput,
   IntentionTemplateInput,
+  PersonaTemplateInput,
 } from './types';
 import { AgentXConfig, ContextFormat } from '../types';
 
@@ -215,8 +216,9 @@ export const DEFAULT_TEMPLATES: ProjectTemplates = {
 
 /**
  * Default configuration for new projects
+ * Note: Personas are stored in separate files in .ai-config/personas/ folder
  */
-function getDefaultConfig(projectType: ProjectType, projectName?: string): AgentXConfig {
+function getDefaultConfig(_projectType: ProjectType, _projectName?: string): AgentXConfig {
   return {
     provider: 'copilot',
     model: 'gpt-4',
@@ -239,16 +241,14 @@ function getDefaultConfig(projectType: ProjectType, projectName?: string): Agent
       frameworks: true,
       intentions: true,
     },
-    personas: getDefaultPersonas(projectType),
-    activePersona: 'fullstack',
   };
 }
 
 /**
  * Get default personas based on project type
  */
-function getDefaultPersonas(projectType: ProjectType) {
-  const backendPersona = {
+function getDefaultPersonas(projectType: ProjectType): PersonaTemplateInput[] {
+  const backendPersona: PersonaTemplateInput = {
     id: 'backend',
     name: 'Backend Developer',
     description: projectType === 'java' ? 'Spring Boot, APIs, database' : 'Node.js APIs, services',
@@ -259,7 +259,7 @@ function getDefaultPersonas(projectType: ProjectType) {
     avoidAreas: ['frontend concerns', 'UI/UX details'],
   };
 
-  const frontendPersona = {
+  const frontendPersona: PersonaTemplateInput = {
     id: 'frontend',
     name: 'Frontend Developer',
     description: 'React, components, state management',
@@ -270,16 +270,18 @@ function getDefaultPersonas(projectType: ProjectType) {
     avoidAreas: ['backend implementation details', 'database schemas'],
   };
 
-  const fullstackPersona = {
+  const fullstackPersona: PersonaTemplateInput = {
     id: 'fullstack',
     name: 'Full Stack Developer',
     description: 'All platform development',
     aliasPatterns: ['*'],
     perspective: 'You are a full stack developer with expertise across the entire application stack.',
     tone: 'balanced, pragmatic, integration-focused',
+    focusAreas: ['end-to-end features', 'integration', 'system design'],
+    avoidAreas: [],
   };
 
-  const qaPersona = {
+  const qaPersona: PersonaTemplateInput = {
     id: 'qa',
     name: 'QA Engineer',
     description: 'Testing, quality assurance',
@@ -287,14 +289,37 @@ function getDefaultPersonas(projectType: ProjectType) {
     perspective: 'You are a senior QA engineer focused on ensuring software quality.',
     tone: 'detail-oriented, systematic, quality-focused',
     focusAreas: ['test coverage', 'edge cases', 'regression testing'],
+    avoidAreas: ['implementation details'],
+  };
+
+  const architectPersona: PersonaTemplateInput = {
+    id: 'architect',
+    name: 'Solution Architect',
+    description: 'System design, architecture patterns, technical decisions',
+    aliasPatterns: ['arch-*', 'design-*', '*'],
+    perspective: 'You are a senior solution architect focused on designing scalable, maintainable systems.',
+    tone: 'strategic, trade-off aware, forward-thinking',
+    focusAreas: ['system design', 'scalability', 'maintainability', 'architecture patterns'],
+    avoidAreas: ['low-level implementation details'],
+  };
+
+  const devopsPersona: PersonaTemplateInput = {
+    id: 'devops',
+    name: 'DevOps Engineer',
+    description: 'CI/CD, infrastructure, deployment, monitoring',
+    aliasPatterns: ['devops-*', 'infra-*', 'deploy-*', 'ci-*'],
+    perspective: 'You are a senior DevOps engineer focused on reliable, automated infrastructure and deployments.',
+    tone: 'automation-focused, reliability-conscious, process-oriented',
+    focusAreas: ['automation', 'reliability', 'monitoring', 'security', 'performance'],
+    avoidAreas: ['application business logic'],
   };
 
   if (projectType === 'java') {
-    return [backendPersona, qaPersona, fullstackPersona];
+    return [backendPersona, qaPersona, architectPersona, devopsPersona, fullstackPersona];
   } else if (projectType === 'typescript') {
-    return [frontendPersona, backendPersona, qaPersona, fullstackPersona];
+    return [frontendPersona, backendPersona, qaPersona, architectPersona, devopsPersona, fullstackPersona];
   } else {
-    return [frontendPersona, backendPersona, qaPersona, fullstackPersona];
+    return [frontendPersona, backendPersona, qaPersona, architectPersona, devopsPersona, fullstackPersona];
   }
 }
 
@@ -376,6 +401,37 @@ export function generateIntentionFiles(
     }
 
     const content = JSON.stringify(intention, null, 2);
+    fs.writeFileSync(filePath, content + '\n', 'utf-8');
+    result.created.push(filePath);
+  }
+
+  return result;
+}
+
+/**
+ * Generate persona JSON files from templates
+ */
+export function generatePersonaFiles(
+  personas: PersonaTemplateInput[],
+  personaDir: string,
+  overwrite: boolean = false
+): { created: string[]; skipped: string[] } {
+  const result = { created: [] as string[], skipped: [] as string[] };
+
+  // Ensure directory exists
+  if (!fs.existsSync(personaDir)) {
+    fs.mkdirSync(personaDir, { recursive: true });
+  }
+
+  for (const persona of personas) {
+    const filePath = path.join(personaDir, `${persona.id}.json`);
+
+    if (fs.existsSync(filePath) && !overwrite) {
+      result.skipped.push(filePath);
+      continue;
+    }
+
+    const content = JSON.stringify(persona, null, 2);
     fs.writeFileSync(filePath, content + '\n', 'utf-8');
     result.created.push(filePath);
   }
@@ -506,9 +562,10 @@ export async function scaffoldProject(
     const aiConfigPath = getAiConfigPath(basePath);
     const aliasDir = path.join(aiConfigPath, 'aliases');
     const intentionDir = path.join(aiConfigPath, 'intentions');
+    const personaDir = path.join(aiConfigPath, 'personas');
 
     // Create .ai-config directory structure
-    const dirsToCreate = [aiConfigPath, aliasDir, intentionDir];
+    const dirsToCreate = [aiConfigPath, aliasDir, intentionDir, personaDir];
     for (const dir of dirsToCreate) {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -542,6 +599,12 @@ export async function scaffoldProject(
       result.createdFiles.push(...intentionResult.created);
       result.skippedPaths.push(...intentionResult.skipped);
     }
+
+    // Generate persona files based on project type
+    const defaultPersonas = getDefaultPersonas(options.projectType);
+    const personaResult = generatePersonaFiles(defaultPersonas, personaDir, options.overwrite);
+    result.createdFiles.push(...personaResult.created);
+    result.skippedPaths.push(...personaResult.skipped);
 
     // Generate config.json
     const configPath = path.join(aiConfigPath, 'config.json');

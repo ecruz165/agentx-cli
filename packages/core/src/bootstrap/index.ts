@@ -29,6 +29,7 @@ export {
   scaffoldProject,
   generateAliasFiles,
   generateIntentionFiles,
+  generatePersonaFiles,
   generateDefaultConfig,
   createSourceDirectories,
   getAiConfigPath,

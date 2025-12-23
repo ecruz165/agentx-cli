@@ -4,10 +4,9 @@
 
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { ExecutionSettings, AliasDefinition, ResolvedFile, ToonConversionConfig, PersonaDefinition } from '../types';
 import { resolveAlias, getActivePersona } from '../alias';
-import { loadConfig } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 import { processContent, DEFAULT_TOON_CONFIG } from '../toon';
 
 /**
@@ -43,7 +42,7 @@ export async function buildContext(
   options?: BuildContextOptions
 ): Promise<ContextResult> {
   const config = loadConfig();
-  const basePath = config.knowledgeBase.replace(/^~/, os.homedir());
+  const basePath = resolveKnowledgeBasePath(config.knowledgeBase);
   const maxSize = options?.maxSize || config.maxContextSize;
 
   // Determine TOON conversion settings

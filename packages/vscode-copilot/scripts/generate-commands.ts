@@ -130,6 +130,28 @@ function loadIntentions(knowledgeBasePath: string): IntentionDefinition[] {
   return intentions;
 }
 
+// Load all personas from knowledge base (from personas folder, not config)
+function loadPersonas(knowledgeBasePath: string): PersonaDefinition[] {
+  const personasDir = path.join(knowledgeBasePath, '.ai-config', 'personas');
+  if (!fs.existsSync(personasDir)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(personasDir).filter(f => f.endsWith('.json'));
+  const personas: PersonaDefinition[] = [];
+
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(path.join(personasDir, file), 'utf-8');
+      personas.push(JSON.parse(content));
+    } catch {
+      continue;
+    }
+  }
+
+  return personas;
+}
+
 // Check if alias matches persona patterns
 function aliasMatchesPersona(aliasName: string, persona: PersonaDefinition): boolean {
   return persona.aliasPatterns.some(pattern => {
@@ -197,12 +219,11 @@ function generateExecCommands(
 
 // Generate chat participants for each persona
 function generateParticipants(
-  config: AgentXConfig,
   aliases: AliasDefinition[],
-  intentions: IntentionDefinition[]
+  intentions: IntentionDefinition[],
+  personas: PersonaDefinition[]
 ): ChatParticipant[] {
   const participants: ChatParticipant[] = [];
-  const personas = config.personas || [];
 
   // Always generate base participant
   const baseCommands = [
@@ -275,12 +296,12 @@ function main(): void {
   let knowledgeBasePath = args.knowledgeBase;
 
   if (!knowledgeBasePath) {
-    // Try to find example-knowledge-base in repo root
+    // Try to find default-knowledge-base in repo root
     const repoRoot = path.resolve(__dirname, '..', '..', '..');
-    const exampleKb = path.join(repoRoot, 'example-knowledge-base');
+    const defaultKb = path.join(repoRoot, 'default-knowledge-base');
 
-    if (fs.existsSync(exampleKb)) {
-      knowledgeBasePath = exampleKb;
+    if (fs.existsSync(defaultKb)) {
+      knowledgeBasePath = defaultKb;
     } else {
       // Fall back to home directory default
       knowledgeBasePath = path.join(os.homedir(), 'agentx-enterprise-docs');
@@ -307,15 +328,16 @@ function main(): void {
     return;
   }
 
-  // Load aliases and intentions
+  // Load aliases, intentions, and personas
   const aliases = loadAliases(knowledgeBasePath);
   const intentions = loadIntentions(knowledgeBasePath);
+  const personas = loadPersonas(knowledgeBasePath);
 
   console.log(`📋 Found ${aliases.length} aliases, ${intentions.length} intentions`);
-  console.log(`👤 Found ${config.personas?.length || 0} personas`);
+  console.log(`👤 Found ${personas.length} personas`);
 
   // Generate participants
-  const participants = generateParticipants(config, aliases, intentions);
+  const participants = generateParticipants(aliases, intentions, personas);
 
   // Update package.json
   updatePackageJson(participants);

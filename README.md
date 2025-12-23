@@ -948,7 +948,7 @@ agentx-cli/
 │           ├── extension.ts     # Extension entry point
 │           ├── participant.ts   # Copilot Chat participant
 │           └── commands.ts      # VS Code commands
-├── example-knowledge-base/      # Example knowledge base
+├── default-knowledge-base/      # Example knowledge base
 │   ├── .ai-config/
 │   │   ├── config.json          # Configuration with personas
 │   │   ├── aliases/             # Alias definitions
@@ -1027,7 +1027,7 @@ agentx exec be-endpoint "test" --dry-run
 agentx exec be-endpoint --list-intentions
 
 # Test with example knowledge base
-cd example-knowledge-base
+cd default-knowledge-base
 agentx alias list
 agentx exec be-endpoint --intention create-new "event management" --dry-run
 ```

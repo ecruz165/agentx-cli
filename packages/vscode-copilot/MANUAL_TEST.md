@@ -1,7 +1,7 @@
 # AgentX VS Code Extension Manual Test Script
 
 This document provides a comprehensive manual test script for the AgentX VS Code extension.
-Tests require a workspace with a `.ai-config` folder (use `example-knowledge-base`).
+Tests require a workspace with a `.ai-config` folder (use `default-knowledge-base`).
 
 ## Quick Setup (Recommended)
 
@@ -15,7 +15,7 @@ This script will:
 1. Build the project
 2. Package the extension
 3. Install the extension in VS Code
-4. Open VS Code with the `example-knowledge-base` workspace
+4. Open VS Code with the `default-knowledge-base` workspace
 
 ---
 
@@ -52,10 +52,10 @@ code-insiders --install-extension packages/vscode-copilot/agentx-vscode-1.0.0.vs
 
 ```bash
 # Open the example knowledge base in VS Code (from repo root)
-code example-knowledge-base
+code default-knowledge-base
 ```
 
-**Note:** The `example-knowledge-base` folder already has a `.ai-config` folder with:
+**Note:** The `default-knowledge-base` folder already has a `.ai-config` folder with:
 - `config.json` - Configuration with `knowledgeBase: "."` (uses current directory)
 - `aliases/` - Sample alias definitions
 - `intentions/` - Sample intention definitions
@@ -313,7 +313,7 @@ code example-knowledge-base
 
 ### 8.1 Set Active Persona (via CLI)
 ```bash
-cd example-knowledge-base
+cd default-knowledge-base
 agentx config set activePersona backend
 ```
 
@@ -338,7 +338,7 @@ agentx config set activePersona null
 # In VS Code: Extensions panel → AgentX → Uninstall
 
 # Reset config
-cd example-knowledge-base
+cd default-knowledge-base
 agentx config set activePersona null
 ```
 

@@ -1,7 +1,7 @@
 # AgentX CLI Manual Test Script
 
 This document provides a comprehensive manual test script for all AgentX CLI features.
-Tests use the `example-knowledge-base` directory included in the repository.
+Tests use the `default-knowledge-base` directory included in the repository.
 
 ## Prerequisites
 
@@ -9,11 +9,11 @@ Tests use the `example-knowledge-base` directory included in the repository.
 # Build the project
 pnpm run build
 
-# Set up environment to use example-knowledge-base
-export AGENTX_CONFIG_PATH="$(pwd)/example-knowledge-base/.ai-config/config.json"
+# Set up environment to use default-knowledge-base
+export AGENTX_CONFIG_PATH="$(pwd)/default-knowledge-base/.ai-config/config.json"
 
-# Or run from example-knowledge-base directory
-cd example-knowledge-base
+# Or run from default-knowledge-base directory
+cd default-knowledge-base
 ```
 
 ---

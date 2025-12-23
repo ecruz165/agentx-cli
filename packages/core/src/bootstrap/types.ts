@@ -111,6 +111,20 @@ export interface IntentionTemplateInput {
 }
 
 /**
+ * Input for persona template generation
+ */
+export interface PersonaTemplateInput {
+  id: string;
+  name: string;
+  description: string;
+  aliasPatterns: string[];
+  perspective: string;
+  tone: string;
+  focusAreas?: string[];
+  avoidAreas?: string[];
+}
+
+/**
  * Options for scaffolding
  */
 export interface ScaffoldOptions {

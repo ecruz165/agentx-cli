@@ -25,9 +25,12 @@ export {
   setBasePath,
   getBasePath,
   clearBasePath,
+  resolveKnowledgeBasePath,
+  setDefaultKnowledgeBasePath,
+  getDefaultKnowledgeBasePath,
 } from './config';
 
-// Alias
+// Alias & Personas
 export {
   loadAliases,
   resolveAlias,
@@ -36,9 +39,12 @@ export {
   calculateTotalSize,
   aliasDirectoryExists,
   getAliasDirectoryPath,
+  // Personas
   getPersonas,
   getPersona,
   getActivePersona,
+  personasDirectoryExists,
+  getPersonasDirectoryPath,
   filterAliasesByPersona,
   loadAliasesForActivePersona,
 } from './alias';
@@ -148,6 +154,7 @@ export {
   type ProjectAnalysisResult,
   type AliasTemplateInput,
   type IntentionTemplateInput,
+  type PersonaTemplateInput,
   type ScaffoldOptions,
   type ScaffoldResult,
   type ProjectTemplates,
@@ -167,6 +174,7 @@ export {
   scaffoldProject,
   generateAliasFiles,
   generateIntentionFiles,
+  generatePersonaFiles,
   generateDefaultConfig,
   createSourceDirectories,
   getAiConfigPath,
