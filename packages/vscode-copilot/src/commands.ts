@@ -700,6 +700,22 @@ ${fileList}${moreFiles}`;
           outputChannel.appendLine(`## Plan\n`);
           outputChannel.appendLine(plan.implementationPlan || '');
           outputChannel.appendLine(`\n---\n`);
+
+          // Show context being sent to provider
+          outputChannel.appendLine(`## Context Provided to LLM\n`);
+          const contextContent = plan.contextContent || '';
+          if (contextContent) {
+            const contextLines = contextContent.split('\n').length;
+            const contextSize = (contextContent.length / 1024).toFixed(1);
+            outputChannel.appendLine(`**Size:** ${contextSize} KB (${contextLines} lines)\n`);
+            outputChannel.appendLine(`<details>\n<summary>Click to expand full context</summary>\n`);
+            outputChannel.appendLine(`\n\`\`\`markdown\n${contextContent}\n\`\`\`\n`);
+            outputChannel.appendLine(`</details>\n`);
+          } else {
+            outputChannel.appendLine(`⚠️ **Warning:** No context content found in plan document!\n`);
+            outputChannel.appendLine(`The LLM will execute without your knowledge base context.\n`);
+          }
+          outputChannel.appendLine(`\n---\n`);
           outputChannel.appendLine(`## Implementation\n`);
 
           progress.report({ message: 'Executing implementation...' });

@@ -962,6 +962,15 @@ async function handleExecCommandWithParsed(
     stream.markdown(`\n\n---\n\n`);
     stream.markdown(`### ✅ Plan Ready for Review\n\n`);
     stream.markdown(`All requirements gathered. Review the plan above.\n\n`);
+
+    // Show context stats for debugging
+    const contextSize = combinedContext ? (combinedContext.length / 1024).toFixed(1) : '0';
+    const contextLines = combinedContext ? combinedContext.split('\n').length : 0;
+    if (combinedContext && combinedContext.length > 0) {
+      stream.markdown(`📄 **Context captured:** ${contextSize} KB (${contextLines} lines)\n\n`);
+    } else {
+      stream.markdown(`⚠️ **Warning:** No context content captured! The knowledge base may be empty or alias files not found.\n\n`);
+    }
     stream.markdown(`**When ready, click to execute and generate PRD:**\n\n`);
 
     // Add action buttons
