@@ -86,9 +86,9 @@ function loadConfig(projectRoot: string): AgentXConfig | null {
   }
 }
 
-// Load all aliases from .agentx/aliases at project root
-function loadAliases(projectRoot: string): AliasDefinition[] {
-  const aliasDir = path.join(projectRoot, '.agentx', 'aliases');
+// Load all aliases from <knowledgeBase>/.context/aliases
+function loadAliases(knowledgeBasePath: string): AliasDefinition[] {
+  const aliasDir = path.join(knowledgeBasePath, '.context', 'aliases');
   if (!fs.existsSync(aliasDir)) {
     return [];
   }
@@ -108,9 +108,9 @@ function loadAliases(projectRoot: string): AliasDefinition[] {
   return aliases;
 }
 
-// Load all intentions from .agentx/intentions at project root
-function loadIntentions(projectRoot: string): IntentionDefinition[] {
-  const intentionsDir = path.join(projectRoot, '.agentx', 'intentions');
+// Load all intentions from <knowledgeBase>/.context/intentions
+function loadIntentions(knowledgeBasePath: string): IntentionDefinition[] {
+  const intentionsDir = path.join(knowledgeBasePath, '.context', 'intentions');
   if (!fs.existsSync(intentionsDir)) {
     return [];
   }
@@ -130,9 +130,9 @@ function loadIntentions(projectRoot: string): IntentionDefinition[] {
   return intentions;
 }
 
-// Load all personas from .agentx/personas at project root
-function loadPersonas(projectRoot: string): PersonaDefinition[] {
-  const personasDir = path.join(projectRoot, '.agentx', 'personas');
+// Load all personas from <knowledgeBase>/.context/personas
+function loadPersonas(knowledgeBasePath: string): PersonaDefinition[] {
+  const personasDir = path.join(knowledgeBasePath, '.context', 'personas');
   if (!fs.existsSync(personasDir)) {
     return [];
   }
@@ -310,10 +310,21 @@ function main(): void {
     return;
   }
 
-  // Load aliases, intentions, and personas from .agentx folder
-  const aliases = loadAliases(projectRoot);
-  const intentions = loadIntentions(projectRoot);
-  const personas = loadPersonas(projectRoot);
+  // Resolve knowledge base path from config
+  let knowledgeBasePath = config.knowledgeBase || './default-knowledge-base';
+  if (knowledgeBasePath.startsWith('~')) {
+    knowledgeBasePath = path.join(os.homedir(), knowledgeBasePath.slice(1));
+  }
+  if (!path.isAbsolute(knowledgeBasePath)) {
+    knowledgeBasePath = path.resolve(projectRoot, knowledgeBasePath);
+  }
+
+  console.log(`📁 Context is at: ${knowledgeBasePath}/.context`);
+
+  // Load aliases, intentions, and personas from <knowledgeBase>/.context/
+  const aliases = loadAliases(knowledgeBasePath);
+  const intentions = loadIntentions(knowledgeBasePath);
+  const personas = loadPersonas(knowledgeBasePath);
 
   console.log(`📋 Found ${aliases.length} aliases, ${intentions.length} intentions`);
   console.log(`👤 Found ${personas.length} personas`);

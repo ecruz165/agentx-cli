@@ -6,14 +6,16 @@ import fs from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import { AliasDefinition, ResolvedFile, PersonaDefinition } from '../types';
-import { loadConfig, resolveKnowledgeBasePath, getBasePath } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 
 /**
  * Get the alias directory path
- * Aliases are stored in .agentx/aliases/ at the project root
+ * Aliases are stored in <knowledgeBase>/.context/aliases/
  */
 function getAliasDir(): string {
-  return path.join(getBasePath(), '.agentx', 'aliases');
+  const config = loadConfig();
+  const kbPath = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(kbPath, '.context', 'aliases');
 }
 
 /**
@@ -133,10 +135,12 @@ export function getAliasDirectoryPath(): string {
 
 /**
  * Get the personas directory path
- * Personas are stored in .agentx/personas/ at the project root
+ * Personas are stored in <knowledgeBase>/.context/personas/
  */
 function getPersonasDir(): string {
-  return path.join(getBasePath(), '.agentx', 'personas');
+  const config = loadConfig();
+  const kbPath = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(kbPath, '.context', 'personas');
 }
 
 /**

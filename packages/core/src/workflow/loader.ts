@@ -1,12 +1,12 @@
 /**
  * Workflow loader for AgentX
- * Loads workflow definitions from YAML files in .agentx/workflows/
+ * Loads workflow definitions from YAML files in <knowledgeBase>/.context/workflows/
  */
 
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { getBasePath } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 import {
   WorkflowDefinition,
   WorkflowStep,
@@ -16,10 +16,12 @@ import {
 
 /**
  * Get the workflows directory path
- * Workflows are stored in .agentx/workflows/ at the project root
+ * Workflows are stored in <knowledgeBase>/.context/workflows/
  */
 function getWorkflowsDir(): string {
-  return path.join(getBasePath(), '.agentx', 'workflows');
+  const config = loadConfig();
+  const kbPath = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(kbPath, '.context', 'workflows');
 }
 
 /**

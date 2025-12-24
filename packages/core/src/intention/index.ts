@@ -11,14 +11,16 @@ import {
   ExtractedRequirement,
   RequirementGatheringResult,
 } from '../types';
-import { getBasePath, loadConfig, resolveKnowledgeBasePath } from '../config';
+import { loadConfig, resolveKnowledgeBasePath } from '../config';
 
 /**
  * Get the intentions directory path
- * Intentions are stored in .agentx/intentions/ at the project root
+ * Intentions are stored in <knowledgeBase>/.context/intentions/
  */
 function getIntentionsDir(): string {
-  return path.join(getBasePath(), '.agentx', 'intentions');
+  const config = loadConfig();
+  const kbPath = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(kbPath, '.context', 'intentions');
 }
 
 /**
