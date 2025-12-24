@@ -1,0 +1,415 @@
+id: implementation-prd-generator
+type: script
+name: Implementation PRD Generator
+description: Generate aggregated implementation PRD with all context sources
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  AGENTX_DIR="${AGENTX_DIR:-.agentx}"
+  OUTPUT_DIR="${OUTPUT_DIR:-.agentx/plans}"
+  CHARS_PER_TOKEN=4
+
+  cd "$WORKSPACE"
+  mkdir -p "$OUTPUT_DIR"
+
+  # Generate timestamp for filename
+  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+  PRD_FILE="$OUTPUT_DIR/upgrade-prd-${FROM_VERSION}-to-${TO_VERSION}-${TIMESTAMP}.md"
+
+  estimate_tokens() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+      echo $(($(wc -c < "$file" | tr -d ' ') / CHARS_PER_TOKEN))
+    else
+      echo 0
+    fi
+  }
+
+  # Start generating PRD
+  cat > "$PRD_FILE" << 'HEADER'
+  # Spring Boot Upgrade Implementation PRD
+
+  > Auto-generated implementation plan with aggregated context
+  > Generated: $(date -Iseconds)
+
+  ---
+
+  HEADER
+
+  # Replace placeholder with actual date
+  sed -i.bak "s/\$(date -Iseconds)/$(date -Iseconds)/" "$PRD_FILE" 2>/dev/null || \
+    sed -i '' "s/\$(date -Iseconds)/$(date -Iseconds)/" "$PRD_FILE"
+  rm -f "$PRD_FILE.bak"
+
+  # ==========================================
+  # SECTION 1: OVERVIEW
+  # ==========================================
+  cat >> "$PRD_FILE" << EOF
+
+  ## 1. Upgrade Overview
+
+  | Property | Value |
+  |----------|-------|
+  | **From Version** | ${FROM_VERSION} |
+  | **To Version** | ${TO_VERSION} |
+  | **Project Type** | ${PROJECT_TYPE} |
+  | **Build Tool** | ${BUILD_TOOL} |
+  | **Java Version** | ${JAVA_VERSION} |
+  | **Features** | ${FEATURES} |
+  | **Current Branch** | ${CURRENT_BRANCH} |
+
+  ### Upgrade Analysis
+  - **Recommendation**: ${UPGRADE_RECOMMENDATION}
+  - **Version Jumps**: ${UPGRADE_TOTAL_STEPS}
+  - **High-Risk Steps**: ${UPGRADE_HIGH_RISK_STEPS}
+  - **Compatibility Issues**: ${COMPATIBILITY_ISSUE_COUNT}
+
+  EOF
+
+  # ==========================================
+  # SECTION 2: CONTEXT TOKEN SUMMARY
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ## 2. Context Token Summary
+
+  The following files will be loaded into the implementation context:
+
+  EOF
+
+  echo "$CONTEXT_REPORT" >> "$PRD_FILE"
+
+  # ==========================================
+  # SECTION 3: LIBRARY REFERENCES
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ## 3. Reference Libraries
+
+  ### Spring Boot Migration Library
+
+  EOF
+
+  # Add library file references with token counts
+  if [[ -d "$AGENTX_DIR/libraries/spring-boot-migration" ]]; then
+    echo "| File | Tokens | Description |" >> "$PRD_FILE"
+    echo "|------|--------|-------------|" >> "$PRD_FILE"
+
+    for file in "$AGENTX_DIR/libraries/spring-boot-migration"/*.adoc "$AGENTX_DIR/libraries/spring-boot-migration"/*.yaml; do
+      if [[ -f "$file" ]]; then
+        filename=$(basename "$file")
+        tokens=$(estimate_tokens "$file")
+        # Extract description from filename
+        case "$filename" in
+          *release-notes*) desc="Release notes and breaking changes" ;;
+          *config-changelog*) desc="Configuration property changes" ;;
+          *breaking-changes*) desc="Structured breaking changes data" ;;
+          *_index*) desc="Library index" ;;
+          *) desc="Reference documentation" ;;
+        esac
+        echo "| [\`$filename\`]($AGENTX_DIR/libraries/spring-boot-migration/$filename) | ~$tokens | $desc |" >> "$PRD_FILE"
+      fi
+    done
+  fi
+
+  # ==========================================
+  # SECTION 4: BREAKING CHANGES SUMMARY
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ## 4. Breaking Changes Summary
+
+  ### Key Changes by Version
+
+  EOF
+
+  # Extract key breaking changes from structured file
+  BREAKING_CHANGES_FILE="$AGENTX_DIR/libraries/spring-boot-migration/breaking-changes.yaml"
+  if [[ -f "$BREAKING_CHANGES_FILE" ]]; then
+    # Parse versions between FROM and TO
+    echo "Extracted from: \`$BREAKING_CHANGES_FILE\`" >> "$PRD_FILE"
+    echo "" >> "$PRD_FILE"
+
+    # Simple extraction of breaking changes sections
+    grep -A 50 "\"3.3\":" "$BREAKING_CHANGES_FILE" 2>/dev/null | head -30 | sed 's/^/    /' >> "$PRD_FILE" || true
+    echo "" >> "$PRD_FILE"
+  fi
+
+  cat >> "$PRD_FILE" << 'EOF'
+
+  > **Full Details**: See the release notes files in the library for complete breaking changes.
+
+  EOF
+
+  # ==========================================
+  # SECTION 5: IMPLEMENTATION PHASES
+  # ==========================================
+  cat >> "$PRD_FILE" << EOF
+
+  ## 5. Implementation Phases
+
+  ### Phase 0: Pre-flight ✓
+  - [x] Check remote sync
+  - [x] Analyze upgrade path
+  - [x] Check dependency compatibility
+  - [x] Verify clean working directory
+  - [x] Run baseline build
+  - [x] Run baseline tests
+  - [x] Generate this PRD
+
+  ### Phase 1: Setup
+  - [ ] Create pre-upgrade tag for rollback
+  - [ ] Create upgrade branch: \`upgrade/spring-boot-${FROM_VERSION}-to-${TO_VERSION}\`
+
+  ### Phase 2: Dependency Updates
+  - [ ] Update Spring Boot version in ${BUILD_TOOL} build file
+  - [ ] Update related Spring dependencies
+  - [ ] Commit: \`build(deps): upgrade Spring Boot from ${FROM_VERSION} to ${TO_VERSION}\`
+
+  ### Phase 3: Build & Fix
+  - [ ] Attempt compilation
+  - [ ] Fix compilation errors iteratively
+  - [ ] Commit fixes: \`fix: resolve compilation errors after Spring Boot upgrade\`
+
+  ### Phase 4: Configuration Migration
+  - [ ] Review property changes from config changelog
+  - [ ] Update application.properties/yaml
+  - [ ] Commit: \`config: update application properties for Spring Boot ${TO_VERSION}\`
+
+  ### Phase 5: Test Execution
+  - [ ] Run unit tests
+  - [ ] Identify failing tests
+  - [ ] Temporarily disable failing tests with @Disabled
+  - [ ] Commit: \`test: temporarily disable failing tests for Spring Boot upgrade\`
+
+  ### Phase 6: Test Fixes
+  - [ ] Fix each disabled test one by one
+  - [ ] Re-enable and verify each test
+  - [ ] Commit each fix: \`test: re-enable and fix [TestClass#method] after upgrade\`
+
+  ### Phase 7: Verification
+  - [ ] Run full test suite
+  - [ ] Verify build passes
+  - [ ] Generate upgrade summary
+
+  EOF
+
+  # ==========================================
+  # SECTION 6: FILES TO MODIFY
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ## 6. Files to Modify
+
+  ### Definite Changes
+
+  EOF
+
+  # List build file
+  if [[ "$BUILD_TOOL" == "maven" ]]; then
+    if [[ -f "pom.xml" ]]; then
+      tokens=$(estimate_tokens "pom.xml")
+      echo "- \`pom.xml\` (~$tokens tokens) - Update Spring Boot parent version" >> "$PRD_FILE"
+    fi
+  else
+    for file in build.gradle build.gradle.kts; do
+      if [[ -f "$file" ]]; then
+        tokens=$(estimate_tokens "$file")
+        echo "- \`$file\` (~$tokens tokens) - Update Spring Boot plugin version" >> "$PRD_FILE"
+      fi
+    done
+  fi
+
+  # List config files
+  echo "" >> "$PRD_FILE"
+  echo "### Configuration Files" >> "$PRD_FILE"
+  echo "" >> "$PRD_FILE"
+  for file in $(find src -name "application*.properties" -o -name "application*.yaml" -o -name "application*.yml" 2>/dev/null | head -10); do
+    tokens=$(estimate_tokens "$file")
+    echo "- \`$file\` (~$tokens tokens)" >> "$PRD_FILE"
+  done
+
+  # List potential source files
+  echo "" >> "$PRD_FILE"
+  echo "### Potential Source Changes" >> "$PRD_FILE"
+  echo "" >> "$PRD_FILE"
+  echo "Files containing patterns that may need updates:" >> "$PRD_FILE"
+  echo "" >> "$PRD_FILE"
+
+  # Search for common patterns
+  for pattern in "WebSecurityConfigurerAdapter" "antMatchers" "javax\." "RestTemplate"; do
+    matches=$(grep -rl "$pattern" src/main 2>/dev/null | head -5 || true)
+    if [[ -n "$matches" ]]; then
+      echo "**Pattern: \`$pattern\`**" >> "$PRD_FILE"
+      for file in $matches; do
+        tokens=$(estimate_tokens "$file")
+        echo "- \`$file\` (~$tokens tokens)" >> "$PRD_FILE"
+      done
+      echo "" >> "$PRD_FILE"
+    fi
+  done
+
+  # ==========================================
+  # SECTION 7: ROLLBACK PLAN
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ## 7. Rollback Plan
+
+  If the upgrade fails or causes issues:
+
+  ```bash
+  # Option 1: Reset to pre-upgrade tag
+  git reset --hard pre-upgrade/spring-boot-<from>-to-<to>-<timestamp>
+
+  # Option 2: If already pushed, create revert branch
+  git checkout -b revert-spring-boot-upgrade
+  git reset --hard pre-upgrade/spring-boot-<from>-to-<to>-<timestamp>
+
+  # Option 3: Cherry-pick specific fixes
+  git revert <commit-sha>
+  ```
+
+  EOF
+
+  # ==========================================
+  # SECTION 8: APPENDIX - FULL CONTEXT FILES
+  # ==========================================
+  cat >> "$PRD_FILE" << 'EOF'
+
+  ---
+
+  ## Appendix A: Full Context File Listing
+
+  <details>
+  <summary>Click to expand full file listing with token counts</summary>
+
+  EOF
+
+  # List all files with tokens
+  echo "### AgentX Configuration" >> "$PRD_FILE"
+  echo "" >> "$PRD_FILE"
+  for file in "$AGENTX_DIR/aliases/be-service.json" "$AGENTX_DIR/intentions/upgrade.json" "$AGENTX_DIR/workflows/spring-boot-upgrade.yaml"; do
+    if [[ -f "$file" ]]; then
+      tokens=$(estimate_tokens "$file")
+      echo "- \`$file\` - ~$tokens tokens" >> "$PRD_FILE"
+    fi
+  done
+
+  echo "" >> "$PRD_FILE"
+  echo "### Skills" >> "$PRD_FILE"
+  echo "" >> "$PRD_FILE"
+  for file in "$AGENTX_DIR/skills"/*.yaml; do
+    if [[ -f "$file" ]]; then
+      tokens=$(estimate_tokens "$file")
+      filename=$(basename "$file")
+      echo "- \`$filename\` - ~$tokens tokens" >> "$PRD_FILE"
+    fi
+  done
+
+  echo "" >> "$PRD_FILE"
+  echo "</details>" >> "$PRD_FILE"
+
+  # ==========================================
+  # OUTPUT
+  # ==========================================
+  echo "Implementation PRD generated: $PRD_FILE"
+  echo ""
+  TOTAL_TOKENS=$(wc -c < "$PRD_FILE" | tr -d ' ')
+  TOTAL_TOKENS=$((TOTAL_TOKENS / CHARS_PER_TOKEN))
+  echo "PRD file size: ~$TOTAL_TOKENS tokens"
+
+  # Output JSON
+  cat << EOF
+  {
+    "prdFilePath": "$PRD_FILE",
+    "prdTokens": $TOTAL_TOKENS,
+    "success": true
+  }
+  EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+  - name: agentxDir
+    env: AGENTX_DIR
+    description: AgentX configuration directory
+    default: ".agentx"
+  - name: outputDir
+    env: OUTPUT_DIR
+    description: Output directory for PRD file
+    default: ".agentx/plans"
+  - name: fromVersion
+    env: FROM_VERSION
+    description: Current Spring Boot version
+    required: true
+  - name: toVersion
+    env: TO_VERSION
+    description: Target Spring Boot version
+    required: true
+  - name: projectType
+    env: PROJECT_TYPE
+    description: Project type
+    required: false
+  - name: buildTool
+    env: BUILD_TOOL
+    description: Build tool (maven, gradle)
+    required: false
+  - name: features
+    env: FEATURES
+    description: Spring features in use
+    required: false
+  - name: javaVersion
+    env: JAVA_VERSION
+    description: Java version
+    required: false
+  - name: currentBranch
+    env: CURRENT_BRANCH
+    description: Current git branch
+    required: false
+  - name: contextReport
+    env: CONTEXT_REPORT
+    description: Context analysis report
+    required: false
+  - name: upgradeRecommendation
+    env: UPGRADE_RECOMMENDATION
+    description: Upgrade path recommendation
+    required: false
+  - name: upgradeTotalSteps
+    env: UPGRADE_TOTAL_STEPS
+    description: Total upgrade steps
+    required: false
+  - name: upgradeHighRiskSteps
+    env: UPGRADE_HIGH_RISK_STEPS
+    description: High risk steps count
+    required: false
+  - name: compatibilityIssueCount
+    env: COMPATIBILITY_ISSUE_COUNT
+    description: Compatibility issues count
+    required: false
+
+outputs:
+  - name: output
+    extract: full
+    description: Full output
+  - name: prdFilePath
+    extract: pattern
+    pattern: '"prdFilePath":\s*"([^"]+)"'
+    description: Path to generated PRD file
+  - name: prdTokens
+    extract: pattern
+    pattern: '"prdTokens":\s*(\d+)'
+    description: Token count of PRD file
+  - name: success
+    extract: pattern
+    pattern: '"success":\s*(true|false)'
+    description: Whether generation succeeded
+
+timeout: 120

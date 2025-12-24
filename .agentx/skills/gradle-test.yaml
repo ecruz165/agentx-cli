@@ -1,0 +1,167 @@
+id: gradle-test
+type: script
+name: Run Gradle Tests
+description: Execute tests via Gradle with various options
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Determine Gradle command
+  if [[ -f "./gradlew" ]]; then
+    GRADLE="./gradlew"
+    chmod +x "$GRADLE" 2>/dev/null || true
+  else
+    GRADLE="gradle"
+  fi
+
+  CMD="$GRADLE"
+
+  # Determine test scope
+  case "${TEST_SCOPE:-unit}" in
+    unit)
+      CMD="$CMD test"
+      ;;
+    integration)
+      CMD="$CMD integrationTest"
+      ;;
+    all)
+      CMD="$CMD test integrationTest"
+      ;;
+  esac
+
+  # Run specific test class
+  if [[ -n "$TEST_CLASS" ]]; then
+    CMD="$CMD --tests '$TEST_CLASS'"
+  fi
+
+  # Run specific test method
+  if [[ -n "$TEST_METHOD" ]]; then
+    CMD="$CMD --tests '*.$TEST_METHOD'"
+  fi
+
+  # Rerun failed tests
+  if [[ "$RERUN_FAILED" == "true" ]]; then
+    CMD="$CMD --rerun"
+  fi
+
+  # Continue on failure
+  if [[ "$CONTINUE_ON_FAILURE" == "true" ]]; then
+    CMD="$CMD --continue"
+  fi
+
+  # JVM arguments
+  if [[ -n "$JVM_ARGS" ]]; then
+    export GRADLE_OPTS="$JVM_ARGS"
+  fi
+
+  # Additional args
+  if [[ -n "$EXTRA_ARGS" ]]; then
+    CMD="$CMD $EXTRA_ARGS"
+  fi
+
+  # Always add info level for test output
+  CMD="$CMD --info"
+
+  echo "Running: $CMD"
+  echo "---"
+
+  # Execute and capture output
+  OUTPUT=$($CMD 2>&1) || EXIT_CODE=$?
+  EXIT_CODE=${EXIT_CODE:-0}
+
+  echo "$OUTPUT"
+  echo "---"
+
+  # Parse test results
+  TESTS_RUN=$(echo "$OUTPUT" | grep -oP '\d+ tests' | head -1 | grep -oP '\d+' || echo "0")
+  TESTS_PASSED=$(echo "$OUTPUT" | grep -oP '\d+ passed' | head -1 | grep -oP '\d+' || echo "0")
+  TESTS_FAILED=$(echo "$OUTPUT" | grep -oP '\d+ failed' | head -1 | grep -oP '\d+' || echo "0")
+  TESTS_SKIPPED=$(echo "$OUTPUT" | grep -oP '\d+ skipped' | head -1 | grep -oP '\d+' || echo "0")
+
+  # Extract failed test names
+  FAILED_TESTS=$(echo "$OUTPUT" | grep -E "FAILED|> .+ FAILED" | head -20 || echo "")
+
+  echo "Test Summary:"
+  echo "  Total: $TESTS_RUN"
+  echo "  Passed: $TESTS_PASSED"
+  echo "  Failed: $TESTS_FAILED"
+  echo "  Skipped: $TESTS_SKIPPED"
+
+  if [[ -n "$FAILED_TESTS" ]]; then
+    echo ""
+    echo "Failed tests:"
+    echo "$FAILED_TESTS"
+  fi
+
+  # Output JSON
+  cat <<EOF
+{
+  "success": $(if [[ $EXIT_CODE -eq 0 ]]; then echo "true"; else echo "false"; fi),
+  "testsRun": $TESTS_RUN,
+  "testsPassed": $TESTS_PASSED,
+  "testsFailed": $TESTS_FAILED,
+  "testsSkipped": $TESTS_SKIPPED,
+  "testSummary": "$TESTS_PASSED passed, $TESTS_FAILED failed, $TESTS_SKIPPED skipped",
+  "failedTests": "$(echo "$FAILED_TESTS" | tr '\n' ';' | sed 's/;$//')"
+}
+EOF
+
+  exit $EXIT_CODE
+
+shell: bash
+
+inputs:
+  - name: testScope
+    env: TEST_SCOPE
+    description: Test scope (unit, integration, all)
+    default: unit
+  - name: testClass
+    env: TEST_CLASS
+    description: Specific test class to run
+    required: false
+  - name: testMethod
+    env: TEST_METHOD
+    description: Specific test method to run
+    required: false
+  - name: rerunFailed
+    env: RERUN_FAILED
+    description: Rerun failed tests from last run
+    default: "false"
+  - name: continueOnFailure
+    env: CONTINUE_ON_FAILURE
+    description: Continue running tests after failures
+    default: "true"
+  - name: jvmArgs
+    env: JVM_ARGS
+    description: JVM arguments for test execution
+    required: false
+  - name: extraArgs
+    env: EXTRA_ARGS
+    description: Additional Gradle arguments
+    required: false
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full test output
+  - name: success
+    extract: exitCode
+    description: Whether tests passed (exit code 0)
+  - name: testSummary
+    extract: pattern
+    pattern: '"testSummary":\s*"([^"]+)"'
+    description: Test summary
+  - name: failedTests
+    extract: pattern
+    pattern: '"failedTests":\s*"([^"]+)"'
+    description: Failed test names
+
+timeout: 600

@@ -1,0 +1,192 @@
+id: token-estimator
+type: script
+name: Token Estimator
+description: Estimate token counts for files to be included in context
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Token estimation: ~4 characters per token (rough approximation)
+  CHARS_PER_TOKEN=4
+
+  estimate_tokens() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+      local chars=$(wc -c < "$file" | tr -d ' ')
+      echo $((chars / CHARS_PER_TOKEN))
+    else
+      echo 0
+    fi
+  }
+
+  echo "Token Estimation Report"
+  echo "======================="
+  echo ""
+
+  TOTAL_TOKENS=0
+  FILE_DATA="["
+  FIRST=true
+
+  # Build files
+  echo "## Build Configuration"
+  for file in pom.xml build.gradle build.gradle.kts settings.gradle settings.gradle.kts; do
+    if [[ -f "$file" ]]; then
+      tokens=$(estimate_tokens "$file")
+      TOTAL_TOKENS=$((TOTAL_TOKENS + tokens))
+      echo "  $file: ~$tokens tokens"
+
+      [[ "$FIRST" == "true" ]] && FIRST=false || FILE_DATA+=","
+      FILE_DATA+="{\"file\":\"$file\",\"category\":\"build\",\"tokens\":$tokens}"
+    fi
+  done
+  echo ""
+
+  # Application properties
+  echo "## Configuration Files"
+  for file in $(find src -name "application*.properties" -o -name "application*.yaml" -o -name "application*.yml" 2>/dev/null | head -20); do
+    if [[ -f "$file" ]]; then
+      tokens=$(estimate_tokens "$file")
+      TOTAL_TOKENS=$((TOTAL_TOKENS + tokens))
+      echo "  $file: ~$tokens tokens"
+
+      [[ "$FIRST" == "true" ]] && FIRST=false || FILE_DATA+=","
+      FILE_DATA+="{\"file\":\"$file\",\"category\":\"config\",\"tokens\":$tokens}"
+    fi
+  done
+  echo ""
+
+  # Java source files (estimate based on count and average size)
+  echo "## Source Files"
+  JAVA_COUNT=$(find src/main -name "*.java" 2>/dev/null | wc -l | tr -d ' ')
+  JAVA_TOTAL_CHARS=$(find src/main -name "*.java" -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+  JAVA_TOKENS=$((JAVA_TOTAL_CHARS / CHARS_PER_TOKEN))
+  echo "  Java files: $JAVA_COUNT files, ~$JAVA_TOKENS tokens total"
+  TOTAL_TOKENS=$((TOTAL_TOKENS + JAVA_TOKENS))
+
+  [[ "$FIRST" == "true" ]] && FIRST=false || FILE_DATA+=","
+  FILE_DATA+="{\"file\":\"src/main/**/*.java\",\"category\":\"source\",\"tokens\":$JAVA_TOKENS,\"fileCount\":$JAVA_COUNT}"
+
+  # Kotlin source files
+  KOTLIN_COUNT=$(find src/main -name "*.kt" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$KOTLIN_COUNT" -gt 0 ]]; then
+    KOTLIN_TOTAL_CHARS=$(find src/main -name "*.kt" -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+    KOTLIN_TOKENS=$((KOTLIN_TOTAL_CHARS / CHARS_PER_TOKEN))
+    echo "  Kotlin files: $KOTLIN_COUNT files, ~$KOTLIN_TOKENS tokens total"
+    TOTAL_TOKENS=$((TOTAL_TOKENS + KOTLIN_TOKENS))
+
+    FILE_DATA+=",{\"file\":\"src/main/**/*.kt\",\"category\":\"source\",\"tokens\":$KOTLIN_TOKENS,\"fileCount\":$KOTLIN_COUNT}"
+  fi
+  echo ""
+
+  # Test files
+  echo "## Test Files"
+  TEST_COUNT=$(find src/test -name "*.java" -o -name "*.kt" 2>/dev/null | wc -l | tr -d ' ')
+  TEST_TOTAL_CHARS=$(find src/test \( -name "*.java" -o -name "*.kt" \) -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+  TEST_TOKENS=$((TEST_TOTAL_CHARS / CHARS_PER_TOKEN))
+  echo "  Test files: $TEST_COUNT files, ~$TEST_TOKENS tokens total"
+  TOTAL_TOKENS=$((TOTAL_TOKENS + TEST_TOKENS))
+
+  FILE_DATA+=",{\"file\":\"src/test/**/*\",\"category\":\"test\",\"tokens\":$TEST_TOKENS,\"fileCount\":$TEST_COUNT}"
+  echo ""
+
+  # Migration library context (if specified)
+  if [[ -n "$MIGRATION_LIB_PATH" && -d "$MIGRATION_LIB_PATH" ]]; then
+    echo "## Migration Library"
+    LIB_TOKENS=0
+    for file in "$MIGRATION_LIB_PATH"/*.adoc "$MIGRATION_LIB_PATH"/*.yaml "$MIGRATION_LIB_PATH"/*.md; do
+      if [[ -f "$file" ]]; then
+        tokens=$(estimate_tokens "$file")
+        LIB_TOKENS=$((LIB_TOKENS + tokens))
+        filename=$(basename "$file")
+        echo "  $filename: ~$tokens tokens"
+
+        FILE_DATA+=",{\"file\":\"$filename\",\"category\":\"library\",\"tokens\":$tokens}"
+      fi
+    done
+    TOTAL_TOKENS=$((TOTAL_TOKENS + LIB_TOKENS))
+    echo "  Library subtotal: ~$LIB_TOKENS tokens"
+    echo ""
+  fi
+
+  FILE_DATA+="]"
+
+  # Summary
+  echo "## Summary"
+  echo "==========="
+  echo "Total estimated tokens: ~$TOTAL_TOKENS"
+  echo ""
+
+  # Context budget analysis
+  CONTEXT_BUDGET=${CONTEXT_BUDGET:-100000}
+  USED_PERCENT=$((TOTAL_TOKENS * 100 / CONTEXT_BUDGET))
+  REMAINING=$((CONTEXT_BUDGET - TOTAL_TOKENS))
+
+  echo "Context Budget Analysis (assuming ${CONTEXT_BUDGET} token limit):"
+  echo "  Used: ~$TOTAL_TOKENS tokens ($USED_PERCENT%)"
+  echo "  Remaining: ~$REMAINING tokens"
+
+  if [[ $USED_PERCENT -gt 80 ]]; then
+    echo "  ⚠️ Warning: High context usage - consider selective file loading"
+  elif [[ $USED_PERCENT -gt 50 ]]; then
+    echo "  ℹ️ Moderate context usage"
+  else
+    echo "  ✅ Comfortable context budget"
+  fi
+
+  # Output JSON
+  cat <<EOF
+
+{
+  "totalTokens": $TOTAL_TOKENS,
+  "contextBudget": $CONTEXT_BUDGET,
+  "usedPercent": $USED_PERCENT,
+  "remainingTokens": $REMAINING,
+  "files": $FILE_DATA,
+  "categories": {
+    "build": $(echo "$FILE_DATA" | grep -o '"category":"build"' | wc -l | tr -d ' '),
+    "config": $(echo "$FILE_DATA" | grep -o '"category":"config"' | wc -l | tr -d ' '),
+    "source": $JAVA_COUNT,
+    "test": $TEST_COUNT,
+    "library": $(echo "$FILE_DATA" | grep -o '"category":"library"' | wc -l | tr -d ' ')
+  }
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+  - name: migrationLibPath
+    env: MIGRATION_LIB_PATH
+    description: Path to migration library files
+    required: false
+  - name: contextBudget
+    env: CONTEXT_BUDGET
+    description: Total context token budget
+    default: "100000"
+
+outputs:
+  - name: output
+    extract: full
+    description: Full token report
+  - name: totalTokens
+    extract: pattern
+    pattern: '"totalTokens":\s*(\d+)'
+    description: Total estimated tokens
+  - name: usedPercent
+    extract: pattern
+    pattern: '"usedPercent":\s*(\d+)'
+    description: Percentage of context budget used
+  - name: remainingTokens
+    extract: pattern
+    pattern: '"remainingTokens":\s*(\d+)'
+    description: Remaining context tokens
+
+timeout: 60

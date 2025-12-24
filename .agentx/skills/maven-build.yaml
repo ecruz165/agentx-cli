@@ -1,0 +1,138 @@
+@@id: maven-build
+type: script
+name: Run Maven Build
+description: Execute Maven build/compile with various options
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Determine Maven command
+  if [[ -f "./mvnw" ]]; then
+    MVN="./mvnw"
+  else
+    MVN="mvn"
+  fi
+
+  # Build command based on goal
+  CMD="$MVN"
+
+  case "${GOAL:-compile}" in
+    clean)
+      CMD="$CMD clean"
+      ;;
+    compile)
+      CMD="$CMD clean compile"
+      ;;
+    package)
+      CMD="$CMD clean package -DskipTests"
+      ;;
+    install)
+      CMD="$CMD clean install -DskipTests"
+      ;;
+    verify)
+      CMD="$CMD clean verify"
+      ;;
+  esac
+
+  # Skip tests
+  if [[ "$SKIP_TESTS" == "true" ]]; then
+    CMD="$CMD -DskipTests"
+  fi
+
+  # Offline mode
+  if [[ "$OFFLINE" == "true" ]]; then
+    CMD="$CMD -o"
+  fi
+
+  # Quiet mode
+  if [[ "$QUIET" == "true" ]]; then
+    CMD="$CMD -q"
+  fi
+
+  # Update snapshots
+  if [[ "$UPDATE_SNAPSHOTS" == "true" ]]; then
+    CMD="$CMD -U"
+  fi
+
+  # Maven profile
+  if [[ -n "$MAVEN_PROFILE" ]]; then
+    CMD="$CMD -P$MAVEN_PROFILE"
+  fi
+
+  # JVM arguments
+  if [[ -n "$JVM_ARGS" ]]; then
+    export MAVEN_OPTS="$JVM_ARGS"
+  fi
+
+  # Additional args
+  if [[ -n "$EXTRA_ARGS" ]]; then
+    CMD="$CMD $EXTRA_ARGS"
+  fi
+
+  echo "Running: $CMD"
+  echo "---"
+
+  # Execute and capture output
+  $CMD 2>&1
+
+shell: bash
+
+inputs:
+  - name: goal
+    env: GOAL
+    description: Maven goal (clean, compile, package, install, verify)
+    default: compile
+  - name: skipTests
+    env: SKIP_TESTS
+    description: Skip test execution
+    default: "true"
+  - name: offline
+    env: OFFLINE
+    description: Run in offline mode
+    default: "false"
+  - name: quiet
+    env: QUIET
+    description: Quiet output
+    default: "false"
+  - name: updateSnapshots
+    env: UPDATE_SNAPSHOTS
+    description: Force update of snapshots
+    default: "false"
+  - name: profile
+    env: MAVEN_PROFILE
+    description: Maven profile to activate (e.g., dev, test, prod)
+    required: false
+  - name: jvmArgs
+    env: JVM_ARGS
+    description: JVM arguments for Maven (e.g., -Xmx2g)
+    required: false
+  - name: extraArgs
+    env: EXTRA_ARGS
+    description: Additional Maven arguments
+    required: false
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full build output
+  - name: success
+    extract: exitCode
+    description: Whether build passed (exit code 0)
+  - name: errors
+    extract: pattern
+    pattern: "\\[ERROR\\].*"
+    description: Error messages
+  - name: compilationErrors
+    extract: pattern
+    pattern: "\\[ERROR\\] (/[^:]+):\\[(\\d+),(\\d+)\\] (.*)"
+    description: Compilation error details (file, line, column, message)
+
+timeout: 300

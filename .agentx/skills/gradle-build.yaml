@@ -1,0 +1,145 @@
+id: gradle-build
+type: script
+name: Run Gradle Build
+description: Execute Gradle build/compile with various options
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Determine Gradle command
+  if [[ -f "./gradlew" ]]; then
+    GRADLE="./gradlew"
+    chmod +x "$GRADLE" 2>/dev/null || true
+  else
+    GRADLE="gradle"
+  fi
+
+  # Build command based on goal
+  CMD="$GRADLE"
+
+  case "${GOAL:-build}" in
+    clean)
+      CMD="$CMD clean"
+      ;;
+    compile)
+      CMD="$CMD classes"
+      ;;
+    compileTest)
+      CMD="$CMD testClasses"
+      ;;
+    build)
+      CMD="$CMD build"
+      ;;
+    assemble)
+      CMD="$CMD assemble"
+      ;;
+    check)
+      CMD="$CMD check"
+      ;;
+  esac
+
+  # Skip tests
+  if [[ "$SKIP_TESTS" == "true" ]]; then
+    CMD="$CMD -x test -x integrationTest"
+  fi
+
+  # Offline mode
+  if [[ "$OFFLINE" == "true" ]]; then
+    CMD="$CMD --offline"
+  fi
+
+  # Quiet mode
+  if [[ "$QUIET" == "true" ]]; then
+    CMD="$CMD --quiet"
+  fi
+
+  # Refresh dependencies
+  if [[ "$REFRESH_DEPENDENCIES" == "true" ]]; then
+    CMD="$CMD --refresh-dependencies"
+  fi
+
+  # Parallel build
+  if [[ "$PARALLEL" == "true" ]]; then
+    CMD="$CMD --parallel"
+  fi
+
+  # JVM arguments
+  if [[ -n "$JVM_ARGS" ]]; then
+    export GRADLE_OPTS="$JVM_ARGS"
+  fi
+
+  # Additional args
+  if [[ -n "$EXTRA_ARGS" ]]; then
+    CMD="$CMD $EXTRA_ARGS"
+  fi
+
+  # Always add stacktrace for better error info
+  CMD="$CMD --stacktrace"
+
+  echo "Running: $CMD"
+  echo "---"
+
+  # Execute and capture output
+  $CMD 2>&1
+
+shell: bash
+
+inputs:
+  - name: goal
+    env: GOAL
+    description: Gradle task (clean, compile, compileTest, build, assemble, check)
+    default: build
+  - name: skipTests
+    env: SKIP_TESTS
+    description: Skip test execution
+    default: "true"
+  - name: offline
+    env: OFFLINE
+    description: Run in offline mode
+    default: "false"
+  - name: quiet
+    env: QUIET
+    description: Quiet output
+    default: "false"
+  - name: refreshDependencies
+    env: REFRESH_DEPENDENCIES
+    description: Force refresh of dependencies
+    default: "false"
+  - name: parallel
+    env: PARALLEL
+    description: Run builds in parallel
+    default: "true"
+  - name: jvmArgs
+    env: JVM_ARGS
+    description: JVM arguments for Gradle (e.g., -Xmx2g)
+    required: false
+  - name: extraArgs
+    env: EXTRA_ARGS
+    description: Additional Gradle arguments
+    required: false
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full build output
+  - name: success
+    extract: exitCode
+    description: Whether build passed (exit code 0)
+  - name: errors
+    extract: pattern
+    pattern: "FAILURE:.*"
+    description: Failure messages
+  - name: compilationErrors
+    extract: pattern
+    pattern: "e: (.+):([0-9]+):([0-9]+): (.*)"
+    description: Kotlin/Java compilation error details
+
+timeout: 300

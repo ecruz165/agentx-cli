@@ -1,0 +1,168 @@
+id: upgrade-path-analyzer
+type: script
+name: Upgrade Path Analyzer
+description: Determine optimal upgrade path between Spring Boot versions
+
+run: |
+  #!/bin/bash
+  set -e
+
+  FROM_VERSION="${FROM_VERSION:-3.0.0}"
+  TO_VERSION="${TO_VERSION:-3.5.0}"
+
+  # Extract major.minor versions
+  FROM_MAJOR=$(echo "$FROM_VERSION" | cut -d. -f1)
+  FROM_MINOR=$(echo "$FROM_VERSION" | cut -d. -f2)
+  TO_MAJOR=$(echo "$TO_VERSION" | cut -d. -f1)
+  TO_MINOR=$(echo "$TO_VERSION" | cut -d. -f2)
+
+  echo "Analyzing upgrade path from $FROM_VERSION to $TO_VERSION"
+  echo "---"
+
+  # Define known stable versions for each minor release
+  declare -A STABLE_VERSIONS
+  STABLE_VERSIONS["2.7"]="2.7.18"
+  STABLE_VERSIONS["3.0"]="3.0.13"
+  STABLE_VERSIONS["3.1"]="3.1.12"
+  STABLE_VERSIONS["3.2"]="3.2.12"
+  STABLE_VERSIONS["3.3"]="3.3.7"
+  STABLE_VERSIONS["3.4"]="3.4.2"
+  STABLE_VERSIONS["3.5"]="3.5.0"
+
+  # Define breaking change severity between versions
+  declare -A BREAKING_SEVERITY
+  BREAKING_SEVERITY["2.7-3.0"]="high"      # Java 17 required, Jakarta EE 9
+  BREAKING_SEVERITY["3.0-3.1"]="low"
+  BREAKING_SEVERITY["3.1-3.2"]="medium"    # Some security changes
+  BREAKING_SEVERITY["3.2-3.3"]="medium"    # RestClient, SSL bundle changes
+  BREAKING_SEVERITY["3.3-3.4"]="low"
+  BREAKING_SEVERITY["3.4-3.5"]="low"
+
+  # Build upgrade path
+  UPGRADE_STEPS=()
+  CURRENT_MAJOR=$FROM_MAJOR
+  CURRENT_MINOR=$FROM_MINOR
+
+  # Check if crossing major version (2.x to 3.x)
+  if [[ "$FROM_MAJOR" -lt "$TO_MAJOR" ]]; then
+    # Must go through 2.7 first if coming from 2.x
+    if [[ "$FROM_MAJOR" == "2" && "$FROM_MINOR" -lt "7" ]]; then
+      UPGRADE_STEPS+=("${STABLE_VERSIONS["2.7"]}:medium:Upgrade to last 2.x LTS before 3.x migration")
+    fi
+    # Then to 3.0
+    UPGRADE_STEPS+=("${STABLE_VERSIONS["3.0"]}:high:Major version upgrade - Java 17 and Jakarta EE 9 required")
+    CURRENT_MAJOR=3
+    CURRENT_MINOR=0
+  fi
+
+  # Build path through minor versions
+  while [[ "$CURRENT_MAJOR" -eq "$TO_MAJOR" && "$CURRENT_MINOR" -lt "$TO_MINOR" ]]; do
+    NEXT_MINOR=$((CURRENT_MINOR + 1))
+    KEY="${CURRENT_MAJOR}.${CURRENT_MINOR}-${CURRENT_MAJOR}.${NEXT_MINOR}"
+    SEVERITY="${BREAKING_SEVERITY[$KEY]:-low}"
+    TARGET="${STABLE_VERSIONS["${CURRENT_MAJOR}.${NEXT_MINOR}"]}"
+
+    if [[ -n "$TARGET" ]]; then
+      UPGRADE_STEPS+=("$TARGET:$SEVERITY:Minor version upgrade")
+    fi
+
+    CURRENT_MINOR=$NEXT_MINOR
+  done
+
+  # Calculate total steps and risk
+  TOTAL_STEPS=${#UPGRADE_STEPS[@]}
+  HIGH_RISK_COUNT=0
+  MEDIUM_RISK_COUNT=0
+
+  for step in "${UPGRADE_STEPS[@]}"; do
+    severity=$(echo "$step" | cut -d: -f2)
+    [[ "$severity" == "high" ]] && ((HIGH_RISK_COUNT++)) || true
+    [[ "$severity" == "medium" ]] && ((MEDIUM_RISK_COUNT++)) || true
+  done
+
+  # Determine recommendation
+  if [[ $TOTAL_STEPS -le 1 ]]; then
+    RECOMMENDATION="direct"
+    RECOMMENDATION_REASON="Single minor version jump - direct upgrade recommended"
+  elif [[ $HIGH_RISK_COUNT -gt 0 ]]; then
+    RECOMMENDATION="incremental"
+    RECOMMENDATION_REASON="Major version change detected - incremental upgrade strongly recommended"
+  elif [[ $TOTAL_STEPS -gt 2 ]]; then
+    RECOMMENDATION="incremental"
+    RECOMMENDATION_REASON="Multiple version jumps - incremental upgrade recommended for easier debugging"
+  else
+    RECOMMENDATION="direct"
+    RECOMMENDATION_REASON="Low risk upgrade - direct upgrade acceptable"
+  fi
+
+  echo "Upgrade steps: $TOTAL_STEPS"
+  echo "High risk steps: $HIGH_RISK_COUNT"
+  echo "Recommendation: $RECOMMENDATION"
+  echo "Reason: $RECOMMENDATION_REASON"
+  echo ""
+  echo "Upgrade path:"
+
+  STEP_NUM=1
+  STEPS_JSON="["
+  for step in "${UPGRADE_STEPS[@]}"; do
+    version=$(echo "$step" | cut -d: -f1)
+    severity=$(echo "$step" | cut -d: -f2)
+    description=$(echo "$step" | cut -d: -f3-)
+    echo "  $STEP_NUM. $FROM_VERSION → $version ($severity): $description"
+
+    [[ $STEP_NUM -gt 1 ]] && STEPS_JSON+=","
+    STEPS_JSON+="{\"step\":$STEP_NUM,\"from\":\"$FROM_VERSION\",\"to\":\"$version\",\"severity\":\"$severity\",\"description\":\"$description\"}"
+
+    FROM_VERSION="$version"
+    ((STEP_NUM++))
+  done
+  STEPS_JSON+="]"
+
+  # Output JSON
+  cat <<EOF
+{
+  "fromVersion": "${FROM_VERSION}",
+  "toVersion": "${TO_VERSION}",
+  "totalSteps": $TOTAL_STEPS,
+  "highRiskSteps": $HIGH_RISK_COUNT,
+  "mediumRiskSteps": $MEDIUM_RISK_COUNT,
+  "recommendation": "$RECOMMENDATION",
+  "recommendationReason": "$RECOMMENDATION_REASON",
+  "upgradePath": $STEPS_JSON
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: fromVersion
+    env: FROM_VERSION
+    description: Current Spring Boot version
+    required: true
+  - name: toVersion
+    env: TO_VERSION
+    description: Target Spring Boot version
+    required: true
+
+outputs:
+  - name: output
+    extract: full
+    description: Full analysis output
+  - name: recommendation
+    extract: pattern
+    pattern: '"recommendation":\s*"([^"]+)"'
+    description: Upgrade recommendation (direct or incremental)
+  - name: totalSteps
+    extract: pattern
+    pattern: '"totalSteps":\s*(\d+)'
+    description: Number of upgrade steps
+  - name: highRiskSteps
+    extract: pattern
+    pattern: '"highRiskSteps":\s*(\d+)'
+    description: Number of high-risk steps
+  - name: recommendationReason
+    extract: pattern
+    pattern: '"recommendationReason":\s*"([^"]+)"'
+    description: Reason for recommendation
+
+timeout: 30

@@ -1,0 +1,176 @@
+id: git-commit
+type: script
+name: Git Commit
+description: Stage and commit changes with appropriate message
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Check for changes
+  if [[ -z $(git status --porcelain) ]]; then
+    echo "No changes to commit"
+    cat <<EOF
+  {
+    "committed": false,
+    "reason": "No changes to commit"
+  }
+  EOF
+    exit 0
+  fi
+
+  # Stage changes
+  case "${STAGE_MODE:-all}" in
+    all)
+      git add -A
+      ;;
+    tracked)
+      git add -u
+      ;;
+    specific)
+      if [[ -n "$FILES" ]]; then
+        git add $FILES
+      else
+        echo "Error: FILES required when STAGE_MODE=specific"
+        exit 1
+      fi
+      ;;
+  esac
+
+  # Show what's staged
+  echo "Staged changes:"
+  git diff --cached --stat
+
+  # Build commit message
+  if [[ -n "$COMMIT_MESSAGE" ]]; then
+    MSG="$COMMIT_MESSAGE"
+  else
+    # Auto-generate based on commit type
+    case "${COMMIT_TYPE:-chore}" in
+      deps)
+        MSG="build(deps): upgrade Spring Boot from ${FROM_VERSION} to ${TO_VERSION}"
+        ;;
+      fix)
+        MSG="fix: resolve compilation errors after Spring Boot upgrade"
+        ;;
+      config)
+        MSG="config: update application properties for Spring Boot ${TO_VERSION}"
+        ;;
+      test)
+        MSG="test: fix tests after Spring Boot ${TO_VERSION} upgrade"
+        ;;
+      test-disable)
+        MSG="test: temporarily disable failing tests for Spring Boot upgrade"
+        ;;
+      test-enable)
+        MSG="test: re-enable and fix ${TEST_NAME} after upgrade"
+        ;;
+      chore)
+        MSG="chore: Spring Boot upgrade maintenance"
+        ;;
+    esac
+  fi
+
+  # Add scope if provided
+  if [[ -n "$SCOPE" ]]; then
+    MSG=$(echo "$MSG" | sed "s/:/($SCOPE):/")
+  fi
+
+  # Add description if provided
+  if [[ -n "$DESCRIPTION" ]]; then
+    FULL_MSG="$MSG
+
+$DESCRIPTION"
+  else
+    FULL_MSG="$MSG"
+  fi
+
+  # Commit
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Dry run - would commit with message:"
+    echo "$FULL_MSG"
+  else
+    git commit -m "$FULL_MSG"
+    COMMIT_SHA=$(git rev-parse HEAD)
+    echo "Committed: $COMMIT_SHA"
+  fi
+
+  # Output JSON
+  cat <<EOF
+  {
+    "committed": true,
+    "message": "$MSG",
+    "sha": "${COMMIT_SHA:-dry-run}",
+    "filesChanged": $(git diff --cached --numstat | wc -l | tr -d ' ')
+  }
+  EOF
+
+shell: bash
+
+inputs:
+  - name: commitType
+    env: COMMIT_TYPE
+    description: Type of commit (deps, fix, config, test, test-disable, test-enable, chore)
+    default: chore
+  - name: commitMessage
+    env: COMMIT_MESSAGE
+    description: Custom commit message (overrides auto-generated)
+    required: false
+  - name: scope
+    env: SCOPE
+    description: Commit scope (e.g., security, jpa, actuator)
+    required: false
+  - name: description
+    env: DESCRIPTION
+    description: Additional description for commit body
+    required: false
+  - name: fromVersion
+    env: FROM_VERSION
+    description: Source Spring Boot version
+    required: false
+  - name: toVersion
+    env: TO_VERSION
+    description: Target Spring Boot version
+    required: false
+  - name: testName
+    env: TEST_NAME
+    description: Test name for test-enable commits
+    required: false
+  - name: stageMode
+    env: STAGE_MODE
+    description: What to stage (all, tracked, specific)
+    default: all
+  - name: files
+    env: FILES
+    description: Specific files to stage (when stageMode=specific)
+    required: false
+  - name: dryRun
+    env: DRY_RUN
+    description: Show what would be committed without committing
+    default: "false"
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full output
+  - name: committed
+    extract: pattern
+    pattern: '"committed":\\s*(true|false)'
+    description: Whether commit was made
+  - name: sha
+    extract: pattern
+    pattern: '"sha":\\s*"([^"]+)"'
+    description: Commit SHA
+  - name: message
+    extract: pattern
+    pattern: '"message":\\s*"([^"]+)"'
+    description: Commit message used
+
+timeout: 30

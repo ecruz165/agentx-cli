@@ -1,0 +1,356 @@
+id: spring-boot-managed-versions
+type: script
+name: Spring Boot Managed Versions
+description: List project dependencies and show which versions are managed by Spring Boot
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  AGENTX_DIR="${AGENTX_DIR:-.agentx}"
+  TARGET_VERSION="${TARGET_VERSION:-4.0.0}"
+
+  cd "$WORKSPACE"
+
+  # Extract version components
+  MAJOR_VERSION=$(echo "$TARGET_VERSION" | cut -d. -f1)
+  MINOR_VERSION=$(echo "$TARGET_VERSION" | cut -d. -f2)
+  PATCH_VERSION=$(echo "$TARGET_VERSION" | cut -d. -f3)
+
+  # Find the managed versions file - try multiple patterns
+  MANAGED_VERSIONS_FILE=""
+  LIB_DIR="$AGENTX_DIR/libraries/spring-boot"
+
+  # Pattern 1: Exact version (e.g., spring-boot-3.5.8-dependency-versions.md)
+  if [[ -f "$LIB_DIR/spring-boot-${TARGET_VERSION}-dependency-versions.md" ]]; then
+    MANAGED_VERSIONS_FILE="$LIB_DIR/spring-boot-${TARGET_VERSION}-dependency-versions.md"
+  # Pattern 2: Minor version with x (e.g., spring-boot-3.5.x-dependency-versions.md)
+  elif [[ -f "$LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}.x-dependency-versions.md" ]]; then
+    MANAGED_VERSIONS_FILE="$LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}.x-dependency-versions.md"
+  # Pattern 3: Major.minor only (e.g., spring-boot-3.5-dependency-versions.md)
+  elif [[ -f "$LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}-dependency-versions.md" ]]; then
+    MANAGED_VERSIONS_FILE="$LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}-dependency-versions.md"
+  # Pattern 4: Any file matching major.minor pattern
+  else
+    MANAGED_VERSIONS_FILE=$(ls "$LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}"*"-dependency-versions.md" 2>/dev/null | head -1 || true)
+  fi
+
+  # Fallback: Find any dependency versions file
+  if [[ -z "$MANAGED_VERSIONS_FILE" || ! -f "$MANAGED_VERSIONS_FILE" ]]; then
+    MANAGED_VERSIONS_FILE=$(ls "$LIB_DIR/spring-boot-"*"-dependency-versions.md" 2>/dev/null | head -1 || true)
+    if [[ -n "$MANAGED_VERSIONS_FILE" ]]; then
+      echo "⚠️ Warning: No exact match for Spring Boot $TARGET_VERSION, using: $(basename "$MANAGED_VERSIONS_FILE")"
+    fi
+  fi
+
+  if [[ -z "$MANAGED_VERSIONS_FILE" || ! -f "$MANAGED_VERSIONS_FILE" ]]; then
+    echo "Error: No Spring Boot managed versions file found"
+    echo "Expected one of:"
+    echo "  - $LIB_DIR/spring-boot-${TARGET_VERSION}-dependency-versions.md"
+    echo "  - $LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}.x-dependency-versions.md"
+    echo "  - $LIB_DIR/spring-boot-${MAJOR_VERSION}.${MINOR_VERSION}-dependency-versions.md"
+    exit 1
+  fi
+
+  echo "# Spring Boot Managed Dependencies Report"
+  echo "=========================================="
+  echo ""
+  echo "**Spring Boot Version**: $TARGET_VERSION"
+  echo "**Managed Versions File**: $MANAGED_VERSIONS_FILE"
+  echo ""
+
+  # Parse managed versions from markdown table into associative array format
+  # Format: groupId:artifactId -> version
+  declare -A MANAGED_VERSIONS
+
+  while IFS='|' read -r _ groupId artifactId version _; do
+    # Clean up the values (remove backticks and whitespace)
+    groupId=$(echo "$groupId" | tr -d '`' | xargs)
+    artifactId=$(echo "$artifactId" | tr -d '`' | xargs)
+    version=$(echo "$version" | tr -d '`' | xargs)
+
+    # Skip header rows and empty lines
+    if [[ -n "$groupId" && "$groupId" != "Group ID" && "$groupId" != "---"* ]]; then
+      key="${groupId}:${artifactId}"
+      MANAGED_VERSIONS["$key"]="$version"
+    fi
+  done < <(grep "^\|" "$MANAGED_VERSIONS_FILE" | grep -v "^\| ---")
+
+  MANAGED_COUNT=${#MANAGED_VERSIONS[@]}
+  echo "Loaded $MANAGED_COUNT managed dependency versions"
+  echo ""
+
+  # ==========================================
+  # EXTRACT PROJECT DEPENDENCIES
+  # ==========================================
+
+  PROJECT_DEPS=()
+  BUILD_TOOL=""
+
+  if [[ -f "pom.xml" ]]; then
+    BUILD_TOOL="maven"
+    echo "## Analyzing Maven Dependencies"
+    echo ""
+
+    # Use Maven to get dependency list
+    if [[ -f "./mvnw" ]]; then
+      MVN="./mvnw"
+    else
+      MVN="mvn"
+    fi
+
+    # Add profile if specified
+    MVN_ARGS=""
+    if [[ -n "$MAVEN_PROFILE" ]]; then
+      MVN_ARGS="-P$MAVEN_PROFILE"
+    fi
+
+    # Get dependency list in a parseable format
+    DEP_OUTPUT=$($MVN dependency:list -DoutputAbsoluteArtifactFilename=false -DincludeScope=compile $MVN_ARGS 2>/dev/null | grep "^\[INFO\]    " | grep -v "^\[INFO\]    none" || true)
+
+    while read -r line; do
+      # Parse: [INFO]    groupId:artifactId:type:version:scope
+      dep=$(echo "$line" | sed 's/\[INFO\]    //' | xargs)
+      if [[ -n "$dep" && "$dep" != *"---"* ]]; then
+        PROJECT_DEPS+=("$dep")
+      fi
+    done <<< "$DEP_OUTPUT"
+
+  elif [[ -f "build.gradle" || -f "build.gradle.kts" ]]; then
+    BUILD_TOOL="gradle"
+    echo "## Analyzing Gradle Dependencies"
+    echo ""
+
+    # Use Gradle to get dependencies
+    if [[ -f "./gradlew" ]]; then
+      GRADLE="./gradlew"
+    else
+      GRADLE="gradle"
+    fi
+
+    DEP_OUTPUT=$($GRADLE dependencies --configuration compileClasspath 2>/dev/null | grep -E "^[+\\\\]---" || true)
+
+    while read -r line; do
+      # Parse Gradle format: +--- group:artifact:version or \--- group:artifact:version
+      dep=$(echo "$line" | sed 's/^[+\\\\]--- //' | sed 's/ -> .*//' | sed 's/ (\*)$//' | xargs)
+      if [[ -n "$dep" && "$dep" == *":"* ]]; then
+        PROJECT_DEPS+=("$dep")
+      fi
+    done <<< "$DEP_OUTPUT"
+  else
+    echo "Error: No pom.xml or build.gradle found"
+    exit 1
+  fi
+
+  echo "Found ${#PROJECT_DEPS[@]} project dependencies"
+  echo ""
+
+  # ==========================================
+  # CROSS-REFERENCE WITH MANAGED VERSIONS
+  # ==========================================
+
+  echo "## Dependency Analysis"
+  echo ""
+  echo "| Status | Group ID | Artifact ID | Project Ver | Spring Boot Ver | Notes |"
+  echo "|--------|----------|-------------|-------------|-----------------|-------|"
+
+  MANAGED_MATCH=0
+  MANAGED_OVERRIDE=0
+  NOT_MANAGED=0
+  VERSION_MISMATCH=0
+
+  JSON_DEPS="["
+  FIRST=true
+
+  for dep in "${PROJECT_DEPS[@]}"; do
+    # Parse dependency - handle different formats
+    # Maven: groupId:artifactId:type:version:scope
+    # Gradle: groupId:artifactId:version
+
+    IFS=':' read -ra PARTS <<< "$dep"
+
+    if [[ ${#PARTS[@]} -ge 3 ]]; then
+      groupId="${PARTS[0]}"
+      artifactId="${PARTS[1]}"
+
+      # Determine version position based on format
+      if [[ ${#PARTS[@]} -ge 4 ]]; then
+        # Maven format: groupId:artifactId:type:version:scope
+        projectVersion="${PARTS[3]}"
+      else
+        # Gradle format: groupId:artifactId:version
+        projectVersion="${PARTS[2]}"
+      fi
+
+      key="${groupId}:${artifactId}"
+      managedVersion="${MANAGED_VERSIONS[$key]:-}"
+
+      # Determine status
+      if [[ -n "$managedVersion" ]]; then
+        if [[ "$projectVersion" == "$managedVersion" ]]; then
+          status="✅"
+          notes="Managed"
+          MANAGED_MATCH=$((MANAGED_MATCH + 1))
+        else
+          status="⚠️"
+          notes="Override"
+          MANAGED_OVERRIDE=$((MANAGED_OVERRIDE + 1))
+          VERSION_MISMATCH=$((VERSION_MISMATCH + 1))
+        fi
+      else
+        status="➖"
+        notes="Not managed"
+        managedVersion="-"
+        NOT_MANAGED=$((NOT_MANAGED + 1))
+      fi
+
+      echo "| $status | \`$groupId\` | \`$artifactId\` | $projectVersion | $managedVersion | $notes |"
+
+      # Build JSON
+      [[ "$FIRST" == "true" ]] && FIRST=false || JSON_DEPS+=","
+      JSON_DEPS+="{\"groupId\":\"$groupId\",\"artifactId\":\"$artifactId\",\"projectVersion\":\"$projectVersion\",\"managedVersion\":\"$managedVersion\",\"isManaged\":$(if [[ -n "${MANAGED_VERSIONS[$key]:-}" ]]; then echo "true"; else echo "false"; fi),\"isOverride\":$(if [[ "$projectVersion" != "$managedVersion" && -n "${MANAGED_VERSIONS[$key]:-}" ]]; then echo "true"; else echo "false"; fi)}"
+    fi
+  done
+
+  JSON_DEPS+="]"
+
+  echo ""
+
+  # ==========================================
+  # SUMMARY
+  # ==========================================
+
+  echo "## Summary"
+  echo ""
+  echo "| Metric | Count |"
+  echo "|--------|-------|"
+  echo "| Total Dependencies | ${#PROJECT_DEPS[@]} |"
+  echo "| Spring Boot Managed | $MANAGED_MATCH |"
+  echo "| Version Overrides | $MANAGED_OVERRIDE |"
+  echo "| Not Managed by Spring Boot | $NOT_MANAGED |"
+  echo ""
+
+  if [[ $MANAGED_OVERRIDE -gt 0 ]]; then
+    echo "### ⚠️ Version Overrides Detected"
+    echo ""
+    echo "The following dependencies have versions different from Spring Boot managed versions:"
+    echo ""
+    for dep in "${PROJECT_DEPS[@]}"; do
+      IFS=':' read -ra PARTS <<< "$dep"
+      if [[ ${#PARTS[@]} -ge 3 ]]; then
+        groupId="${PARTS[0]}"
+        artifactId="${PARTS[1]}"
+        if [[ ${#PARTS[@]} -ge 4 ]]; then
+          projectVersion="${PARTS[3]}"
+        else
+          projectVersion="${PARTS[2]}"
+        fi
+        key="${groupId}:${artifactId}"
+        managedVersion="${MANAGED_VERSIONS[$key]:-}"
+        if [[ -n "$managedVersion" && "$projectVersion" != "$managedVersion" ]]; then
+          echo "- \`$key\`: $projectVersion → $managedVersion (Spring Boot)"
+        fi
+      fi
+    done
+    echo ""
+    echo "**Recommendation**: Consider removing explicit versions to use Spring Boot managed versions,"
+    echo "unless you have a specific reason for the override."
+  fi
+
+  echo ""
+
+  # ==========================================
+  # AVAILABLE BUT NOT USED
+  # ==========================================
+
+  if [[ "$SHOW_AVAILABLE" == "true" ]]; then
+    echo "## Available Spring Boot Managed Dependencies (Not in Project)"
+    echo ""
+    echo "<details>"
+    echo "<summary>Click to expand ($MANAGED_COUNT total available)</summary>"
+    echo ""
+    echo "| Group ID | Artifact ID | Version |"
+    echo "|----------|-------------|---------|"
+
+    for key in "${!MANAGED_VERSIONS[@]}"; do
+      # Check if this dependency is in the project
+      found=false
+      for dep in "${PROJECT_DEPS[@]}"; do
+        if [[ "$dep" == "$key"* ]]; then
+          found=true
+          break
+        fi
+      done
+
+      if [[ "$found" == "false" ]]; then
+        IFS=':' read -ra PARTS <<< "$key"
+        echo "| \`${PARTS[0]}\` | \`${PARTS[1]}\` | ${MANAGED_VERSIONS[$key]} |"
+      fi
+    done | head -100
+
+    echo ""
+    echo "</details>"
+  fi
+
+  # Output JSON
+  cat << EOF
+
+{
+  "springBootVersion": "$TARGET_VERSION",
+  "buildTool": "$BUILD_TOOL",
+  "totalDependencies": ${#PROJECT_DEPS[@]},
+  "managedCount": $MANAGED_MATCH,
+  "overrideCount": $MANAGED_OVERRIDE,
+  "notManagedCount": $NOT_MANAGED,
+  "hasOverrides": $(if [[ $MANAGED_OVERRIDE -gt 0 ]]; then echo "true"; else echo "false"; fi),
+  "dependencies": $JSON_DEPS
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+  - name: agentxDir
+    env: AGENTX_DIR
+    description: AgentX configuration directory
+    default: ".agentx"
+  - name: targetVersion
+    env: TARGET_VERSION
+    description: Target Spring Boot version to check against
+    default: "4.0.0"
+  - name: profile
+    env: MAVEN_PROFILE
+    description: Maven profile to use
+    required: false
+  - name: showAvailable
+    env: SHOW_AVAILABLE
+    description: Show available managed dependencies not in project
+    default: "false"
+
+outputs:
+  - name: output
+    extract: full
+    description: Full managed versions report
+  - name: totalDependencies
+    extract: pattern
+    pattern: '"totalDependencies":\s*(\d+)'
+    description: Total project dependencies
+  - name: managedCount
+    extract: pattern
+    pattern: '"managedCount":\s*(\d+)'
+    description: Dependencies managed by Spring Boot
+  - name: overrideCount
+    extract: pattern
+    pattern: '"overrideCount":\s*(\d+)'
+    description: Dependencies with version overrides
+  - name: hasOverrides
+    extract: pattern
+    pattern: '"hasOverrides":\s*(true|false)'
+    description: Whether any versions override Spring Boot defaults
+
+timeout: 300

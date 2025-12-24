@@ -1,0 +1,209 @@
+id: git-tag
+type: script
+name: Git Tag Management
+description: Create tags for upgrade milestones and support rollback
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  ACTION="${ACTION:-create}"
+  TAG_PREFIX="${TAG_PREFIX:-pre-upgrade}"
+  FROM_VERSION="${FROM_VERSION:-unknown}"
+  TO_VERSION="${TO_VERSION:-unknown}"
+
+  # Generate tag name
+  if [[ -n "$TAG_NAME" ]]; then
+    TAG="$TAG_NAME"
+  else
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    TAG="${TAG_PREFIX}/spring-boot-${FROM_VERSION}-to-${TO_VERSION}-${TIMESTAMP}"
+  fi
+
+  case "$ACTION" in
+    create)
+      echo "Creating tag: $TAG"
+
+      # Check if tag already exists
+      if git rev-parse "$TAG" >/dev/null 2>&1; then
+        echo "Tag $TAG already exists"
+        if [[ "$FORCE" == "true" ]]; then
+          echo "Force flag set, deleting existing tag"
+          git tag -d "$TAG"
+        else
+          echo "Use FORCE=true to overwrite"
+          exit 1
+        fi
+      fi
+
+      # Create annotated tag
+      MESSAGE="${TAG_MESSAGE:-Pre-upgrade checkpoint before Spring Boot ${FROM_VERSION} to ${TO_VERSION} migration}"
+      git tag -a "$TAG" -m "$MESSAGE"
+
+      echo "Created tag: $TAG"
+      COMMIT_SHA=$(git rev-parse HEAD)
+
+      cat <<EOF
+{
+  "action": "create",
+  "tag": "$TAG",
+  "sha": "$COMMIT_SHA",
+  "message": "$MESSAGE",
+  "success": true
+}
+EOF
+      ;;
+
+    list)
+      echo "Listing upgrade-related tags..."
+      TAGS=$(git tag -l "*${TAG_PREFIX}*" --sort=-creatordate | head -10)
+
+      echo "Recent tags:"
+      echo "$TAGS"
+
+      TAGS_JSON="["
+      FIRST=true
+      while IFS= read -r tag; do
+        [[ -z "$tag" ]] && continue
+        [[ "$FIRST" == "true" ]] && FIRST=false || TAGS_JSON+=","
+        TAGS_JSON+="\"$tag\""
+      done <<< "$TAGS"
+      TAGS_JSON+="]"
+
+      cat <<EOF
+{
+  "action": "list",
+  "tags": $TAGS_JSON,
+  "count": $(echo "$TAGS" | grep -c . || echo 0),
+  "success": true
+}
+EOF
+      ;;
+
+    rollback)
+      if [[ -z "$ROLLBACK_TO" ]]; then
+        # Find the most recent pre-upgrade tag
+        ROLLBACK_TO=$(git tag -l "*${TAG_PREFIX}*" --sort=-creatordate | head -1)
+      fi
+
+      if [[ -z "$ROLLBACK_TO" ]]; then
+        echo "No tag found to rollback to"
+        cat <<EOF
+{
+  "action": "rollback",
+  "success": false,
+  "error": "No rollback tag found"
+}
+EOF
+        exit 1
+      fi
+
+      echo "Rolling back to: $ROLLBACK_TO"
+
+      # Check for uncommitted changes
+      if [[ -n $(git status --porcelain) ]]; then
+        echo "Warning: Uncommitted changes will be lost"
+        if [[ "$FORCE" != "true" ]]; then
+          echo "Use FORCE=true to proceed anyway"
+          exit 1
+        fi
+      fi
+
+      # Perform rollback
+      git reset --hard "$ROLLBACK_TO"
+
+      cat <<EOF
+{
+  "action": "rollback",
+  "tag": "$ROLLBACK_TO",
+  "sha": "$(git rev-parse HEAD)",
+  "success": true
+}
+EOF
+      ;;
+
+    delete)
+      if [[ -z "$TAG_NAME" ]]; then
+        echo "TAG_NAME required for delete action"
+        exit 1
+      fi
+
+      git tag -d "$TAG_NAME"
+      echo "Deleted tag: $TAG_NAME"
+
+      cat <<EOF
+{
+  "action": "delete",
+  "tag": "$TAG_NAME",
+  "success": true
+}
+EOF
+      ;;
+
+    *)
+      echo "Unknown action: $ACTION"
+      exit 1
+      ;;
+  esac
+
+shell: bash
+
+inputs:
+  - name: action
+    env: ACTION
+    description: Action to perform (create, list, rollback, delete)
+    default: create
+  - name: tagName
+    env: TAG_NAME
+    description: Custom tag name (auto-generated if not provided)
+    required: false
+  - name: tagPrefix
+    env: TAG_PREFIX
+    description: Prefix for auto-generated tags
+    default: pre-upgrade
+  - name: tagMessage
+    env: TAG_MESSAGE
+    description: Tag annotation message
+    required: false
+  - name: fromVersion
+    env: FROM_VERSION
+    description: Source Spring Boot version
+    required: false
+  - name: toVersion
+    env: TO_VERSION
+    description: Target Spring Boot version
+    required: false
+  - name: rollbackTo
+    env: ROLLBACK_TO
+    description: Tag to rollback to (for rollback action)
+    required: false
+  - name: force
+    env: FORCE
+    description: Force action even with conflicts
+    default: "false"
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full output
+  - name: tag
+    extract: pattern
+    pattern: '"tag":\s*"([^"]+)"'
+    description: Tag name
+  - name: success
+    extract: pattern
+    pattern: '"success":\s*(true|false)'
+    description: Whether operation succeeded
+  - name: sha
+    extract: pattern
+    pattern: '"sha":\s*"([^"]+)"'
+    description: Commit SHA
+
+timeout: 30

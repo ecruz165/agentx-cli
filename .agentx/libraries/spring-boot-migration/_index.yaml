@@ -1,0 +1,97 @@
+# Spring Boot Migration Library
+# Release notes and configuration changelogs for version upgrades
+#
+# Usage in aliases:
+#   libraries:
+#     - spring-boot-migration
+#
+# Or selective loading for specific upgrade path:
+#   contextFiles:
+#     - libraries/spring-boot-migration/3.3-*.adoc
+#     - libraries/spring-boot-migration/3.4-*.adoc
+
+library:
+  id: spring-boot-migration
+  name: Spring Boot Migration Guides
+  description: Release notes and configuration changelogs for Spring Boot upgrades
+  source:
+    repo: https://github.com/spring-projects/spring-boot.wiki.git
+    path: releasenotes
+    copiedAt: "2025-12-23"
+  lastUpdated: "2025-12-23"
+
+chunks:
+  - id: 3.3-release-notes
+    title: "Spring Boot 3.3 Release Notes"
+    path: 3.3-release-notes.adoc
+    description: Breaking changes, deprecations, and new features in 3.3
+    upgradeFrom: "3.2.x"
+    upgradeTo: "3.3.x"
+    tags: [release-notes, migration, 3.3, breaking-changes]
+
+  - id: 3.3-config-changelog
+    title: "Spring Boot 3.3 Configuration Changelog"
+    path: 3.3-config-changelog.adoc
+    description: Property changes between 3.2 and 3.3
+    upgradeFrom: "3.2.x"
+    upgradeTo: "3.3.x"
+    tags: [config, properties, migration, 3.3]
+
+  - id: 3.4-release-notes
+    title: "Spring Boot 3.4 Release Notes"
+    path: 3.4-release-notes.adoc
+    description: Breaking changes, deprecations, and new features in 3.4
+    upgradeFrom: "3.3.x"
+    upgradeTo: "3.4.x"
+    tags: [release-notes, migration, 3.4, breaking-changes]
+
+  - id: 3.4-config-changelog
+    title: "Spring Boot 3.4 Configuration Changelog"
+    path: 3.4-config-changelog.adoc
+    description: Property changes between 3.3 and 3.4
+    upgradeFrom: "3.3.x"
+    upgradeTo: "3.4.x"
+    tags: [config, properties, migration, 3.4]
+
+  - id: 3.5-release-notes
+    title: "Spring Boot 3.5 Release Notes"
+    path: 3.5-release-notes.adoc
+    description: Breaking changes, deprecations, and new features in 3.5
+    upgradeFrom: "3.4.x"
+    upgradeTo: "3.5.x"
+    tags: [release-notes, migration, 3.5, breaking-changes]
+
+  - id: 3.5-config-changelog
+    title: "Spring Boot 3.5 Configuration Changelog"
+    path: 3.5-config-changelog.adoc
+    description: Property changes between 3.4 and 3.5
+    upgradeFrom: "3.4.x"
+    upgradeTo: "3.5.x"
+    tags: [config, properties, migration, 3.5]
+
+  - id: breaking-changes
+    title: "Breaking Changes Reference"
+    path: breaking-changes.yaml
+    description: Structured breaking changes data for all versions
+    tags: [breaking-changes, migration, structured-data, all-versions]
+
+# Upgrade paths supported by this library
+upgradePaths:
+  - from: "3.2.x"
+    to: "3.3.x"
+    files: [3.3-release-notes.adoc, 3.3-config-changelog.adoc]
+  - from: "3.3.x"
+    to: "3.4.x"
+    files: [3.4-release-notes.adoc, 3.4-config-changelog.adoc]
+  - from: "3.4.x"
+    to: "3.5.x"
+    files: [3.5-release-notes.adoc, 3.5-config-changelog.adoc]
+  - from: "3.2.x"
+    to: "3.5.x"
+    files:
+      - 3.3-release-notes.adoc
+      - 3.3-config-changelog.adoc
+      - 3.4-release-notes.adoc
+      - 3.4-config-changelog.adoc
+      - 3.5-release-notes.adoc
+      - 3.5-config-changelog.adoc

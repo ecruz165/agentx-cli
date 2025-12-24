@@ -6,6 +6,14 @@
     ".ai-templates/spring-service.md",
     ".ai-skill/coding-standards.md",
     "reference/tech-stack.md"
-  ]
+  ],
+  "libraries": [
+    "spring-boot",
+    "spring-boot-migration"
+  ],
+  "contextProviders": [
+    "context-providers/spring-boot-project.sh"
+  ],
+  "intentions": ["upgrade"]
 }
 

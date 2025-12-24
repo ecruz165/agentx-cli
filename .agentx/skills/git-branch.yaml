@@ -1,0 +1,115 @@
+id: git-branch
+type: script
+name: Git Branch Management
+description: Check current branch and create upgrade branch if needed
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Get current branch
+  CURRENT_BRANCH=$(git branch --show-current)
+  echo "Current branch: $CURRENT_BRANCH"
+
+  # Check if we need to create a new branch
+  if [[ "$CREATE_BRANCH" == "true" ]]; then
+    # Check if we're on a protected branch
+    if [[ "$CURRENT_BRANCH" == "develop" ]] || [[ "$CURRENT_BRANCH" == "main" ]] || [[ "$CURRENT_BRANCH" == "master" ]]; then
+
+      # Generate branch name
+      if [[ -n "$BRANCH_NAME" ]]; then
+        NEW_BRANCH="$BRANCH_NAME"
+      else
+        # Auto-generate: upgrade/spring-boot-3.2.12-to-3.5.8
+        NEW_BRANCH="upgrade/spring-boot-${FROM_VERSION}-to-${TO_VERSION}"
+      fi
+
+      # Check if branch already exists
+      if git show-ref --verify --quiet "refs/heads/$NEW_BRANCH"; then
+        echo "Branch $NEW_BRANCH already exists"
+        if [[ "$FORCE_CHECKOUT" == "true" ]]; then
+          git checkout "$NEW_BRANCH"
+          echo "Switched to existing branch: $NEW_BRANCH"
+        else
+          echo "Use FORCE_CHECKOUT=true to switch to existing branch"
+          exit 1
+        fi
+      else
+        # Create and checkout new branch
+        git checkout -b "$NEW_BRANCH"
+        echo "Created and switched to new branch: $NEW_BRANCH"
+      fi
+
+      CURRENT_BRANCH="$NEW_BRANCH"
+    else
+      echo "Already on feature branch: $CURRENT_BRANCH"
+    fi
+  fi
+
+  # Check for uncommitted changes
+  UNCOMMITTED_CHANGES="false"
+  if [[ -n $(git status --porcelain) ]]; then
+    UNCOMMITTED_CHANGES="true"
+    echo "Warning: Uncommitted changes detected"
+    git status --short
+  fi
+
+  # Output JSON
+  cat <<EOF
+  {
+    "currentBranch": "$CURRENT_BRANCH",
+    "isProtectedBranch": $(if [[ "$CURRENT_BRANCH" == "develop" ]] || [[ "$CURRENT_BRANCH" == "main" ]] || [[ "$CURRENT_BRANCH" == "master" ]]; then echo "true"; else echo "false"; fi),
+    "uncommittedChanges": $UNCOMMITTED_CHANGES,
+    "branchCreated": $(if [[ -n "$NEW_BRANCH" ]]; then echo "true"; else echo "false"; fi)
+  }
+  EOF
+
+shell: bash
+
+inputs:
+  - name: createBranch
+    env: CREATE_BRANCH
+    description: Whether to create a new branch if on protected branch
+    default: "true"
+  - name: branchName
+    env: BRANCH_NAME
+    description: Custom branch name (auto-generated if not provided)
+    required: false
+  - name: fromVersion
+    env: FROM_VERSION
+    description: Source version for auto-generated branch name
+    required: false
+  - name: toVersion
+    env: TO_VERSION
+    description: Target version for auto-generated branch name
+    required: false
+  - name: forceCheckout
+    env: FORCE_CHECKOUT
+    description: Switch to existing branch if it exists
+    default: "false"
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full output
+  - name: currentBranch
+    extract: pattern
+    pattern: '"currentBranch":\\s*"([^"]+)"'
+    description: Current branch name
+  - name: isProtectedBranch
+    extract: pattern
+    pattern: '"isProtectedBranch":\\s*(true|false)'
+    description: Whether on a protected branch
+  - name: branchCreated
+    extract: pattern
+    pattern: '"branchCreated":\\s*(true|false)'
+    description: Whether a new branch was created
+
+timeout: 30

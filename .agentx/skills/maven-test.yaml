@@ -1,0 +1,160 @@
+id: maven-test
+type: script
+name: Run Maven Tests
+description: Execute JUnit tests via Maven with various options
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Determine Maven command
+  if [[ -f "./mvnw" ]]; then
+    MVN="./mvnw"
+  else
+    MVN="mvn"
+  fi
+
+  # Build command based on options
+  CMD="$MVN"
+
+  # Test scope
+  case "${TEST_SCOPE:-unit}" in
+    unit)
+      CMD="$CMD test"
+      ;;
+    integration)
+      CMD="$CMD verify -DskipUnitTests"
+      ;;
+    all)
+      CMD="$CMD verify"
+      ;;
+  esac
+
+  # Single test class
+  if [[ -n "$TEST_CLASS" ]]; then
+    CMD="$CMD -Dtest=$TEST_CLASS"
+  fi
+
+  # Single test method
+  if [[ -n "$TEST_METHOD" ]]; then
+    CMD="$CMD -Dtest=$TEST_CLASS#$TEST_METHOD"
+  fi
+
+  # Fail fast
+  if [[ "$FAIL_FAST" == "true" ]]; then
+    CMD="$CMD -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false --fail-at-end"
+  fi
+
+  # Skip tests (for compile only)
+  if [[ "$SKIP_TESTS" == "true" ]]; then
+    CMD="$CMD -DskipTests"
+  fi
+
+  # Offline mode
+  if [[ "$OFFLINE" == "true" ]]; then
+    CMD="$CMD -o"
+  fi
+
+  # Quiet mode
+  if [[ "$QUIET" == "true" ]]; then
+    CMD="$CMD -q"
+  fi
+
+  # Debug output
+  if [[ "$DEBUG" == "true" ]]; then
+    CMD="$CMD -X"
+  fi
+
+  # Maven profile
+  if [[ -n "$MAVEN_PROFILE" ]]; then
+    CMD="$CMD -P$MAVEN_PROFILE"
+  fi
+
+  # JVM arguments
+  if [[ -n "$JVM_ARGS" ]]; then
+    CMD="$CMD -Dsurefire.argLine=\"$JVM_ARGS\""
+  fi
+
+  # Additional args
+  if [[ -n "$EXTRA_ARGS" ]]; then
+    CMD="$CMD $EXTRA_ARGS"
+  fi
+
+  echo "Running: $CMD"
+  echo "---"
+
+  # Execute and capture output
+  $CMD 2>&1
+
+shell: bash
+
+inputs:
+  - name: testScope
+    env: TEST_SCOPE
+    description: Test scope (unit, integration, all)
+    default: unit
+  - name: testClass
+    env: TEST_CLASS
+    description: Specific test class to run (e.g., com.example.MyTest)
+    required: false
+  - name: testMethod
+    env: TEST_METHOD
+    description: Specific test method to run (requires testClass)
+    required: false
+  - name: failFast
+    env: FAIL_FAST
+    description: Stop on first failure
+    default: "false"
+  - name: skipTests
+    env: SKIP_TESTS
+    description: Skip test execution (compile only)
+    default: "false"
+  - name: offline
+    env: OFFLINE
+    description: Run in offline mode
+    default: "false"
+  - name: quiet
+    env: QUIET
+    description: Quiet output
+    default: "false"
+  - name: debug
+    env: DEBUG
+    description: Debug output
+    default: "false"
+  - name: profile
+    env: MAVEN_PROFILE
+    description: Maven profile to activate (e.g., dev, test, prod)
+    required: false
+  - name: jvmArgs
+    env: JVM_ARGS
+    description: JVM arguments for test execution (e.g., -Xmx2g -XX:+UseG1GC)
+    required: false
+  - name: extraArgs
+    env: EXTRA_ARGS
+    description: Additional Maven arguments
+    required: false
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full test output
+  - name: success
+    extract: exitCode
+    description: Whether tests passed (exit code 0)
+  - name: failedTests
+    extract: pattern
+    pattern: "(?:FAILURE!|Failed tests:)[\\s\\S]*?(?=\\n\\n|Tests run:)"
+    description: Failed test summary
+  - name: testSummary
+    extract: pattern
+    pattern: "Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+)"
+    description: Test result summary
+
+timeout: 600

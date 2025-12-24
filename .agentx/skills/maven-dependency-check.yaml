@@ -1,0 +1,282 @@
+id: maven-dependency-check
+type: script
+name: Maven Dependency Check
+description: Analyze Maven dependencies for version conflicts and duplicate libraries
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Determine Maven command
+  if [[ -f "./mvnw" ]]; then
+    MVN="./mvnw"
+  else
+    MVN="mvn"
+  fi
+
+  # Build base command
+  CMD="$MVN"
+
+  # Add profile if specified
+  if [[ -n "$MAVEN_PROFILE" ]]; then
+    CMD="$CMD -P$MAVEN_PROFILE"
+  fi
+
+  # Add JVM args if specified
+  if [[ -n "$JVM_ARGS" ]]; then
+    export MAVEN_OPTS="$JVM_ARGS"
+  fi
+
+  echo "# Maven Dependency Analysis Report"
+  echo "==================================="
+  echo ""
+
+  CONFLICTS_FOUND=0
+  DUPLICATES_FOUND=0
+  UNUSED_FOUND=0
+  CONFLICT_DETAILS=""
+  DUPLICATE_DETAILS=""
+
+  # ==========================================
+  # 1. DEPENDENCY TREE
+  # ==========================================
+  echo "## 1. Dependency Tree"
+  echo "---------------------"
+  echo ""
+
+  TREE_OUTPUT=$($CMD dependency:tree -DoutputType=text 2>&1) || true
+
+  # Count total dependencies
+  DEP_COUNT=$(echo "$TREE_OUTPUT" | grep -E "^\[INFO\]\s+[+\\\\|]" | wc -l | tr -d ' ')
+  echo "Total dependencies: $DEP_COUNT"
+  echo ""
+
+  # ==========================================
+  # 2. CHECK FOR VERSION CONFLICTS
+  # ==========================================
+  echo "## 2. Version Conflicts"
+  echo "-----------------------"
+  echo ""
+
+  # Look for "omitted for conflict" messages
+  CONFLICTS=$(echo "$TREE_OUTPUT" | grep -i "omitted for conflict" || true)
+
+  if [[ -n "$CONFLICTS" ]]; then
+    CONFLICTS_FOUND=$(echo "$CONFLICTS" | wc -l | tr -d ' ')
+    echo "⚠️ Found $CONFLICTS_FOUND version conflict(s):"
+    echo ""
+    echo "$CONFLICTS" | while read -r line; do
+      echo "  - $line"
+    done
+    CONFLICT_DETAILS="$CONFLICTS"
+  else
+    echo "✅ No version conflicts detected"
+  fi
+  echo ""
+
+  # ==========================================
+  # 3. CHECK FOR DUPLICATE LIBRARIES
+  # ==========================================
+  echo "## 3. Duplicate Library Detection"
+  echo "----------------------------------"
+  echo ""
+
+  # Extract all artifact IDs and find duplicates with different versions
+  ARTIFACTS=$(echo "$TREE_OUTPUT" | grep -oE "[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+:jar:[0-9][^:]*" | sort || true)
+
+  # Group by groupId:artifactId and find those with multiple versions
+  echo "$ARTIFACTS" | cut -d: -f1-2 | sort | uniq -d > /tmp/dup_artifacts.txt 2>/dev/null || true
+
+  if [[ -s /tmp/dup_artifacts.txt ]]; then
+    while read -r artifact; do
+      versions=$(echo "$ARTIFACTS" | grep "^$artifact:" | cut -d: -f4 | sort -u | tr '\n' ', ' | sed 's/,$//')
+      version_count=$(echo "$versions" | tr ',' '\n' | wc -l | tr -d ' ')
+
+      if [[ $version_count -gt 1 ]]; then
+        DUPLICATES_FOUND=$((DUPLICATES_FOUND + 1))
+        echo "⚠️ **$artifact** has multiple versions:"
+        echo "   Versions: $versions"
+        DUPLICATE_DETAILS="$DUPLICATE_DETAILS\n$artifact: $versions"
+      fi
+    done < /tmp/dup_artifacts.txt
+    rm -f /tmp/dup_artifacts.txt
+  fi
+
+  if [[ $DUPLICATES_FOUND -eq 0 ]]; then
+    echo "✅ No duplicate libraries with different versions"
+  fi
+  echo ""
+
+  # ==========================================
+  # 4. DEPENDENCY ANALYZE
+  # ==========================================
+  echo "## 4. Dependency Analysis"
+  echo "-------------------------"
+  echo ""
+
+  ANALYZE_OUTPUT=$($CMD dependency:analyze -DignoreNonCompile=true 2>&1) || true
+
+  # Check for unused declared dependencies
+  UNUSED_DECLARED=$(echo "$ANALYZE_OUTPUT" | grep -A 100 "Unused declared dependencies" | grep -E "^\[WARNING\].*:.*:.*:" | head -20 || true)
+
+  if [[ -n "$UNUSED_DECLARED" ]]; then
+    UNUSED_FOUND=$(echo "$UNUSED_DECLARED" | wc -l | tr -d ' ')
+    echo "### Unused Declared Dependencies ($UNUSED_FOUND)"
+    echo ""
+    echo "$UNUSED_DECLARED" | while read -r line; do
+      dep=$(echo "$line" | grep -oE "[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+:[a-zA-Z]+:[0-9][^:]*" || echo "$line")
+      echo "  - $dep"
+    done
+    echo ""
+  fi
+
+  # Check for used undeclared dependencies
+  USED_UNDECLARED=$(echo "$ANALYZE_OUTPUT" | grep -A 100 "Used undeclared dependencies" | grep -E "^\[WARNING\].*:.*:.*:" | head -20 || true)
+
+  if [[ -n "$USED_UNDECLARED" ]]; then
+    UNDECLARED_COUNT=$(echo "$USED_UNDECLARED" | wc -l | tr -d ' ')
+    echo "### Used Undeclared Dependencies ($UNDECLARED_COUNT)"
+    echo ""
+    echo "$USED_UNDECLARED" | while read -r line; do
+      dep=$(echo "$line" | grep -oE "[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+:[a-zA-Z]+:[0-9][^:]*" || echo "$line")
+      echo "  - $dep"
+    done
+    echo ""
+  fi
+
+  if [[ -z "$UNUSED_DECLARED" && -z "$USED_UNDECLARED" ]]; then
+    echo "✅ Dependency analysis clean"
+  fi
+  echo ""
+
+  # ==========================================
+  # 5. SPRING BOOT SPECIFIC CHECKS
+  # ==========================================
+  echo "## 5. Spring Boot Dependency Checks"
+  echo "------------------------------------"
+  echo ""
+
+  # Check for Spring Boot version
+  SB_VERSION=$(echo "$TREE_OUTPUT" | grep -oE "org.springframework.boot:[^:]+:jar:[0-9]+\.[0-9]+\.[0-9]+" | head -1 | cut -d: -f4 || true)
+  if [[ -n "$SB_VERSION" ]]; then
+    echo "Spring Boot Version: $SB_VERSION"
+  fi
+
+  # Check for common problematic dependencies in Spring Boot upgrades
+  echo ""
+  echo "### Checking for common upgrade issues..."
+  echo ""
+
+  # javax vs jakarta
+  JAVAX_DEPS=$(echo "$TREE_OUTPUT" | grep -E "javax\.(servlet|validation|persistence|annotation)" | head -10 || true)
+  if [[ -n "$JAVAX_DEPS" ]]; then
+    echo "⚠️ **javax.* dependencies found** (may need jakarta.* for Spring Boot 3.x):"
+    echo "$JAVAX_DEPS" | while read -r line; do
+      echo "  - $line"
+    done
+    echo ""
+  fi
+
+  # Old Spring Cloud versions
+  SC_VERSION=$(echo "$TREE_OUTPUT" | grep -oE "org.springframework.cloud:spring-cloud-dependencies:[^:]+:[0-9]+" | head -1 || true)
+  if [[ -n "$SC_VERSION" ]]; then
+    echo "Spring Cloud: $SC_VERSION"
+  fi
+
+  # Old Swagger/SpringFox
+  SWAGGER_DEPS=$(echo "$TREE_OUTPUT" | grep -E "io.springfox" | head -5 || true)
+  if [[ -n "$SWAGGER_DEPS" ]]; then
+    echo "⚠️ **SpringFox found** (deprecated, use springdoc-openapi for Spring Boot 3.x):"
+    echo "$SWAGGER_DEPS" | while read -r line; do
+      echo "  - $line"
+    done
+    echo ""
+  fi
+
+  # ==========================================
+  # 6. SUMMARY
+  # ==========================================
+  echo "## Summary"
+  echo "=========="
+  echo ""
+  echo "| Check | Status | Count |"
+  echo "|-------|--------|-------|"
+  echo "| Version Conflicts | $(if [[ $CONFLICTS_FOUND -gt 0 ]]; then echo "⚠️"; else echo "✅"; fi) | $CONFLICTS_FOUND |"
+  echo "| Duplicate Versions | $(if [[ $DUPLICATES_FOUND -gt 0 ]]; then echo "⚠️"; else echo "✅"; fi) | $DUPLICATES_FOUND |"
+  echo "| Unused Dependencies | $(if [[ $UNUSED_FOUND -gt 0 ]]; then echo "ℹ️"; else echo "✅"; fi) | $UNUSED_FOUND |"
+  echo "| Total Dependencies | ℹ️ | $DEP_COUNT |"
+  echo ""
+
+  # Overall status
+  if [[ $CONFLICTS_FOUND -gt 0 || $DUPLICATES_FOUND -gt 0 ]]; then
+    echo "⚠️ **Issues detected** - Review conflicts before proceeding with upgrade"
+    OVERALL_STATUS="issues_found"
+  else
+    echo "✅ **Dependency check passed**"
+    OVERALL_STATUS="clean"
+  fi
+
+  # Output JSON
+  cat << EOF
+
+{
+  "status": "$OVERALL_STATUS",
+  "totalDependencies": $DEP_COUNT,
+  "conflictsFound": $CONFLICTS_FOUND,
+  "duplicatesFound": $DUPLICATES_FOUND,
+  "unusedFound": $UNUSED_FOUND,
+  "springBootVersion": "$SB_VERSION",
+  "hasJavaxDeps": $(if [[ -n "$JAVAX_DEPS" ]]; then echo "true"; else echo "false"; fi),
+  "hasSpringFox": $(if [[ -n "$SWAGGER_DEPS" ]]; then echo "true"; else echo "false"; fi)
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+  - name: profile
+    env: MAVEN_PROFILE
+    description: Maven profile to activate
+    required: false
+  - name: jvmArgs
+    env: JVM_ARGS
+    description: JVM arguments for Maven
+    required: false
+
+outputs:
+  - name: output
+    extract: full
+    description: Full dependency analysis report
+  - name: status
+    extract: pattern
+    pattern: '"status":\s*"([^"]+)"'
+    description: Overall status (clean or issues_found)
+  - name: conflictsFound
+    extract: pattern
+    pattern: '"conflictsFound":\s*(\d+)'
+    description: Number of version conflicts
+  - name: duplicatesFound
+    extract: pattern
+    pattern: '"duplicatesFound":\s*(\d+)'
+    description: Number of duplicate library versions
+  - name: totalDependencies
+    extract: pattern
+    pattern: '"totalDependencies":\s*(\d+)'
+    description: Total number of dependencies
+  - name: springBootVersion
+    extract: pattern
+    pattern: '"springBootVersion":\s*"([^"]*)"'
+    description: Detected Spring Boot version
+  - name: hasJavaxDeps
+    extract: pattern
+    pattern: '"hasJavaxDeps":\s*(true|false)'
+    description: Whether javax.* dependencies exist
+
+timeout: 300

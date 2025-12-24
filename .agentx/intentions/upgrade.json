@@ -1,0 +1,156 @@
+{
+  "id": "upgrade",
+  "name": "Upgrade",
+  "description": "Upgrade Spring Boot version with guided migration steps",
+  "contextProvider": {
+    "script": "context-providers/spring-boot-project.sh",
+    "workspaceAware": true
+  },
+  "preconditions": [
+    {
+      "check": "{{context.isSpringBootProject}}",
+      "equals": true,
+      "errorMessage": "This intention requires a Spring Boot project. No pom.xml or build.gradle with Spring Boot found."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "fromVersion",
+      "name": "Current Version",
+      "description": "The current Spring Boot version",
+      "type": "string",
+      "required": true,
+      "question": "What is your current Spring Boot version?",
+      "default": "{{context.currentVersion}}",
+      "extractionHints": ["from", "current", "currently", "running", "using"],
+      "validation": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    {
+      "id": "toVersion",
+      "name": "Target Version",
+      "description": "The target Spring Boot version",
+      "type": "string",
+      "required": true,
+      "question": "What Spring Boot version do you want to upgrade to?",
+      "default": "{{context.latestVersion}}",
+      "extractionHints": ["to", "target", "upgrade to", "latest"],
+      "validation": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    {
+      "id": "projectType",
+      "name": "Project Type",
+      "description": "The type of Spring Boot project",
+      "type": "enum",
+      "options": ["web-mvc", "webflux", "batch", "cli", "mixed"],
+      "required": true,
+      "question": "What type of Spring Boot project is this?",
+      "default": "{{context.projectType}}"
+    },
+    {
+      "id": "buildTool",
+      "name": "Build Tool",
+      "description": "Maven or Gradle",
+      "type": "enum",
+      "options": ["maven", "gradle-groovy", "gradle-kotlin"],
+      "required": true,
+      "question": "What build tool does your project use?",
+      "default": "{{context.buildTool}}",
+      "extractionHints": ["pom.xml", "build.gradle", "maven", "gradle"]
+    },
+    {
+      "id": "databases",
+      "name": "Databases",
+      "description": "Databases used in the project",
+      "type": "array",
+      "required": false,
+      "question": "What databases does your project use? (e.g., PostgreSQL, MongoDB, Redis)",
+      "extractionHints": ["database", "db", "sql", "nosql", "redis", "mongo"]
+    },
+    {
+      "id": "features",
+      "name": "Spring Features",
+      "description": "Key Spring features used",
+      "type": "array",
+      "required": false,
+      "question": "What Spring features are you using?",
+      "default": "{{context.features}}",
+      "options": ["security", "data-jpa", "data-mongodb", "actuator", "cloud", "batch", "kafka", "amqp", "graphql", "oauth2", "webflux"]
+    },
+    {
+      "id": "javaVersion",
+      "name": "Java Version",
+      "description": "Current Java version",
+      "type": "enum",
+      "options": ["17", "21", "23"],
+      "required": false,
+      "question": "What Java version are you using?",
+      "default": "{{context.javaVersion}}"
+    },
+    {
+      "id": "scope",
+      "name": "Upgrade Scope",
+      "description": "What to analyze/upgrade",
+      "type": "enum",
+      "options": ["full-analysis", "breaking-changes-only", "properties-only", "dependencies-only"],
+      "required": false,
+      "question": "What scope of upgrade analysis do you need?",
+      "default": "full-analysis"
+    },
+    {
+      "id": "mavenProfile",
+      "name": "Maven Profile",
+      "description": "Maven profile to use for builds and tests",
+      "type": "string",
+      "required": false,
+      "question": "Which Maven profile should be used? (leave empty for default)",
+      "extractionHints": ["profile", "-P"]
+    },
+    {
+      "id": "jvmArgs",
+      "name": "JVM Arguments",
+      "description": "JVM arguments for Maven execution",
+      "type": "string",
+      "required": false,
+      "question": "Any JVM arguments needed? (e.g., -Xmx4g for memory)",
+      "extractionHints": ["-Xmx", "-Xms", "memory", "heap"]
+    }
+  ],
+  "workflow": "spring-boot-upgrade",
+  "outputSections": [
+    {
+      "id": "summary",
+      "name": "Upgrade Summary",
+      "description": "Overview of the upgrade path"
+    },
+    {
+      "id": "breaking-changes",
+      "name": "Breaking Changes",
+      "description": "All breaking changes that affect your project"
+    },
+    {
+      "id": "deprecations",
+      "name": "Deprecations",
+      "description": "Deprecated APIs that should be updated"
+    },
+    {
+      "id": "property-changes",
+      "name": "Property Changes",
+      "description": "Configuration property updates needed"
+    },
+    {
+      "id": "dependency-updates",
+      "name": "Dependency Updates",
+      "description": "Dependencies that need version updates"
+    },
+    {
+      "id": "migration-steps",
+      "name": "Migration Steps",
+      "description": "Step-by-step migration guide"
+    },
+    {
+      "id": "testing",
+      "name": "Testing Recommendations",
+      "description": "What to test after upgrade"
+    }
+  ]
+}

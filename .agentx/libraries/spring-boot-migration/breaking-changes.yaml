@@ -1,0 +1,189 @@
+# Spring Boot Breaking Changes Reference
+# Structured format for easier programmatic access
+
+versions:
+  "3.3":
+    from: "3.2"
+    severity: medium
+    java_minimum: "17"
+    breaking_changes:
+      - id: sb33-ssl-bundles
+        category: security
+        description: SSL bundle configuration changes
+        search_pattern: "ssl.bundle"
+        old_api: "spring.ssl.bundle.jks.*"
+        new_api: "Refactored SSL bundle properties"
+        migration: "Review SSL bundle configuration"
+
+      - id: sb33-restclient
+        category: web
+        description: RestClient is now the preferred HTTP client
+        search_pattern: "RestTemplate"
+        old_api: "RestTemplate"
+        new_api: "RestClient (recommended) or keep RestTemplate"
+        migration: "Consider migrating to RestClient for new code"
+
+      - id: sb33-observability
+        category: observability
+        description: Observation API changes
+        search_pattern: "Observation|Tracer"
+        old_api: "Various observation patterns"
+        new_api: "Unified Observation API"
+        migration: "Update observation configuration"
+
+    property_changes:
+      - old: "spring.datasource.generate-unique-name"
+        new: "spring.datasource.generate-unique-name (deprecated)"
+        action: "Review usage"
+
+    deprecations:
+      - api: "Various Spring MVC async methods"
+        replacement: "Use reactive alternatives"
+        removal_version: "4.0"
+
+  "3.4":
+    from: "3.3"
+    severity: low
+    java_minimum: "17"
+    breaking_changes:
+      - id: sb34-structured-logging
+        category: logging
+        description: Structured logging support changes
+        search_pattern: "logging.structured"
+        old_api: null
+        new_api: "spring.logging.structured.*"
+        migration: "Configure structured logging if needed"
+
+      - id: sb34-virtual-threads
+        category: concurrency
+        description: Virtual threads improvements
+        search_pattern: "virtual-threads|spring.threads.virtual"
+        old_api: "spring.threads.virtual.enabled"
+        new_api: "Enhanced virtual thread support"
+        migration: "Review virtual thread configuration"
+
+    property_changes:
+      - old: "management.observations.annotations.enabled"
+        new: "management.observations.annotations.enabled (default changed)"
+        action: "Verify observation behavior"
+
+    deprecations: []
+
+  "3.5":
+    from: "3.4"
+    severity: low
+    java_minimum: "17"
+    breaking_changes:
+      - id: sb35-http-clients
+        category: web
+        description: HTTP client abstraction updates
+        search_pattern: "HttpClient|WebClient"
+        old_api: null
+        new_api: "Updated HTTP client configuration"
+        migration: "Review HTTP client settings"
+
+      - id: sb35-actuator
+        category: actuator
+        description: Actuator endpoint changes
+        search_pattern: "actuator|management.endpoint"
+        old_api: null
+        new_api: "Updated actuator endpoints"
+        migration: "Review actuator configuration"
+
+    property_changes: []
+    deprecations: []
+
+  "3.0":
+    from: "2.7"
+    severity: high
+    java_minimum: "17"
+    breaking_changes:
+      - id: sb30-jakarta
+        category: core
+        description: Jakarta EE 9+ migration (javax → jakarta)
+        search_pattern: "import javax\\."
+        old_api: "javax.*"
+        new_api: "jakarta.*"
+        migration: |
+          Replace all javax imports with jakarta:
+          - javax.servlet → jakarta.servlet
+          - javax.persistence → jakarta.persistence
+          - javax.validation → jakarta.validation
+          - javax.annotation → jakarta.annotation
+          - javax.transaction → jakarta.transaction
+
+      - id: sb30-spring-security
+        category: security
+        description: Spring Security 6.0 changes
+        search_pattern: "WebSecurityConfigurerAdapter|antMatchers"
+        old_api: "WebSecurityConfigurerAdapter"
+        new_api: "SecurityFilterChain bean"
+        migration: |
+          - Remove WebSecurityConfigurerAdapter extension
+          - Use @Bean SecurityFilterChain instead
+          - Replace antMatchers() with requestMatchers()
+
+      - id: sb30-spring-data
+        category: data
+        description: Spring Data changes
+        search_pattern: "CrudRepository|JpaRepository"
+        old_api: "Various repository methods"
+        new_api: "Updated repository method signatures"
+        migration: "Review repository method return types"
+
+      - id: sb30-actuator-endpoints
+        category: actuator
+        description: Actuator endpoint path changes
+        search_pattern: "management.endpoints|/actuator"
+        old_api: "Some endpoint paths changed"
+        new_api: "Review endpoint configuration"
+        migration: "Update actuator endpoint configuration"
+
+    property_changes:
+      - old: "spring.redis.*"
+        new: "spring.data.redis.*"
+        action: "Rename properties"
+
+      - old: "spring.elasticsearch.*"
+        new: "spring.elasticsearch.* (restructured)"
+        action: "Review and update"
+
+    deprecations:
+      - api: "Spring MVC functional endpoints with RouterFunction"
+        replacement: "WebFlux RouterFunction or @Controller"
+        removal_version: "3.2"
+
+# Common migration patterns
+patterns:
+  jakarta_migration:
+    description: "Automated javax to jakarta migration"
+    tools:
+      - name: "OpenRewrite"
+        recipe: "org.openrewrite.java.migrate.jakarta.JavaxMigrationToJakarta"
+      - name: "Eclipse Transformer"
+        usage: "java -jar transformer.jar input.jar output.jar"
+
+  security_migration:
+    description: "Spring Security 5.x to 6.x migration"
+    before: |
+      @Configuration
+      public class SecurityConfig extends WebSecurityConfigurerAdapter {
+          @Override
+          protected void configure(HttpSecurity http) throws Exception {
+              http.authorizeRequests()
+                  .antMatchers("/public/**").permitAll()
+                  .anyRequest().authenticated();
+          }
+      }
+    after: |
+      @Configuration
+      public class SecurityConfig {
+          @Bean
+          public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+              http.authorizeHttpRequests(auth -> auth
+                  .requestMatchers("/public/**").permitAll()
+                  .anyRequest().authenticated()
+              );
+              return http.build();
+          }
+      }

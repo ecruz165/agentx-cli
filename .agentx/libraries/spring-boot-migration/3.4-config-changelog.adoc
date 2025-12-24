@@ -1,0 +1,581 @@
+Configuration property changes between `3.3.6` and `3.4.0`
+
+
+
+== Deprecated in 3.4.0
+
+|======================
+| Key | Replacement | Reason
+
+| `management.endpoint.auditevents.enabled`
+| `management.endpoint.auditevents.access`
+|
+
+| `management.endpoint.beans.enabled`
+| `management.endpoint.beans.access`
+|
+
+| `management.endpoint.caches.enabled`
+| `management.endpoint.caches.access`
+|
+
+| `management.endpoint.conditions.enabled`
+| `management.endpoint.conditions.access`
+|
+
+| `management.endpoint.configprops.enabled`
+| `management.endpoint.configprops.access`
+|
+
+| `management.endpoint.env.enabled`
+| `management.endpoint.env.access`
+|
+
+| `management.endpoint.flyway.enabled`
+| `management.endpoint.flyway.access`
+|
+
+| `management.endpoint.health.enabled`
+| `management.endpoint.health.access`
+|
+
+| `management.endpoint.heapdump.enabled`
+| `management.endpoint.heapdump.access`
+|
+
+| `management.endpoint.httpexchanges.enabled`
+| `management.endpoint.httpexchanges.access`
+|
+
+| `management.endpoint.info.enabled`
+| `management.endpoint.info.access`
+|
+
+| `management.endpoint.integrationgraph.enabled`
+| `management.endpoint.integrationgraph.access`
+|
+
+| `management.endpoint.liquibase.enabled`
+| `management.endpoint.liquibase.access`
+|
+
+| `management.endpoint.logfile.enabled`
+| `management.endpoint.logfile.access`
+|
+
+| `management.endpoint.loggers.enabled`
+| `management.endpoint.loggers.access`
+|
+
+| `management.endpoint.mappings.enabled`
+| `management.endpoint.mappings.access`
+|
+
+| `management.endpoint.metrics.enabled`
+| `management.endpoint.metrics.access`
+|
+
+| `management.endpoint.prometheus.enabled`
+| `management.endpoint.prometheus.access`
+|
+
+| `management.endpoint.quartz.enabled`
+| `management.endpoint.quartz.access`
+|
+
+| `management.endpoint.sbom.enabled`
+| `management.endpoint.sbom.access`
+|
+
+| `management.endpoint.scheduledtasks.enabled`
+| `management.endpoint.scheduledtasks.access`
+|
+
+| `management.endpoint.sessions.enabled`
+| `management.endpoint.sessions.access`
+|
+
+| `management.endpoint.shutdown.enabled`
+| `management.endpoint.shutdown.access`
+|
+
+| `management.endpoint.startup.enabled`
+| `management.endpoint.startup.access`
+|
+
+| `management.endpoint.threaddump.enabled`
+| `management.endpoint.threaddump.access`
+|
+
+| `management.endpoints.enabled-by-default`
+| `management.endpoints.access.default`
+|
+
+| `spring.datasource.oracleucp.connection-wait-timeout`
+|
+|
+
+| `spring.flyway.clean-on-validation-error`
+|
+| Deprecated in Flyway 10.18
+
+| `spring.gson.lenient`
+| `spring.gson.strictness`
+|
+
+| `spring.kafka.retry.topic.delay`
+| `spring.kafka.retry.topic.backoff.delay`
+|
+
+| `spring.kafka.retry.topic.max-delay`
+| `spring.kafka.retry.topic.backoff.maxDelay`
+|
+
+| `spring.kafka.retry.topic.multiplier`
+| `spring.kafka.retry.topic.backoff.multiplier`
+|
+
+| `spring.kafka.retry.topic.random-back-off`
+| `spring.kafka.retry.topic.backoff.random`
+|
+|======================
+
+
+
+== Added in 3.4.0
+
+|======================
+| Key | Default value | Description
+
+| `logging.include-application-group`
+| `true`
+| Whether to include the application group in the logs.
+
+| `logging.structured.ecs.service.environment`
+|
+| Structured ECS service environment.
+
+| `logging.structured.ecs.service.name`
+|
+| Structured ECS service name (defaults to 'spring.application.name').
+
+| `logging.structured.ecs.service.node-name`
+|
+| Structured ECS service node name.
+
+| `logging.structured.ecs.service.version`
+|
+| Structured ECS service version (defaults to 'spring.application.version').
+
+| `logging.structured.format.console`
+|
+| Structured logging format for output to the console.
+
+| `logging.structured.format.file`
+|
+| Structured logging format for output to a file.
+
+| `logging.structured.gelf.host`
+|
+| Structured GELF host (defaults to 'spring.application.name').
+
+| `logging.structured.gelf.service.version`
+|
+| Structured GELF service version (defaults to 'spring.application.version').
+
+| `logging.structured.json.add`
+|
+| Additional members that should be added to structured logging JSON
+
+| `logging.structured.json.customizer`
+|
+| The fully qualified class name of a StructuredLoggingJsonMembersCustomizer
+
+| `logging.structured.json.exclude`
+|
+| Member paths that should be excluded from structured logging JSON
+
+| `logging.structured.json.include`
+|
+| Member paths that should be included in structured logging JSON
+
+| `logging.structured.json.rename`
+|
+| Mapping between member paths and an alternative name that should be used in structured logging JSON
+
+| `management.elastic.metrics.export.enable-source`
+| `false`
+| Whether to enable _source in the default index template when auto-creating the index.
+
+| `management.endpoint.auditevents.access`
+| `unrestricted`
+| Permitted level of access for the auditevents endpoint.
+
+| `management.endpoint.beans.access`
+| `unrestricted`
+| Permitted level of access for the beans endpoint.
+
+| `management.endpoint.caches.access`
+| `unrestricted`
+| Permitted level of access for the caches endpoint.
+
+| `management.endpoint.conditions.access`
+| `unrestricted`
+| Permitted level of access for the conditions endpoint.
+
+| `management.endpoint.configprops.access`
+| `unrestricted`
+| Permitted level of access for the configprops endpoint.
+
+| `management.endpoint.env.access`
+| `unrestricted`
+| Permitted level of access for the env endpoint.
+
+| `management.endpoint.flyway.access`
+| `unrestricted`
+| Permitted level of access for the flyway endpoint.
+
+| `management.endpoint.health.access`
+| `unrestricted`
+| Permitted level of access for the health endpoint.
+
+| `management.endpoint.heapdump.access`
+| `unrestricted`
+| Permitted level of access for the heapdump endpoint.
+
+| `management.endpoint.httpexchanges.access`
+| `unrestricted`
+| Permitted level of access for the httpexchanges endpoint.
+
+| `management.endpoint.info.access`
+| `unrestricted`
+| Permitted level of access for the info endpoint.
+
+| `management.endpoint.integrationgraph.access`
+| `unrestricted`
+| Permitted level of access for the integrationgraph endpoint.
+
+| `management.endpoint.liquibase.access`
+| `unrestricted`
+| Permitted level of access for the liquibase endpoint.
+
+| `management.endpoint.logfile.access`
+| `unrestricted`
+| Permitted level of access for the logfile endpoint.
+
+| `management.endpoint.loggers.access`
+| `unrestricted`
+| Permitted level of access for the loggers endpoint.
+
+| `management.endpoint.mappings.access`
+| `unrestricted`
+| Permitted level of access for the mappings endpoint.
+
+| `management.endpoint.metrics.access`
+| `unrestricted`
+| Permitted level of access for the metrics endpoint.
+
+| `management.endpoint.prometheus.access`
+| `unrestricted`
+| Permitted level of access for the prometheus endpoint.
+
+| `management.endpoint.quartz.access`
+| `unrestricted`
+| Permitted level of access for the quartz endpoint.
+
+| `management.endpoint.sbom.access`
+| `unrestricted`
+| Permitted level of access for the sbom endpoint.
+
+| `management.endpoint.scheduledtasks.access`
+| `unrestricted`
+| Permitted level of access for the scheduledtasks endpoint.
+
+| `management.endpoint.sessions.access`
+| `unrestricted`
+| Permitted level of access for the sessions endpoint.
+
+| `management.endpoint.shutdown.access`
+| `none`
+| Permitted level of access for the shutdown endpoint.
+
+| `management.endpoint.startup.access`
+| `unrestricted`
+| Permitted level of access for the startup endpoint.
+
+| `management.endpoint.threaddump.access`
+| `unrestricted`
+| Permitted level of access for the threaddump endpoint.
+
+| `management.endpoints.access.default`
+|
+| Default access level for all endpoints.
+
+| `management.endpoints.access.max-permitted`
+| `unrestricted`
+| The maximum level of endpoint access that is permitted.
+
+| `management.health.ssl.certificate-validity-warning-threshold`
+| `14d`
+| If an SSL Certificate will be invalid within the time span defined by this threshold, it should trigger a warning.
+
+| `management.health.ssl.enabled`
+| `true`
+| Whether to enable SSL certificate health check.
+
+| `management.info.ssl.enabled`
+| `false`
+| Whether to enable SSL certificate info.
+
+| `management.logging.export.enabled`
+| `true`
+| Whether auto-configuration of logging is enabled to export logs.
+
+| `management.otlp.logging.compression`
+| `none`
+| Method used to compress the payload.
+
+| `management.otlp.logging.connect-timeout`
+| `10s`
+| Connect timeout for the OTel collector connection.
+
+| `management.otlp.logging.endpoint`
+|
+| URL to the OTel collector's HTTP API.
+
+| `management.otlp.logging.export.enabled`
+|
+| Whether auto-configuration of logging is enabled to export OTLP logs.
+
+| `management.otlp.logging.headers`
+|
+| Custom HTTP headers you want to pass to the collector, for example auth headers.
+
+| `management.otlp.logging.timeout`
+| `10s`
+| Call timeout for the OTel Collector to process an exported batch of data.
+
+| `management.otlp.logging.transport`
+| `http`
+| Transport used to send the spans.
+
+| `management.otlp.metrics.export.histogram-flavor`
+| `explicit-bucket-histogram`
+| Histogram type to be preferred when histogram publishing is enabled.
+
+| `management.otlp.metrics.export.max-bucket-count`
+| `160`
+| Maximum number of buckets to be used for exponential histograms, if configured.
+
+| `management.otlp.metrics.export.max-scale`
+| `20`
+| Max scale to use for exponential histograms, if configured.
+
+| `management.otlp.tracing.connect-timeout`
+| `10s`
+| Connect timeout for the OTel collector connection.
+
+| `management.otlp.tracing.export.enabled`
+|
+| Whether auto-configuration of tracing is enabled to export OTLP traces.
+
+| `management.otlp.tracing.transport`
+| `http`
+| Transport used to send the spans.
+
+| `management.wavefront.tracing.export.enabled`
+|
+| Whether auto-configuration of tracing is enabled to export Wavefront traces.
+
+| `management.zipkin.tracing.export.enabled`
+|
+| Whether auto-configuration of tracing is enabled to export Zipkin traces.
+
+| `server.jetty.max-form-keys`
+| `1000`
+| Maximum number of form keys.
+
+| `server.reactive.session.cookie.partitioned`
+|
+| Whether the generated cookie carries the Partitioned attribute.
+
+| `server.servlet.session.cookie.partitioned`
+|
+| Whether the generated cookie carries the Partitioned attribute.
+
+| `spring.activemq.embedded.enabled`
+| `true`
+| Whether to enable embedded mode if the ActiveMQ Broker is available.
+
+| `spring.application.group`
+|
+| Application group.
+
+| `spring.application.version`
+|
+| Application version (defaults to 'Implementation-Version' from the manifest).
+
+| `spring.couchbase.authentication.jks.location`
+|
+| Java KeyStore location for certificate-based cluster authentication.
+
+| `spring.couchbase.authentication.jks.password`
+|
+| Java KeyStore password for certificate-based cluster authentication.
+
+| `spring.couchbase.authentication.jks.private-key-password`
+|
+| Private key password for certificate-based cluster authentication.
+
+| `spring.couchbase.authentication.pem.certificates`
+|
+| PEM-formatted certificates for certificate-based cluster authentication.
+
+| `spring.couchbase.authentication.pem.private-key`
+|
+| PEM-formatted private key for certificate-based cluster authentication.
+
+| `spring.couchbase.authentication.pem.private-key-password`
+|
+| Private key password for certificate-based cluster authentication.
+
+| `spring.data.web.pageable.serialization-mode`
+| `direct`
+| Configures how to render Spring Data Pageable instances.
+
+| `spring.datasource.oracleucp.connection-wait-duration`
+|
+|
+
+| `spring.datasource.oracleucp.connection-wait-duration-in-millis`
+|
+|
+
+| `spring.datasource.oracleucp.create-connection-in-borrow-thread`
+|
+|
+
+| `spring.datasource.oracleucp.hostname-resolver`
+|
+|
+
+| `spring.datasource.oracleucp.min-idle`
+|
+|
+
+| `spring.flyway.community-db-support-enabled`
+| `false`
+| Whether to enable community database support.
+
+| `spring.graphql.sse.timeout`
+|
+| Time required for concurrent handling to complete.
+
+| `spring.gson.strictness`
+|
+| Sets how strictly the RFC 8259 specification will be enforced when reading and writing JSON.
+
+| `spring.http.client.connect-timeout`
+|
+| Default connect timeout for a client HTTP request.
+
+| `spring.http.client.factory`
+|
+| Default factory used for a client HTTP request.
+
+| `spring.http.client.read-timeout`
+|
+| Default read timeout for a client HTTP request.
+
+| `spring.http.client.redirects`
+| `follow-when-possible`
+| Handling for HTTP redirects.
+
+| `spring.http.client.ssl.bundle`
+|
+| SSL bundle to use.
+
+| `spring.jms.listener.max-messages-per-task`
+|
+| Specify the maximum number of messages to process in one task.
+
+| `spring.kafka.retry.topic.backoff.delay`
+| `1s`
+| Canonical backoff period.
+
+| `spring.kafka.retry.topic.backoff.max-delay`
+| `0`
+| Maximum wait between retries.
+
+| `spring.kafka.retry.topic.backoff.multiplier`
+| `0`
+| Multiplier to use for generating the next backoff delay.
+
+| `spring.kafka.retry.topic.backoff.random`
+| `false`
+| Whether to have the backoff delays.
+
+| `spring.mail.ssl.bundle`
+|
+| SSL bundle name.
+
+| `spring.mail.ssl.enabled`
+| `false`
+| Whether to enable SSL support.
+
+| `spring.messages.common-messages`
+|
+| List of locale-independent property file resources containing common messages.
+
+| `spring.pulsar.client.threads.io`
+|
+| Number of threads to be used for handling connections to brokers.
+
+| `spring.pulsar.client.threads.listener`
+|
+| Number of threads to be used for message listeners.
+
+| `spring.pulsar.defaults.topic.enabled`
+| `true`
+| Whether to enable default tenant and namespace support for topics.
+
+| `spring.pulsar.defaults.topic.namespace`
+| `default`
+| Default namespace to use when producing or consuming messages against a non-fully-qualified topic URL.
+
+| `spring.pulsar.defaults.topic.tenant`
+| `public`
+| Default tenant to use when producing or consuming messages against a non-fully-qualified topic URL.
+
+| `spring.pulsar.listener.concurrency`
+|
+| Number of threads used by listener container.
+|======================
+
+
+
+== Removed in 3.4.0
+
+|======================
+| Key | Replacement | Reason
+
+| `server.tomcat.reject-illegal-header`
+|
+|
+
+| `spring.influx.password`
+|
+| The new InfluxDb Java client provides Spring Boot integration.
+
+| `spring.influx.url`
+|
+| The new InfluxDb Java client provides Spring Boot integration.
+
+| `spring.influx.user`
+|
+| The new InfluxDb Java client provides Spring Boot integration.
+
+| `spring.mvc.throw-exception-if-no-handler-found`
+|
+| DispatcherServlet property is deprecated for removal and should no longer need to be configured.
+|======================

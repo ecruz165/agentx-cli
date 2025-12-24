@@ -1,0 +1,142 @@
+id: git-sync-check
+type: script
+name: Git Sync Check
+description: Check if local repository is up to date with remote
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  # Get current branch
+  CURRENT_BRANCH=$(git branch --show-current)
+  echo "Current branch: $CURRENT_BRANCH"
+
+  # Check if branch has upstream
+  UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "")
+
+  if [[ -z "$UPSTREAM" ]]; then
+    echo "No upstream branch configured"
+    cat <<EOF
+  {
+    "hasUpstream": false,
+    "currentBranch": "$CURRENT_BRANCH",
+    "isUpToDate": true,
+    "needsPull": false,
+    "needsPush": false,
+    "behindCount": 0,
+    "aheadCount": 0,
+    "message": "No upstream configured for branch $CURRENT_BRANCH"
+  }
+EOF
+    exit 0
+  fi
+
+  echo "Upstream: $UPSTREAM"
+
+  # Fetch from remote (without merging)
+  echo "Fetching from remote..."
+  git fetch --quiet
+
+  # Get commit counts
+  BEHIND=$(git rev-list --count HEAD..$UPSTREAM 2>/dev/null || echo "0")
+  AHEAD=$(git rev-list --count $UPSTREAM..HEAD 2>/dev/null || echo "0")
+
+  echo "Behind remote: $BEHIND commits"
+  echo "Ahead of remote: $AHEAD commits"
+
+  # Determine status
+  NEEDS_PULL="false"
+  NEEDS_PUSH="false"
+  IS_UP_TO_DATE="true"
+  MESSAGE=""
+
+  if [[ "$BEHIND" -gt 0 ]]; then
+    NEEDS_PULL="true"
+    IS_UP_TO_DATE="false"
+    MESSAGE="Local branch is $BEHIND commits behind remote"
+  fi
+
+  if [[ "$AHEAD" -gt 0 ]]; then
+    NEEDS_PUSH="true"
+    if [[ "$BEHIND" -gt 0 ]]; then
+      MESSAGE="Local branch has diverged: $BEHIND behind, $AHEAD ahead"
+    else
+      MESSAGE="Local branch is $AHEAD commits ahead of remote"
+    fi
+  fi
+
+  if [[ "$IS_UP_TO_DATE" == "true" ]]; then
+    MESSAGE="Local branch is up to date with remote"
+  fi
+
+  echo "$MESSAGE"
+
+  # Check for remote changes in key files
+  REMOTE_CHANGES=""
+  if [[ "$BEHIND" -gt 0 ]]; then
+    echo "Files changed on remote:"
+    REMOTE_CHANGES=$(git diff --name-only HEAD..$UPSTREAM | head -20)
+    echo "$REMOTE_CHANGES"
+  fi
+
+  # Output JSON
+  cat <<EOF
+  {
+    "hasUpstream": true,
+    "currentBranch": "$CURRENT_BRANCH",
+    "upstream": "$UPSTREAM",
+    "isUpToDate": $IS_UP_TO_DATE,
+    "needsPull": $NEEDS_PULL,
+    "needsPush": $NEEDS_PUSH,
+    "behindCount": $BEHIND,
+    "aheadCount": $AHEAD,
+    "message": "$MESSAGE",
+    "remoteChangedFiles": "$(echo "$REMOTE_CHANGES" | tr '\n' ',' | sed 's/,$//')"
+  }
+EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full output
+  - name: isUpToDate
+    extract: pattern
+    pattern: '"isUpToDate":\s*(true|false)'
+    description: Whether local is up to date with remote
+  - name: needsPull
+    extract: pattern
+    pattern: '"needsPull":\s*(true|false)'
+    description: Whether local needs to pull from remote
+  - name: needsPush
+    extract: pattern
+    pattern: '"needsPush":\s*(true|false)'
+    description: Whether local has commits to push
+  - name: behindCount
+    extract: pattern
+    pattern: '"behindCount":\s*(\d+)'
+    description: Number of commits behind remote
+  - name: aheadCount
+    extract: pattern
+    pattern: '"aheadCount":\s*(\d+)'
+    description: Number of commits ahead of remote
+  - name: message
+    extract: pattern
+    pattern: '"message":\s*"([^"]+)"'
+    description: Status message
+  - name: currentBranch
+    extract: pattern
+    pattern: '"currentBranch":\s*"([^"]+)"'
+    description: Current branch name
+
+timeout: 60

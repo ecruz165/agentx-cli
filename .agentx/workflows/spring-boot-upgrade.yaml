@@ -1,0 +1,1176 @@
+id: spring-boot-upgrade
+name: Spring Boot Upgrade
+description: Iterative workflow for upgrading Spring Boot with build verification and test fixes
+
+inputs:
+  - name: fromVersion
+    type: string
+    required: true
+    description: Current Spring Boot version (e.g., 3.2.12)
+  - name: toVersion
+    type: string
+    required: true
+    description: Target Spring Boot version (e.g., 3.5.8)
+  - name: projectType
+    type: string
+    required: true
+    description: Type of Spring Boot project
+  - name: buildTool
+    type: string
+    required: true
+    description: Build tool (maven, gradle-groovy, gradle-kotlin)
+  - name: features
+    type: array
+    required: false
+    description: Spring features in use
+  - name: javaVersion
+    type: string
+    required: false
+    description: Java version
+  - name: mavenProfile
+    type: string
+    required: false
+    description: Maven profile to activate
+  - name: jvmArgs
+    type: string
+    required: false
+    description: JVM arguments for Maven
+  - name: workspace
+    type: string
+    required: false
+    description: Project workspace path
+    default: "."
+
+steps:
+  # Pre-flight: Check Remote Sync
+  - id: check-remote-sync
+    name: Check Remote Sync
+    description: Verify local repository is up to date with remote
+    skills: [git-sync-check]
+    skillInputs:
+      workspace: "{{workspace}}"
+    outputs:
+      - name: isUpToDate
+        type: boolean
+        from: skill.isUpToDate
+      - name: needsPull
+        type: boolean
+        from: skill.needsPull
+      - name: behindCount
+        type: number
+        from: skill.behindCount
+      - name: syncMessage
+        type: string
+        from: skill.message
+
+  # Pre-flight: Warn if behind remote
+  - id: warn-behind-remote
+    name: Warn Behind Remote
+    description: Alert user if local is behind remote
+    condition: "{{steps.check-remote-sync.needsPull}}"
+    prompt: |
+      ⚠️ **Warning: Local branch is behind remote**
+
+      Your local branch is {{steps.check-remote-sync.behindCount}} commit(s) behind the remote.
+
+      Before proceeding with the upgrade, you should pull the latest changes:
+
+      ```bash
+      git pull
+      ```
+
+      This ensures you're upgrading the latest version of the codebase and avoids
+      merge conflicts when pushing your upgrade changes.
+
+      After pulling, restart the upgrade workflow.
+    failOnCondition: true
+    outputs:
+      - name: syncWarningMessage
+        type: string
+
+  # Pre-flight: Analyze Upgrade Path
+  - id: analyze-upgrade-path
+    name: Analyze Upgrade Path
+    description: Determine optimal upgrade path between versions
+    skills: [upgrade-path-analyzer]
+    skillInputs:
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+    outputs:
+      - name: upgradeRecommendation
+        type: string
+        from: skill.recommendation
+      - name: upgradeTotalSteps
+        type: number
+        from: skill.totalSteps
+      - name: upgradeHighRiskSteps
+        type: number
+        from: skill.highRiskSteps
+      - name: upgradeRecommendationReason
+        type: string
+        from: skill.recommendationReason
+
+  # Pre-flight: Warn about incremental upgrade
+  - id: warn-incremental-upgrade
+    name: Recommend Incremental Upgrade
+    description: Suggest incremental upgrade if multiple version jumps
+    condition: "{{steps.analyze-upgrade-path.upgradeRecommendation == 'incremental'}}"
+    prompt: |
+      ⚠️ **Incremental Upgrade Recommended**
+
+      {{steps.analyze-upgrade-path.upgradeRecommendationReason}}
+
+      Upgrading from {{fromVersion}} to {{toVersion}} involves {{steps.analyze-upgrade-path.upgradeTotalSteps}} version jump(s),
+      with {{steps.analyze-upgrade-path.upgradeHighRiskSteps}} high-risk step(s).
+
+      **Recommendation**: Consider upgrading incrementally through each minor version:
+      - This makes it easier to identify which version introduced breaking changes
+      - Each step has fewer changes to debug
+      - You can commit and test at each version milestone
+
+      You may proceed with direct upgrade, but incremental is safer for large jumps.
+    outputs:
+      - name: incrementalWarning
+        type: string
+
+  # Pre-flight: Check Dependency Compatibility
+  - id: check-dependency-compatibility
+    name: Check Dependency Compatibility
+    description: Verify dependencies are compatible with target version
+    skills: [dependency-compatibility-check]
+    skillInputs:
+      targetVersion: "{{toVersion}}"
+      workspace: "{{workspace}}"
+    outputs:
+      - name: dependenciesCompatible
+        type: boolean
+        from: skill.compatible
+      - name: compatibilityIssueCount
+        type: number
+        from: skill.issueCount
+      - name: compatibilityWarningCount
+        type: number
+        from: skill.warningCount
+
+  # Pre-flight: Warn about compatibility issues
+  - id: warn-compatibility-issues
+    name: Warn Compatibility Issues
+    description: Alert about known dependency compatibility issues
+    condition: "{{not steps.check-dependency-compatibility.dependenciesCompatible}}"
+    prompt: |
+      ⚠️ **Dependency Compatibility Issues Detected**
+
+      Found {{steps.check-dependency-compatibility.compatibilityIssueCount}} compatibility issue(s)
+      and {{steps.check-dependency-compatibility.compatibilityWarningCount}} warning(s).
+
+      These dependencies may need to be updated for Spring Boot {{toVersion}}:
+
+      Review the compatibility report above and consider:
+      1. Updating incompatible dependencies before the upgrade
+      2. Planning for Jakarta EE migration if moving from 2.x to 3.x
+      3. Checking for alternative libraries if current ones are discontinued
+
+      You may proceed, but be aware these issues will need to be addressed.
+    outputs:
+      - name: compatibilityWarning
+        type: string
+
+  # Pre-flight: Check Project State
+  - id: check-git-status
+    name: Check Git Status
+    description: Verify working directory is clean before upgrade
+    skills: [git-branch]
+    skillInputs:
+      createBranch: false
+      workspace: "{{workspace}}"
+    outputs:
+      - name: currentBranch
+        type: string
+        from: skill.currentBranch
+      - name: hasUncommittedChanges
+        type: boolean
+        from: skill.uncommittedChanges
+      - name: isProtectedBranch
+        type: boolean
+        from: skill.isProtectedBranch
+
+  # Pre-flight: Warn if uncommitted changes
+  - id: warn-uncommitted
+    name: Warn Uncommitted Changes
+    description: Alert user about uncommitted changes
+    condition: "{{steps.check-git-status.hasUncommittedChanges}}"
+    prompt: |
+      ⚠️ **Warning: Uncommitted changes detected**
+
+      The working directory has uncommitted changes. Before proceeding with the upgrade:
+
+      1. Review the changes with `git status`
+      2. Either commit or stash them: `git stash push -m "pre-upgrade-stash"`
+      3. Restart the upgrade workflow
+
+      Proceeding with uncommitted changes may cause conflicts or lost work.
+    failOnCondition: true
+    outputs:
+      - name: warningMessage
+        type: string
+
+  # Pre-flight: Baseline Build
+  - id: baseline-build
+    name: Baseline Build Check
+    description: Verify project builds successfully before upgrade
+    skills: [maven-build]
+    skillInputs:
+      goal: compile
+      skipTests: true
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    outputs:
+      - name: baselineBuildOutput
+        type: string
+        from: skill.output
+      - name: baselineBuildSuccess
+        type: boolean
+        from: skill.success
+      - name: baselineBuildErrors
+        type: array
+        from: skill.compilationErrors
+
+  # Pre-flight: Fail if baseline build fails
+  - id: check-baseline-build
+    name: Verify Baseline Build
+    description: Ensure project compiles before upgrade
+    condition: "{{not steps.baseline-build.baselineBuildSuccess}}"
+    prompt: |
+      ❌ **Baseline build failed**
+
+      The project does not compile in its current state. You must fix these issues before upgrading Spring Boot.
+
+      Build errors:
+      ```
+      {{steps.baseline-build.baselineBuildOutput}}
+      ```
+
+      Please fix compilation errors and restart the upgrade workflow.
+    failOnCondition: true
+    outputs:
+      - name: buildFailureMessage
+        type: string
+
+  # Pre-flight: Baseline Tests
+  - id: baseline-tests
+    name: Baseline Test Check
+    description: Verify unit tests pass before upgrade
+    skills: [maven-test]
+    skillInputs:
+      testScope: unit
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    outputs:
+      - name: baselineTestOutput
+        type: string
+        from: skill.output
+      - name: baselineTestSuccess
+        type: boolean
+        from: skill.success
+      - name: baselineFailedTests
+        type: string
+        from: skill.failedTests
+      - name: baselineTestSummary
+        type: string
+        from: skill.testSummary
+
+  # Pre-flight: Fail if baseline tests fail
+  - id: check-baseline-tests
+    name: Verify Baseline Tests
+    description: Ensure tests pass before upgrade
+    condition: "{{not steps.baseline-tests.baselineTestSuccess}}"
+    prompt: |
+      ❌ **Baseline tests failed**
+
+      Unit tests are failing in the current state. You should fix these before upgrading Spring Boot,
+      otherwise it will be difficult to distinguish pre-existing failures from upgrade-related failures.
+
+      Failed tests:
+      ```
+      {{steps.baseline-tests.baselineFailedTests}}
+      ```
+
+      Test summary: {{steps.baseline-tests.baselineTestSummary}}
+
+      Options:
+      1. Fix the failing tests and restart the upgrade
+      2. If these failures are known/acceptable, you may proceed manually
+    failOnCondition: true
+    outputs:
+      - name: testFailureMessage
+        type: string
+
+  # Pre-flight: Maven Dependency Analysis
+  - id: check-maven-dependencies
+    name: Analyze Maven Dependencies
+    description: Check for version conflicts and duplicate libraries
+    condition: "{{buildTool == 'maven'}}"
+    skills: [maven-dependency-check]
+    skillInputs:
+      workspace: "{{workspace}}"
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    outputs:
+      - name: dependencyStatus
+        type: string
+        from: skill.status
+      - name: conflictsFound
+        type: number
+        from: skill.conflictsFound
+      - name: duplicatesFound
+        type: number
+        from: skill.duplicatesFound
+      - name: totalDependencies
+        type: number
+        from: skill.totalDependencies
+      - name: currentSpringBootVersion
+        type: string
+        from: skill.springBootVersion
+      - name: hasJavaxDeps
+        type: boolean
+        from: skill.hasJavaxDeps
+      - name: dependencyReport
+        type: string
+        from: skill.output
+
+  # Pre-flight: Warn about dependency conflicts
+  - id: warn-dependency-conflicts
+    name: Warn Dependency Conflicts
+    description: Alert about version conflicts before upgrade
+    condition: "{{steps.check-maven-dependencies.conflictsFound > 0 or steps.check-maven-dependencies.duplicatesFound > 0}}"
+    prompt: |
+      ⚠️ **Dependency Conflicts Detected**
+
+      Before upgrading Spring Boot, you should be aware of existing dependency issues:
+
+      | Issue Type | Count |
+      |------------|-------|
+      | Version Conflicts | {{steps.check-maven-dependencies.conflictsFound}} |
+      | Duplicate Versions | {{steps.check-maven-dependencies.duplicatesFound}} |
+      | Total Dependencies | {{steps.check-maven-dependencies.totalDependencies}} |
+
+      {{#if steps.check-maven-dependencies.hasJavaxDeps}}
+      ⚠️ **javax.* dependencies detected** - These need to be migrated to jakarta.* for Spring Boot 3.x
+      {{/if}}
+
+      **Recommendation**: Resolve version conflicts before upgrading to avoid compounding issues.
+
+      You may proceed, but dependency conflicts can make debugging upgrade issues harder.
+    outputs:
+      - name: dependencyConflictWarning
+        type: string
+
+  # Pre-flight: Check Spring Boot Managed Versions
+  - id: check-managed-versions
+    name: Check Spring Boot Managed Versions
+    description: Compare project dependencies against Spring Boot managed versions
+    condition: "{{buildTool == 'maven'}}"
+    skills: [spring-boot-managed-versions]
+    skillInputs:
+      workspace: "{{workspace}}"
+      targetVersion: "{{toVersion}}"
+      profile: "{{mavenProfile}}"
+      showAvailable: "false"
+    outputs:
+      - name: managedCount
+        type: number
+        from: skill.managedCount
+      - name: overrideCount
+        type: number
+        from: skill.overrideCount
+      - name: hasOverrides
+        type: boolean
+        from: skill.hasOverrides
+      - name: managedVersionsReport
+        type: string
+        from: skill.output
+
+  # Pre-flight: Warn about version overrides
+  - id: warn-version-overrides
+    name: Warn Version Overrides
+    description: Alert about dependencies overriding Spring Boot managed versions
+    condition: "{{steps.check-managed-versions.hasOverrides}}"
+    prompt: |
+      ⚠️ **Version Overrides Detected**
+
+      Your project has {{steps.check-managed-versions.overrideCount}} dependencies with explicit versions
+      that differ from Spring Boot {{toVersion}} managed versions.
+
+      **Impact during upgrade:**
+      - These overrides may cause compatibility issues
+      - You may miss bug fixes/security patches in newer managed versions
+      - Dependency conflicts may occur
+
+      **Recommendation**: Review the managed versions report and consider:
+      1. Removing explicit versions to use Spring Boot defaults
+      2. Updating overrides to match target Spring Boot versions
+      3. Documenting why overrides are necessary
+
+      See the full report in the implementation PRD.
+    outputs:
+      - name: versionOverrideWarning
+        type: string
+
+  # Pre-flight: Summary
+  - id: preflight-summary
+    name: Pre-flight Summary
+    description: Confirm project is ready for upgrade
+    prompt: |
+      ✅ **Pre-flight checks passed**
+
+      Project state verified:
+      - **Branch**: {{steps.check-git-status.currentBranch}}
+      - **Remote sync**: ✅ Up to date
+      - **Working directory**: ✅ Clean
+      - **Dependency Compatibility**: {{#if steps.check-dependency-compatibility.dependenciesCompatible}}✅ Compatible{{else}}⚠️ {{steps.check-dependency-compatibility.compatibilityIssueCount}} issues{{/if}}
+      - **Dependency Conflicts**: {{#if (eq steps.check-maven-dependencies.conflictsFound 0)}}✅ None{{else}}⚠️ {{steps.check-maven-dependencies.conflictsFound}} conflicts{{/if}}
+      - **Duplicate Versions**: {{#if (eq steps.check-maven-dependencies.duplicatesFound 0)}}✅ None{{else}}⚠️ {{steps.check-maven-dependencies.duplicatesFound}} duplicates{{/if}}
+      - **Version Overrides**: {{#if steps.check-managed-versions.hasOverrides}}⚠️ {{steps.check-managed-versions.overrideCount}} overrides{{else}}✅ None{{/if}}
+      - **Build**: ✅ Compiles successfully
+      - **Tests**: ✅ All passing ({{steps.baseline-tests.baselineTestSummary}})
+
+      ### Dependency Summary
+      | Metric | Value |
+      |--------|-------|
+      | Current Spring Boot | {{steps.check-maven-dependencies.currentSpringBootVersion}} |
+      | Total Dependencies | {{steps.check-maven-dependencies.totalDependencies}} |
+      | Spring Boot Managed | {{steps.check-managed-versions.managedCount}} |
+      | Version Overrides | {{steps.check-managed-versions.overrideCount}} |
+
+      Upgrade path analysis:
+      - **Recommendation**: {{steps.analyze-upgrade-path.upgradeRecommendation}}
+      - **Version jumps**: {{steps.analyze-upgrade-path.upgradeTotalSteps}}
+      - **High-risk steps**: {{steps.analyze-upgrade-path.upgradeHighRiskSteps}}
+
+      Ready to proceed with Spring Boot upgrade from {{fromVersion}} to {{toVersion}}.
+    outputs:
+      - name: preflightStatus
+        type: string
+
+  # Implementation PRD: Analyze Full Context
+  - id: analyze-context
+    name: Analyze Implementation Context
+    description: Analyze all context files that will be loaded
+    skills: [context-analyzer]
+    skillInputs:
+      workspace: "{{workspace}}"
+      agentxDir: ".agentx"
+      alias: "be-service"
+      intention: "upgrade"
+      workflow: "spring-boot-upgrade"
+      libraries: "spring-boot spring-boot-migration"
+      contextBudget: "200000"
+    outputs:
+      - name: totalTokens
+        type: number
+        from: skill.totalTokens
+      - name: usedPercent
+        type: number
+        from: skill.usedPercent
+      - name: remainingTokens
+        type: number
+        from: skill.remainingTokens
+      - name: contextReport
+        type: string
+        from: skill.output
+
+  # Implementation PRD: Generate Aggregated PRD File
+  - id: generate-implementation-prd
+    name: Generate Implementation PRD
+    description: Create aggregated implementation PRD file with all context
+    skills: [implementation-prd-generator]
+    skillInputs:
+      workspace: "{{workspace}}"
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+      projectType: "{{projectType}}"
+      buildTool: "{{buildTool}}"
+      features: "{{features}}"
+      javaVersion: "{{javaVersion}}"
+      contextReport: "{{steps.analyze-context.contextReport}}"
+      upgradeRecommendation: "{{steps.analyze-upgrade-path.upgradeRecommendation}}"
+      upgradeTotalSteps: "{{steps.analyze-upgrade-path.upgradeTotalSteps}}"
+      upgradeHighRiskSteps: "{{steps.analyze-upgrade-path.upgradeHighRiskSteps}}"
+      compatibilityIssueCount: "{{steps.check-dependency-compatibility.compatibilityIssueCount}}"
+      currentBranch: "{{steps.check-git-status.currentBranch}}"
+    outputs:
+      - name: prdFilePath
+        type: string
+        from: skill.prdFilePath
+      - name: prdContent
+        type: string
+        from: skill.prdContent
+
+  # Implementation PRD: Show Plan and Confirm
+  - id: implementation-prd
+    name: Review Implementation PRD
+    description: Present implementation plan for user review
+    prompt: |
+      # Spring Boot Upgrade Implementation PRD
+
+      📄 **Full PRD saved to**: `{{steps.generate-implementation-prd.prdFilePath}}`
+
+      ---
+
+      ## Quick Summary
+
+      | Property | Value |
+      |----------|-------|
+      | **Upgrade** | {{fromVersion}} → {{toVersion}} |
+      | **Project Type** | {{projectType}} |
+      | **Build Tool** | {{buildTool}} |
+      | **Java Version** | {{javaVersion}} |
+      | **Branch** | {{steps.check-git-status.currentBranch}} |
+
+      ## Upgrade Risk Assessment
+
+      | Metric | Value |
+      |--------|-------|
+      | Upgrade Path | {{steps.analyze-upgrade-path.upgradeRecommendation}} |
+      | Version Jumps | {{steps.analyze-upgrade-path.upgradeTotalSteps}} |
+      | High-Risk Steps | {{steps.analyze-upgrade-path.upgradeHighRiskSteps}} |
+      | Dependency Issues | {{steps.check-dependency-compatibility.compatibilityIssueCount}} |
+
+      {{#if (gt steps.analyze-upgrade-path.upgradeHighRiskSteps 0)}}
+      ⚠️ **High Risk**: Major version changes detected. Recommend careful review of PRD.
+      {{else if (gt steps.check-dependency-compatibility.compatibilityIssueCount 0)}}
+      ⚠️ **Medium Risk**: Dependency compatibility issues found.
+      {{else}}
+      ✅ **Low Risk**: Standard minor version upgrade.
+      {{/if}}
+
+      ## Context Token Budget
+
+      | Category | Tokens |
+      |----------|--------|
+      | **Total Estimated** | ~{{steps.analyze-context.totalTokens}} |
+      | **Budget Used** | {{steps.analyze-context.usedPercent}}% |
+      | **Remaining** | ~{{steps.analyze-context.remainingTokens}} |
+
+      ### Token Distribution by Source
+
+      {{steps.analyze-context.contextReport}}
+
+      ## Reference Documents
+
+      The following library files will be used during implementation:
+
+      | File | Description |
+      |------|-------------|
+      | `3.3-release-notes.adoc` | Spring Boot 3.3 breaking changes |
+      | `3.3-config-changelog.adoc` | Property changes 3.2 → 3.3 |
+      | `3.4-release-notes.adoc` | Spring Boot 3.4 breaking changes |
+      | `3.4-config-changelog.adoc` | Property changes 3.3 → 3.4 |
+      | `3.5-release-notes.adoc` | Spring Boot 3.5 breaking changes |
+      | `3.5-config-changelog.adoc` | Property changes 3.4 → 3.5 |
+      | `breaking-changes.yaml` | Structured breaking changes data |
+
+      ## Implementation Phases
+
+      1. **Setup** - Create branch and rollback tag
+      2. **Dependencies** - Update Spring Boot version
+      3. **Build & Fix** - Iterative compilation fixes
+      4. **Configuration** - Property migrations
+      5. **Testing** - Fix failing tests
+      6. **Verification** - Full test suite pass
+
+      ## Next Steps
+
+      Review the full PRD at: `{{steps.generate-implementation-prd.prdFilePath}}`
+
+      The PRD contains:
+      - Complete file listing with token counts
+      - Breaking changes summary
+      - Files to be modified
+      - Rollback instructions
+
+      ---
+
+      **Ready to proceed?** The workflow will create a rollback tag before making changes.
+
+      ```bash
+      # To view the PRD:
+      cat {{steps.generate-implementation-prd.prdFilePath}}
+      ```
+
+    confirmBeforeProceed: true
+    outputs:
+      - name: implementationPrd
+        type: string
+      - name: userConfirmed
+        type: boolean
+
+  # Pre-flight: Create Pre-upgrade Tag
+  - id: create-pre-upgrade-tag
+    name: Create Pre-upgrade Tag
+    description: Create a git tag as rollback point before making changes
+    skills: [git-tag]
+    skillInputs:
+      action: create
+      tagPrefix: pre-upgrade
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+      tagMessage: "Pre-upgrade checkpoint before Spring Boot {{fromVersion}} to {{toVersion}} migration. Rollback with: git reset --hard <this-tag>"
+      workspace: "{{workspace}}"
+    outputs:
+      - name: preUpgradeTag
+        type: string
+        from: skill.tag
+      - name: preUpgradeTagSha
+        type: string
+        from: skill.sha
+
+  # Phase 0: Git Setup
+  - id: setup-branch
+    name: Setup Upgrade Branch
+    description: Create upgrade branch if on develop/main
+    skills: [git-branch]
+    skillInputs:
+      createBranch: true
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+    outputs:
+      - name: currentBranch
+        type: string
+        from: skill.currentBranch
+      - name: branchCreated
+        type: boolean
+        from: skill.branchCreated
+
+  # Phase 1: Analysis
+  - id: analyze-breaking-changes
+    name: Analyze Breaking Changes
+    description: Review release notes for breaking changes relevant to this project
+    prompt: |
+      Review the Spring Boot release notes for upgrading from {{fromVersion}} to {{toVersion}}.
+
+      Project context:
+      - Type: {{projectType}}
+      - Build tool: {{buildTool}}
+      - Features: {{features}}
+      - Java version: {{javaVersion}}
+
+      Identify and categorize:
+      1. **Breaking Changes** - Will definitely cause build/runtime failures
+      2. **Deprecations** - Should update but won't break immediately
+      3. **Property Changes** - application.properties/yaml updates needed
+      4. **Dependency Changes** - Third-party libs that need version updates
+
+      For each breaking change, note:
+      - What code pattern to search for
+      - The fix required
+    outputs:
+      - name: breakingChanges
+        type: array
+      - name: propertyChanges
+        type: array
+      - name: deprecations
+        type: array
+
+  # Phase 2: Update Dependencies
+  - id: update-dependencies
+    name: Update Spring Boot Version
+    description: Update build file with new Spring Boot version
+    prompt: |
+      Update the {{buildTool}} build file to upgrade Spring Boot from {{fromVersion}} to {{toVersion}}.
+
+      For Maven (pom.xml):
+      - Update parent version or spring-boot.version property
+      - Update any explicit Spring dependency versions
+
+      For Gradle:
+      - Update Spring Boot plugin version
+      - Update any explicit Spring dependency versions
+
+      Generate the exact changes needed for the build file.
+    outputs:
+      - name: buildFileChanges
+        type: string
+      - name: dependencyUpdates
+        type: array
+
+  # Phase 3: Build Attempt
+  - id: attempt-build
+    name: Attempt Build
+    description: Run build and capture errors
+    skills: [maven-build]
+    skillInputs:
+      goal: compile
+      skipTests: true
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    continueOnError: true
+    outputs:
+      - name: buildOutput
+        type: string
+        from: skill.output
+      - name: buildSuccess
+        type: boolean
+        from: skill.success
+      - name: compilationErrors
+        type: array
+        from: skill.compilationErrors
+
+  # Phase 3b: Commit Dependency Updates
+  - id: commit-deps
+    name: Commit Dependency Updates
+    description: Commit the Spring Boot version update
+    condition: "{{steps.attempt-build.buildSuccess}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: deps
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+      description: "Updated Spring Boot parent/dependencies from {{fromVersion}} to {{toVersion}}"
+    outputs:
+      - name: depsCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 3c: Re-check Managed Versions After Upgrade
+  - id: post-upgrade-managed-versions
+    name: Check Post-Upgrade Managed Versions
+    description: Re-analyze managed versions after Spring Boot upgrade
+    condition: "{{steps.attempt-build.buildSuccess}}"
+    skills: [spring-boot-managed-versions]
+    skillInputs:
+      workspace: "{{workspace}}"
+      targetVersion: "{{toVersion}}"
+      profile: "{{mavenProfile}}"
+      showAvailable: "false"
+    outputs:
+      - name: postUpgradeManagedCount
+        type: number
+        from: skill.managedCount
+      - name: postUpgradeOverrideCount
+        type: number
+        from: skill.overrideCount
+      - name: postUpgradeHasOverrides
+        type: boolean
+        from: skill.hasOverrides
+      - name: postUpgradeReport
+        type: string
+        from: skill.output
+
+  # Phase 3d: Clean Up Version Overrides
+  - id: cleanup-version-overrides
+    name: Clean Up Version Overrides
+    description: Identify and remove unnecessary explicit versions
+    condition: "{{steps.post-upgrade-managed-versions.postUpgradeHasOverrides}}"
+    prompt: |
+      ## Version Override Cleanup
+
+      After upgrading to Spring Boot {{toVersion}}, there are {{steps.post-upgrade-managed-versions.postUpgradeOverrideCount}}
+      dependencies with explicit versions that could potentially be removed.
+
+      {{steps.post-upgrade-managed-versions.postUpgradeReport}}
+
+      ### Analysis Required
+
+      For each version override, determine if it should be:
+
+      1. **REMOVE** - Version matches or is older than Spring Boot managed version
+         - Remove explicit version from pom.xml
+         - Let Spring Boot manage the version
+
+      2. **KEEP** - Intentional override for compatibility reasons
+         - Document why in a comment
+         - Consider if newer Spring Boot version fixes the issue
+
+      3. **UPDATE** - Override to a newer version than Spring Boot provides
+         - Ensure compatibility with Spring Boot {{toVersion}}
+         - Test thoroughly
+
+      ### Recommended Actions
+
+      Review each override and provide:
+      1. **Dependency**: groupId:artifactId
+      2. **Current Version**: What's in pom.xml
+      3. **Spring Boot Version**: What {{toVersion}} provides
+      4. **Action**: REMOVE, KEEP, or UPDATE
+      5. **Reason**: Why this action
+
+      Generate the pom.xml changes to clean up unnecessary version overrides.
+    outputs:
+      - name: cleanupActions
+        type: array
+      - name: versionsRemoved
+        type: number
+      - name: versionsKept
+        type: number
+
+  # Phase 3e: Commit Version Cleanup
+  - id: commit-version-cleanup
+    name: Commit Version Cleanup
+    description: Commit the version override cleanup
+    condition: "{{steps.cleanup-version-overrides.versionsRemoved > 0}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: chore
+      toVersion: "{{toVersion}}"
+      commitMessage: "chore(deps): remove unnecessary version overrides after Spring Boot upgrade"
+      description: |
+        Removed {{steps.cleanup-version-overrides.versionsRemoved}} explicit versions now managed by Spring Boot {{toVersion}}.
+        Kept {{steps.cleanup-version-overrides.versionsKept}} intentional overrides.
+    outputs:
+      - name: cleanupCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 4: Fix Build Issues
+  - id: fix-build-issues
+    name: Fix Build Issues
+    description: Analyze and fix compilation errors one at a time
+    condition: "{{not steps.attempt-build.buildSuccess}}"
+    loop:
+      until: "{{steps.attempt-build.buildSuccess}}"
+      maxIterations: 20
+    prompt: |
+      Build failed with the following output:
+      ```
+      {{steps.attempt-build.buildOutput}}
+      ```
+
+      Breaking changes identified:
+      {{steps.analyze-breaking-changes.breakingChanges}}
+
+      Analyze the FIRST compilation error and provide:
+      1. **File**: Which file has the error
+      2. **Line**: Line number
+      3. **Issue**: What's wrong
+      4. **Cause**: Which Spring Boot change caused this
+      5. **Fix**: Exact code change needed
+
+      Focus on ONE error at a time. After fixing, we'll rebuild.
+    outputs:
+      - name: errorFile
+        type: string
+      - name: errorLine
+        type: number
+      - name: issue
+        type: string
+      - name: fix
+        type: string
+
+  # Phase 4b: Commit Build Fixes
+  - id: commit-build-fixes
+    name: Commit Build Fixes
+    description: Commit compilation fixes
+    condition: "{{steps.fix-build-issues.fix}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: fix
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+      description: |
+        Fixed compilation errors after Spring Boot upgrade:
+        - {{steps.fix-build-issues.issue}}
+    outputs:
+      - name: fixCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 5: Update Properties
+  - id: update-properties
+    name: Update Configuration Properties
+    description: Update application.properties/yaml with renamed/removed properties
+    prompt: |
+      Based on the property changes identified:
+      {{steps.analyze-breaking-changes.propertyChanges}}
+
+      Scan the project for:
+      - application.properties
+      - application.yaml / application.yml
+      - application-*.properties (profiles)
+      - application-*.yaml (profiles)
+
+      Generate the property migration:
+      | Old Property | New Property | Action |
+      |--------------|--------------|--------|
+
+      Provide the exact changes needed for each configuration file.
+    outputs:
+      - name: propertyMigrations
+        type: array
+      - name: configFileChanges
+        type: array
+
+  # Phase 5b: Commit Property Updates
+  - id: commit-properties
+    name: Commit Property Updates
+    description: Commit configuration property changes
+    condition: "{{steps.update-properties.propertyMigrations}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: config
+      toVersion: "{{toVersion}}"
+      description: |
+        Updated application properties for Spring Boot {{toVersion}}:
+        {{#each steps.update-properties.propertyMigrations}}
+        - {{this.old}} → {{this.new}}
+        {{/each}}
+    outputs:
+      - name: configCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 6: Run Tests
+  - id: run-tests
+    name: Run Unit Tests
+    description: Execute unit tests and capture failures
+    skills: [maven-test]
+    skillInputs:
+      testScope: unit
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    continueOnError: true
+    outputs:
+      - name: testOutput
+        type: string
+        from: skill.output
+      - name: testSuccess
+        type: boolean
+        from: skill.success
+      - name: failedTests
+        type: string
+        from: skill.failedTests
+      - name: testSummary
+        type: string
+        from: skill.testSummary
+
+  # Phase 6b: Commit Successful Tests
+  - id: commit-tests-pass
+    name: Commit Upgrade Complete
+    description: Commit when all tests pass after upgrade
+    condition: "{{steps.run-tests.testSuccess}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: test
+      fromVersion: "{{fromVersion}}"
+      toVersion: "{{toVersion}}"
+      description: |
+        All tests passing after Spring Boot upgrade from {{fromVersion}} to {{toVersion}}.
+        Test summary: {{steps.run-tests.testSummary}}
+    outputs:
+      - name: testsPassCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 7: Disable Failing Tests
+  - id: disable-failing-tests
+    name: Disable Failing Tests
+    description: Add @Disabled annotation to failing tests for later fix
+    condition: "{{not steps.run-tests.testSuccess}}"
+    prompt: |
+      The following tests are failing after the upgrade:
+      ```
+      {{steps.run-tests.testOutput}}
+      ```
+
+      For each failing test:
+      1. Identify the test class and method
+      2. Add `@Disabled("TODO: Fix after Spring Boot {{toVersion}} upgrade - [brief reason]")` annotation
+      3. Import `org.junit.jupiter.api.Disabled` if needed
+
+      Generate the changes to disable each failing test with a clear TODO message.
+
+      Format:
+      ## Test: ClassName#methodName
+      **File**: path/to/TestClass.java
+      **Reason**: Brief explanation of why it's failing
+      **Change**: Add @Disabled annotation
+    outputs:
+      - name: disabledTests
+        type: array
+      - name: testChanges
+        type: array
+
+  # Phase 7b: Commit Disabled Tests
+  - id: commit-disabled-tests
+    name: Commit Disabled Tests
+    description: Commit temporarily disabled tests
+    condition: "{{steps.disable-failing-tests.disabledTests}}"
+    skills: [git-commit]
+    skillInputs:
+      commitType: test-disable
+      toVersion: "{{toVersion}}"
+      description: |
+        Temporarily disabled failing tests for Spring Boot upgrade.
+        Tests to fix:
+        {{#each steps.disable-failing-tests.disabledTests}}
+        - {{this.className}}#{{this.methodName}}
+        {{/each}}
+    outputs:
+      - name: disableCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 8: Verify Build with Disabled Tests
+  - id: verify-build
+    name: Verify Clean Build
+    description: Confirm build passes with disabled tests
+    skills: [maven-build]
+    skillInputs:
+      goal: verify
+      skipTests: false
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+    outputs:
+      - name: verifyOutput
+        type: string
+        from: skill.output
+      - name: verifySuccess
+        type: boolean
+        from: skill.success
+
+  # Phase 9: Fix Disabled Tests One by One
+  - id: fix-disabled-tests
+    name: Fix Disabled Tests
+    description: Re-enable and fix each disabled test one at a time
+    condition: "{{steps.disable-failing-tests.disabledTests.length > 0}}"
+    loop:
+      over: "{{steps.disable-failing-tests.disabledTests}}"
+      as: "disabledTest"
+    prompt: |
+      Now fixing disabled test: {{disabledTest.className}}#{{disabledTest.methodName}}
+
+      Original failure reason: {{disabledTest.reason}}
+
+      Steps:
+      1. Remove the @Disabled annotation
+      2. Analyze why the test is failing
+      3. Determine if it's a:
+         - **Test issue**: Test needs updating for new API
+         - **Code issue**: Production code needs fixing
+         - **Configuration issue**: Test config needs updating
+      4. Provide the fix
+
+      Breaking changes that may be relevant:
+      {{steps.analyze-breaking-changes.breakingChanges}}
+
+      Provide:
+      1. **Root Cause**: Why this test fails after upgrade
+      2. **Fix Type**: test/code/config
+      3. **Changes**: Exact code changes needed
+      4. **Verification**: How to verify the fix works
+    outputs:
+      - name: testFixes
+        type: array
+
+  # Phase 9b: Commit Each Test Fix
+  - id: commit-test-fix
+    name: Commit Test Fix
+    description: Commit each test fix individually
+    condition: "{{steps.fix-disabled-tests.testFixes}}"
+    loop:
+      over: "{{steps.disable-failing-tests.disabledTests}}"
+      as: "disabledTest"
+    skills: [git-commit]
+    skillInputs:
+      commitType: test-enable
+      toVersion: "{{toVersion}}"
+      testName: "{{disabledTest.className}}#{{disabledTest.methodName}}"
+      description: |
+        Re-enabled and fixed test after Spring Boot upgrade.
+        Root cause: {{steps.fix-disabled-tests.testFixes[loop.index].rootCause}}
+        Fix type: {{steps.fix-disabled-tests.testFixes[loop.index].fixType}}
+    outputs:
+      - name: testFixCommitSha
+        type: string
+        from: skill.sha
+
+  # Phase 10: Final Verification
+  - id: final-verification
+    name: Final Verification
+    description: Run full test suite to confirm upgrade is complete
+    skills: [maven-test]
+    skillInputs:
+      testScope: all
+      profile: "{{mavenProfile}}"
+      jvmArgs: "{{jvmArgs}}"
+      extraArgs: "-Dfailsafe.rerunFailingTestsCount=0"
+    outputs:
+      - name: finalOutput
+        type: string
+        from: skill.output
+      - name: upgradeSuccess
+        type: boolean
+        from: skill.success
+      - name: finalTestSummary
+        type: string
+        from: skill.testSummary
+
+  # Phase 11: Generate Summary
+  - id: generate-summary
+    name: Generate Upgrade Summary
+    description: Create summary of all changes made
+    prompt: |
+      Generate a summary of the Spring Boot upgrade from {{fromVersion}} to {{toVersion}}.
+
+      ## Upgrade Summary
+
+      | Metric | Value |
+      |--------|-------|
+      | From Version | {{fromVersion}} |
+      | To Version | {{toVersion}} |
+      | Branch | {{steps.setup-branch.currentBranch}} |
+      | Pre-upgrade Tag | {{steps.create-pre-upgrade-tag.preUpgradeTag}} |
+
+      ## Changes Made
+
+      ### Build File
+      {{steps.update-dependencies.buildFileChanges}}
+
+      ### Code Changes
+      {{steps.fix-build-issues.fix}}
+
+      ### Configuration Changes
+      {{steps.update-properties.configFileChanges}}
+
+      ### Test Fixes
+      {{steps.fix-disabled-tests.testFixes}}
+
+      ## Upgrade Status
+      - Build: {{#if steps.verify-build.verifySuccess}}✅ Passing{{else}}❌ Failing{{/if}}
+      - Tests: {{#if steps.final-verification.upgradeSuccess}}✅ All passing{{else}}⚠️ Some issues remain{{/if}}
+
+      ## Rollback Instructions
+
+      If you need to rollback this upgrade:
+
+      ```bash
+      # Reset to pre-upgrade state
+      git reset --hard {{steps.create-pre-upgrade-tag.preUpgradeTag}}
+
+      # Or if you've pushed, create a revert branch
+      git checkout -b revert-spring-boot-upgrade
+      git reset --hard {{steps.create-pre-upgrade-tag.preUpgradeTag}}
+      ```
+
+      ## Post-Upgrade Checklist
+      - [ ] Review deprecated API usage
+      - [ ] Update documentation
+      - [ ] Test in staging environment
+      - [ ] Run integration tests
+      - [ ] Performance baseline comparison
+      - [ ] Monitor for runtime issues after deployment
+      - [ ] Delete pre-upgrade tag after successful deployment: `git tag -d {{steps.create-pre-upgrade-tag.preUpgradeTag}}`
+    outputs:
+      - name: summary
+        type: string
+      - name: remainingIssues
+        type: array
+
+outputs:
+  - breakingChanges
+  - buildFileChanges
+  - propertyMigrations
+  - disabledTests
+  - testFixes
+  - summary
+  - upgradeSuccess

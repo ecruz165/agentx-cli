@@ -1,0 +1,417 @@
+Configuration property changes between `3.4.6` and `3.5.0`
+
+
+
+== Deprecated in 3.5.0
+
+|======================
+| Key | Replacement | Reason
+
+| `management.signalfx.metrics.export.access-token`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.batch-size`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.connect-timeout`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.enabled`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.published-histogram-type`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.read-timeout`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.source`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.step`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `management.signalfx.metrics.export.uri`
+|
+| Deprecated in Micrometer 1.15.0
+
+| `spring.codec.log-request-details`
+| `spring.http.codec.log-request-details`
+|
+
+| `spring.codec.max-in-memory-size`
+| `spring.http.codec.max-in-memory-size`
+|
+
+| `spring.graphql.path`
+| `spring.graphql.http.path`
+|
+
+| `spring.graphql.sse.timeout`
+| `spring.graphql.http.sse.timeout`
+|
+
+| `spring.groovy.template.configuration.auto-escape`
+| `spring.groovy.template.auto-escape`
+|
+
+| `spring.groovy.template.configuration.auto-indent`
+| `spring.groovy.template.auto-indent`
+|
+
+| `spring.groovy.template.configuration.auto-indent-string`
+| `spring.groovy.template.auto-indent-string`
+|
+
+| `spring.groovy.template.configuration.auto-new-line`
+| `spring.groovy.template.auto-new-line`
+|
+
+| `spring.groovy.template.configuration.base-template-class`
+| `spring.groovy.template.base-template-class`
+|
+
+| `spring.groovy.template.configuration.cache-templates`
+| `spring.groovy.template.cache`
+|
+
+| `spring.groovy.template.configuration.declaration-encoding`
+| `spring.groovy.template.declaration-encoding`
+|
+
+| `spring.groovy.template.configuration.expand-empty-elements`
+| `spring.groovy.template.expand-empty-elements`
+|
+
+| `spring.groovy.template.configuration.locale`
+| `spring.groovy.template.locale`
+|
+
+| `spring.groovy.template.configuration.new-line-string`
+| `spring.groovy.template.new-line-string`
+|
+
+| `spring.groovy.template.configuration.resource-loader-path`
+| `spring.groovy.template.resource-loader-path`
+|
+
+| `spring.groovy.template.configuration.use-double-quotes`
+| `spring.groovy.template.use-double-quotes`
+|
+|======================
+
+
+
+== Added in 3.5.0
+
+|======================
+| Key | Default value | Description
+
+| `logging.structured.json.context.include`
+|
+| Whether context data should be included in the JSON.
+
+| `logging.structured.json.context.prefix`
+|
+| The prefix to use when inserting context data.
+
+| `logging.structured.json.stacktrace.include-common-frames`
+|
+| Whether common frames should be included.
+
+| `logging.structured.json.stacktrace.include-hashes`
+|
+| Whether stack trace hashes should be included.
+
+| `logging.structured.json.stacktrace.max-length`
+|
+| Maximum length to print.
+
+| `logging.structured.json.stacktrace.max-throwable-depth`
+|
+| Maximum throwable depth to print.
+
+| `logging.structured.json.stacktrace.printer`
+|
+| Name of the printer to use.
+
+| `logging.structured.json.stacktrace.root`
+|
+| Root ordering (root first or root last).
+
+| `management.otlp.metrics.export.meter`
+|
+| Per-meter properties that can be used to override defaults.
+
+| `management.prometheus.metrics.export.pushgateway.address`
+| `localhost:9091`
+| Address (host:port) for the Pushgateway.
+
+| `management.prometheus.metrics.export.pushgateway.format`
+| `protobuf`
+| Format to use when pushing metrics.
+
+| `management.prometheus.metrics.export.pushgateway.scheme`
+| `http`
+| Scheme to use when pushing metrics.
+
+| `management.prometheus.metrics.export.pushgateway.token`
+|
+| Token to use for authentication with the Prometheus Pushgateway.
+
+| `management.server.jetty.accesslog.prefix`
+| `management_`
+| Management log file name prefix.
+
+| `management.server.tomcat.accesslog.prefix`
+| `management_`
+| Management log file name prefix.
+
+| `management.server.undertow.accesslog.prefix`
+| `management_`
+| Management log file name prefix.
+
+| `management.tracing.opentelemetry.export.include-unsampled`
+| `false`
+| Whether unsampled spans should be exported.
+
+| `management.tracing.opentelemetry.export.max-batch-size`
+| `512`
+| Maximum batch size for each export.
+
+| `management.tracing.opentelemetry.export.max-queue-size`
+| `2048`
+| Maximum number of spans that are kept in the queue before they will be dropped.
+
+| `management.tracing.opentelemetry.export.schedule-delay`
+| `5s`
+| The delay interval between two consecutive exports.
+
+| `management.tracing.opentelemetry.export.timeout`
+| `30s`
+| Maximum time an export will be allowed to run before being cancelled.
+
+| `server.tomcat.max-parameter-count`
+| `10000`
+| Maximum number of parameters (GET plus POST) that will be automatically parsed by the container.
+
+| `spring.batch.jdbc.validate-transaction-state`
+| `true`
+| Whether to validate the transaction state.
+
+| `spring.data.mongodb.protocol`
+| `mongodb`
+| Protocol to be used for the MongoDB connection.
+
+| `spring.data.redis.lettuce.read-from`
+|
+| Defines from which Redis nodes data is read.
+
+| `spring.datasource.dbcp2.disconnection-ignore-sql-codes`
+|
+|
+
+| `spring.datasource.oracleucp.commit-on-connection-return`
+|
+|
+
+| `spring.graphql.http.path`
+| `/graphql`
+| Path at which to expose a GraphQL request HTTP endpoint.
+
+| `spring.graphql.http.sse.keep-alive`
+|
+| How frequently keep-alive messages should be sent.
+
+| `spring.graphql.http.sse.timeout`
+|
+| Time required for concurrent handling to complete.
+
+| `spring.graphql.schema.additional-files`
+| ``
+| Locations of additional, individual schema files to parse.
+
+| `spring.groovy.template.auto-escape`
+| `false`
+| Whether models that are assignable to CharSequence are escaped automatically.
+
+| `spring.groovy.template.auto-indent`
+| `false`
+| Whether indents are rendered automatically.
+
+| `spring.groovy.template.auto-indent-string`
+|
+| String used for auto-indents.
+
+| `spring.groovy.template.auto-new-line`
+| `false`
+| Whether new lines are rendered automatically.
+
+| `spring.groovy.template.base-template-class`
+|
+| Template base class.
+
+| `spring.groovy.template.declaration-encoding`
+|
+| Encoding used to write the declaration heading.
+
+| `spring.groovy.template.expand-empty-elements`
+| `false`
+| Whether elements without a body should be written expanded (&lt;br&gt;&lt;/br&gt;) or not (&lt;br/&gt;).
+
+| `spring.groovy.template.locale`
+|
+| Default locale for template resolution.
+
+| `spring.groovy.template.new-line-string`
+|
+| String used to write a new line.
+
+| `spring.groovy.template.use-double-quotes`
+| `false`
+| Whether attributes should use double quotes.
+
+| `spring.http.codecs.log-request-details`
+| `false`
+| Whether to log form data at DEBUG level, and headers at TRACE level.
+
+| `spring.http.codecs.max-in-memory-size`
+|
+| Limit on the number of bytes that can be buffered whenever the input stream needs to be aggregated.
+
+| `spring.http.reactiveclient.connect-timeout`
+|
+| Default connect timeout for a client HTTP request.
+
+| `spring.http.reactiveclient.connector`
+|
+| Default connector used for a client HTTP request.
+
+| `spring.http.reactiveclient.read-timeout`
+|
+| Default read timeout for a client HTTP request.
+
+| `spring.http.reactiveclient.redirects`
+|
+| Handling for HTTP redirects.
+
+| `spring.http.reactiveclient.ssl.bundle`
+|
+| SSL bundle to use.
+
+| `spring.jdbc.template.ignore-warnings`
+| `true`
+| Whether to ignore JDBC statement warnings (SQLWarning).
+
+| `spring.jdbc.template.results-map-case-insensitive`
+| `false`
+| Whether execution of a CallableStatement will return the results in a Map that uses case-insensitive names for the parameters.
+
+| `spring.jdbc.template.skip-results-processing`
+| `false`
+| Whether results processing should be skipped.
+
+| `spring.jdbc.template.skip-undeclared-results`
+| `false`
+| Whether undeclared results should be skipped.
+
+| `spring.jooq.config`
+|
+| Location of the jOOQ config file.
+
+| `spring.kafka.consumer.max-poll-interval`
+|
+| Maximum delay between invocations of poll() when using consumer group management.
+
+| `spring.kafka.listener.auth-exception-retry-interval`
+|
+| Time between retries after authentication exceptions.
+
+| `spring.ldap.referral`
+|
+| Specify how referrals encountered by the service provider are to be processed.
+
+| `spring.liquibase.analytics-enabled`
+|
+| Whether to send product usage data and analytics to Liquibase.
+
+| `spring.liquibase.license-key`
+|
+| Liquibase Pro license key.
+
+| `spring.mvc.contentnegotiation.default-content-types`
+|
+| List of default content types to be used when no specific content type is requested.
+
+| `spring.r2dbc.pool.acquire-retry`
+| `1`
+| Number of acquire retries if the first acquire attempt fails.
+
+| `spring.task.execution.mode`
+| `auto`
+| Determine when the task executor is to be created.
+
+| `spring.task.execution.simple.reject-tasks-when-limit-reached`
+| `false`
+| Whether to reject tasks when the concurrency limit has been reached.
+
+| `spring.test.print-condition-evaluation-report`
+| `true`
+| Whether the condition evaluation report should be printed when the ApplicationContext fails to start.
+
+| `spring.validation.method.adapt-constraint-violations`
+| `false`
+| Whether to adapt ConstraintViolations to MethodValidationResult.
+|======================
+
+
+
+== Removed in 3.5.0
+
+|======================
+| Key | Replacement | Reason
+
+| `management.otlp.metrics.export.resource-attributes`
+| `management.opentelemetry.resource-attributes`
+|
+
+| `management.prometheus.metrics.export.histogram-flavor`
+|
+| No longer supported.
+
+| `management.prometheus.metrics.export.pushgateway.base-url`
+|
+|
+
+| `management.promethus.metrics.export.pushgateway.base-url`
+| `management.prometheus.metrics.export.pushgateway.address`
+|
+
+| `spring.datasource.dbcp2.driver`
+|
+|
+
+| `spring.datasource.hikari.metrics-tracker-factory`
+|
+|
+
+| `spring.datasource.hikari.scheduled-executor`
+|
+|
+
+| `spring.datasource.oracleucp.connection-wait-duration-in-millis`
+|
+|
+
+| `spring.datasource.oracleucp.hostname-resolver`
+|
+|
+|======================

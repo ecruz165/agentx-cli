@@ -1,0 +1,209 @@
+id: dependency-compatibility-check
+type: script
+name: Dependency Compatibility Check
+description: Check if project dependencies are compatible with target Spring Boot version
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  cd "$WORKSPACE"
+
+  TARGET_VERSION="${TARGET_VERSION:-3.5.0}"
+  TARGET_MAJOR=$(echo "$TARGET_VERSION" | cut -d. -f1)
+  TARGET_MINOR=$(echo "$TARGET_VERSION" | cut -d. -f2)
+
+  echo "Checking dependency compatibility for Spring Boot $TARGET_VERSION"
+  echo "---"
+
+  # Known compatibility issues database
+  declare -A COMPATIBILITY_ISSUES
+
+  # Spring Boot 3.x requires Jakarta EE (not javax)
+  COMPATIBILITY_ISSUES["javax.servlet:javax.servlet-api"]="3.0:Replace with jakarta.servlet:jakarta.servlet-api"
+  COMPATIBILITY_ISSUES["javax.validation:validation-api"]="3.0:Replace with jakarta.validation:jakarta.validation-api"
+  COMPATIBILITY_ISSUES["javax.persistence:javax.persistence-api"]="3.0:Replace with jakarta.persistence:jakarta.persistence-api"
+  COMPATIBILITY_ISSUES["javax.annotation:javax.annotation-api"]="3.0:Replace with jakarta.annotation:jakarta.annotation-api"
+
+  # Spring Cloud compatibility
+  COMPATIBILITY_ISSUES["org.springframework.cloud:spring-cloud-dependencies:2021.0"]="3.0:Upgrade to 2022.0.x or later"
+  COMPATIBILITY_ISSUES["org.springframework.cloud:spring-cloud-dependencies:2022.0"]="3.2:Upgrade to 2023.0.x for full compatibility"
+
+  # Common library compatibility
+  COMPATIBILITY_ISSUES["org.springdoc:springdoc-openapi-ui:1"]="3.0:Replace with springdoc-openapi-starter-webmvc-ui 2.x"
+  COMPATIBILITY_ISSUES["io.springfox:springfox-swagger2"]="3.0:Replace with springdoc-openapi 2.x"
+  COMPATIBILITY_ISSUES["io.springfox:springfox-boot-starter"]="3.0:Replace with springdoc-openapi 2.x"
+
+  # Lombok - usually compatible but needs version check
+  COMPATIBILITY_ISSUES["org.projectlombok:lombok:1.18.2"]="3.3:Upgrade to 1.18.30+ for Java 21 support"
+
+  # MapStruct
+  COMPATIBILITY_ISSUES["org.mapstruct:mapstruct:1.4"]="3.0:Upgrade to 1.5.x for Jakarta EE support"
+
+  # QueryDSL
+  COMPATIBILITY_ISSUES["com.querydsl:querydsl-jpa:4"]="3.0:Upgrade to 5.x with jakarta classifier"
+
+  ISSUES_FOUND=()
+  WARNINGS_FOUND=()
+
+  # Function to check Maven dependencies
+  check_maven_deps() {
+    if [[ -f "pom.xml" ]]; then
+      echo "Analyzing Maven dependencies..."
+
+      # Extract dependencies from pom.xml
+      DEPS=$(grep -E "<(groupId|artifactId|version)>" pom.xml 2>/dev/null | paste - - - 2>/dev/null || echo "")
+
+      for pattern in "${!COMPATIBILITY_ISSUES[@]}"; do
+        issue_info="${COMPATIBILITY_ISSUES[$pattern]}"
+        min_version=$(echo "$issue_info" | cut -d: -f1)
+        message=$(echo "$issue_info" | cut -d: -f2-)
+
+        # Check if this dependency pattern exists
+        group=$(echo "$pattern" | cut -d: -f1)
+        artifact=$(echo "$pattern" | cut -d: -f2)
+
+        if grep -q "$group" pom.xml && grep -q "$artifact" pom.xml; then
+          # Check if target version triggers this issue
+          if [[ "$TARGET_MAJOR.$TARGET_MINOR" > "$min_version" ]] || [[ "$TARGET_MAJOR.$TARGET_MINOR" == "$min_version" ]]; then
+            ISSUES_FOUND+=("$pattern: $message")
+          fi
+        fi
+      done
+
+      # Check for javax.* imports in Java files (indicates Jakarta migration needed)
+      if [[ "$TARGET_MAJOR" -ge 3 ]]; then
+        JAVAX_COUNT=$(find src -name "*.java" -exec grep -l "import javax\." {} \; 2>/dev/null | wc -l || echo "0")
+        if [[ "$JAVAX_COUNT" -gt 0 ]]; then
+          WARNINGS_FOUND+=("Found $JAVAX_COUNT files with javax.* imports - Jakarta EE migration required")
+        fi
+      fi
+    fi
+  }
+
+  # Function to check Gradle dependencies
+  check_gradle_deps() {
+    if [[ -f "build.gradle" ]] || [[ -f "build.gradle.kts" ]]; then
+      echo "Analyzing Gradle dependencies..."
+
+      BUILD_FILE="build.gradle"
+      [[ -f "build.gradle.kts" ]] && BUILD_FILE="build.gradle.kts"
+
+      for pattern in "${!COMPATIBILITY_ISSUES[@]}"; do
+        issue_info="${COMPATIBILITY_ISSUES[$pattern]}"
+        min_version=$(echo "$issue_info" | cut -d: -f1)
+        message=$(echo "$issue_info" | cut -d: -f2-)
+
+        group=$(echo "$pattern" | cut -d: -f1)
+        artifact=$(echo "$pattern" | cut -d: -f2)
+
+        if grep -q "$group" "$BUILD_FILE" && grep -q "$artifact" "$BUILD_FILE"; then
+          if [[ "$TARGET_MAJOR.$TARGET_MINOR" > "$min_version" ]] || [[ "$TARGET_MAJOR.$TARGET_MINOR" == "$min_version" ]]; then
+            ISSUES_FOUND+=("$pattern: $message")
+          fi
+        fi
+      done
+
+      # Check for javax.* imports
+      if [[ "$TARGET_MAJOR" -ge 3 ]]; then
+        JAVAX_COUNT=$(find src -name "*.java" -exec grep -l "import javax\." {} \; 2>/dev/null | wc -l || echo "0")
+        JAVAX_COUNT=$(echo "$JAVAX_COUNT" | tr -d ' ')
+        if [[ "$JAVAX_COUNT" -gt 0 ]]; then
+          WARNINGS_FOUND+=("Found $JAVAX_COUNT files with javax.* imports - Jakarta EE migration required")
+        fi
+      fi
+    fi
+  }
+
+  # Run checks
+  check_maven_deps
+  check_gradle_deps
+
+  # Output results
+  echo ""
+  echo "=== Compatibility Report ==="
+  echo ""
+
+  ISSUE_COUNT=${#ISSUES_FOUND[@]}
+  WARNING_COUNT=${#WARNINGS_FOUND[@]}
+
+  if [[ $ISSUE_COUNT -eq 0 && $WARNING_COUNT -eq 0 ]]; then
+    echo "✅ No known compatibility issues detected"
+    COMPATIBLE="true"
+  else
+    COMPATIBLE="false"
+
+    if [[ $ISSUE_COUNT -gt 0 ]]; then
+      echo "❌ Compatibility Issues ($ISSUE_COUNT):"
+      for issue in "${ISSUES_FOUND[@]}"; do
+        echo "  - $issue"
+      done
+      echo ""
+    fi
+
+    if [[ $WARNING_COUNT -gt 0 ]]; then
+      echo "⚠️ Warnings ($WARNING_COUNT):"
+      for warning in "${WARNINGS_FOUND[@]}"; do
+        echo "  - $warning"
+      done
+    fi
+  fi
+
+  # Build JSON arrays
+  ISSUES_JSON="["
+  for i in "${!ISSUES_FOUND[@]}"; do
+    [[ $i -gt 0 ]] && ISSUES_JSON+=","
+    ISSUES_JSON+="\"${ISSUES_FOUND[$i]}\""
+  done
+  ISSUES_JSON+="]"
+
+  WARNINGS_JSON="["
+  for i in "${!WARNINGS_FOUND[@]}"; do
+    [[ $i -gt 0 ]] && WARNINGS_JSON+=","
+    WARNINGS_JSON+="\"${WARNINGS_FOUND[$i]}\""
+  done
+  WARNINGS_JSON+="]"
+
+  # Output JSON
+  cat <<EOF
+{
+  "compatible": $COMPATIBLE,
+  "targetVersion": "$TARGET_VERSION",
+  "issueCount": $ISSUE_COUNT,
+  "warningCount": $WARNING_COUNT,
+  "issues": $ISSUES_JSON,
+  "warnings": $WARNINGS_JSON
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: targetVersion
+    env: TARGET_VERSION
+    description: Target Spring Boot version to check compatibility for
+    required: true
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+
+outputs:
+  - name: output
+    extract: full
+    description: Full compatibility report
+  - name: compatible
+    extract: pattern
+    pattern: '"compatible":\s*(true|false)'
+    description: Whether dependencies are compatible
+  - name: issueCount
+    extract: pattern
+    pattern: '"issueCount":\s*(\d+)'
+    description: Number of compatibility issues
+  - name: warningCount
+    extract: pattern
+    pattern: '"warningCount":\s*(\d+)'
+    description: Number of warnings
+
+timeout: 120

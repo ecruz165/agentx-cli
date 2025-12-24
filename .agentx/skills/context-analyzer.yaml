@@ -1,0 +1,376 @@
+id: context-analyzer
+type: script
+name: Context Analyzer
+description: Analyze all context files loaded by AgentX (persona, alias, libraries, providers, etc.)
+
+run: |
+  #!/bin/bash
+  set -e
+
+  WORKSPACE="${WORKSPACE:-.}"
+  AGENTX_DIR="${AGENTX_DIR:-.agentx}"
+  CHARS_PER_TOKEN=4
+
+  cd "$WORKSPACE"
+
+  estimate_tokens() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+      local chars=$(wc -c < "$file" 2>/dev/null | tr -d ' ')
+      echo $((chars / CHARS_PER_TOKEN))
+    else
+      echo 0
+    fi
+  }
+
+  estimate_dir_tokens() {
+    local dir="$1"
+    local pattern="$2"
+    if [[ -d "$dir" ]]; then
+      local chars=$(find "$dir" -name "$pattern" -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+      echo $((chars / CHARS_PER_TOKEN))
+    else
+      echo 0
+    fi
+  }
+
+  echo "# AgentX Context Analysis Report"
+  echo "================================="
+  echo ""
+  echo "Analyzing context that will be loaded for implementation..."
+  echo ""
+
+  TOTAL_TOKENS=0
+  JSON_FILES="["
+  FIRST_FILE=true
+
+  add_file() {
+    local file="$1"
+    local category="$2"
+    local description="$3"
+    local tokens=$(estimate_tokens "$file")
+
+    if [[ $tokens -gt 0 ]]; then
+      TOTAL_TOKENS=$((TOTAL_TOKENS + tokens))
+      echo "  $file (~$tokens tokens) - $description"
+
+      [[ "$FIRST_FILE" == "true" ]] && FIRST_FILE=false || JSON_FILES+=","
+      JSON_FILES+="{\"file\":\"$file\",\"category\":\"$category\",\"tokens\":$tokens,\"description\":\"$description\"}"
+    fi
+  }
+
+  # ==========================================
+  # 1. PERSONA FILES
+  # ==========================================
+  echo "## 1. Persona Context"
+  echo "---------------------"
+
+  if [[ -n "$PERSONA" && -f "$AGENTX_DIR/personas/$PERSONA.yaml" ]]; then
+    add_file "$AGENTX_DIR/personas/$PERSONA.yaml" "persona" "Active persona definition"
+  elif [[ -f "$AGENTX_DIR/personas/default.yaml" ]]; then
+    add_file "$AGENTX_DIR/personas/default.yaml" "persona" "Default persona"
+  fi
+
+  # Persona-linked files (instructions, examples)
+  for file in "$AGENTX_DIR/personas/"*.md "$AGENTX_DIR/personas/"*.txt; do
+    [[ -f "$file" ]] && add_file "$file" "persona" "Persona instructions"
+  done
+  echo ""
+
+  # ==========================================
+  # 2. ALIAS FILES
+  # ==========================================
+  echo "## 2. Alias Context"
+  echo "-------------------"
+
+  if [[ -n "$ALIAS" && -f "$AGENTX_DIR/aliases/$ALIAS.json" ]]; then
+    add_file "$AGENTX_DIR/aliases/$ALIAS.json" "alias" "Active alias definition"
+
+    # Parse alias to find linked resources
+    ALIAS_FILE="$AGENTX_DIR/aliases/$ALIAS.json"
+
+    # Extract libraries from alias
+    ALIAS_LIBRARIES=$(grep -o '"libraries"[[:space:]]*:[[:space:]]*\[[^]]*\]' "$ALIAS_FILE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' || echo "")
+
+    # Extract context providers
+    ALIAS_PROVIDERS=$(grep -o '"contextProviders"[[:space:]]*:[[:space:]]*\[[^]]*\]' "$ALIAS_FILE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' || echo "")
+
+    # Extract intentions
+    ALIAS_INTENTIONS=$(grep -o '"intentions"[[:space:]]*:[[:space:]]*\[[^]]*\]' "$ALIAS_FILE" 2>/dev/null | grep -o '"[^"]*"' | tr -d '"' || echo "")
+  fi
+  echo ""
+
+  # ==========================================
+  # 3. INTENTION FILES
+  # ==========================================
+  echo "## 3. Intention Context"
+  echo "-----------------------"
+
+  if [[ -n "$INTENTION" && -f "$AGENTX_DIR/intentions/$INTENTION.json" ]]; then
+    add_file "$AGENTX_DIR/intentions/$INTENTION.json" "intention" "Active intention definition"
+  fi
+
+  # Check intentions from alias
+  for intention in $ALIAS_INTENTIONS; do
+    if [[ -f "$AGENTX_DIR/intentions/$intention.json" ]]; then
+      add_file "$AGENTX_DIR/intentions/$intention.json" "intention" "Alias-linked intention"
+    fi
+  done
+  echo ""
+
+  # ==========================================
+  # 4. LIBRARY FILES
+  # ==========================================
+  echo "## 4. Library Context"
+  echo "---------------------"
+
+  # Direct library specification
+  if [[ -n "$LIBRARIES" ]]; then
+    for lib in $LIBRARIES; do
+      LIB_DIR="$AGENTX_DIR/libraries/$lib"
+      if [[ -d "$LIB_DIR" ]]; then
+        echo "  Library: $lib"
+        for file in "$LIB_DIR"/*.yaml "$LIB_DIR"/*.yml "$LIB_DIR"/*.json "$LIB_DIR"/*.md "$LIB_DIR"/*.adoc "$LIB_DIR"/*.txt; do
+          [[ -f "$file" ]] && add_file "$file" "library" "Library: $lib"
+        done
+      fi
+    done
+  fi
+
+  # Libraries from alias
+  for lib in $ALIAS_LIBRARIES; do
+    LIB_DIR="$AGENTX_DIR/libraries/$lib"
+    if [[ -d "$LIB_DIR" ]]; then
+      echo "  Library (from alias): $lib"
+      for file in "$LIB_DIR"/*.yaml "$LIB_DIR"/*.yml "$LIB_DIR"/*.json "$LIB_DIR"/*.md "$LIB_DIR"/*.adoc "$LIB_DIR"/*.txt; do
+        [[ -f "$file" ]] && add_file "$file" "library" "Library: $lib (via alias)"
+      done
+    fi
+  done
+  echo ""
+
+  # ==========================================
+  # 5. CONTEXT PROVIDER OUTPUTS
+  # ==========================================
+  echo "## 5. Context Provider Outputs"
+  echo "------------------------------"
+
+  # Run context providers and estimate their output
+  for provider in $ALIAS_PROVIDERS; do
+    PROVIDER_PATH="$AGENTX_DIR/$provider"
+    if [[ -x "$PROVIDER_PATH" ]]; then
+      echo "  Provider: $provider"
+      # Estimate provider output (run it and measure)
+      PROVIDER_OUTPUT=$("$PROVIDER_PATH" 2>/dev/null || echo "{}")
+      PROVIDER_TOKENS=$((${#PROVIDER_OUTPUT} / CHARS_PER_TOKEN))
+      TOTAL_TOKENS=$((TOTAL_TOKENS + PROVIDER_TOKENS))
+      echo "    Output: ~$PROVIDER_TOKENS tokens"
+
+      [[ "$FIRST_FILE" == "true" ]] && FIRST_FILE=false || JSON_FILES+=","
+      JSON_FILES+="{\"file\":\"$provider\",\"category\":\"context-provider\",\"tokens\":$PROVIDER_TOKENS,\"description\":\"Dynamic context provider\"}"
+    fi
+  done
+  echo ""
+
+  # ==========================================
+  # 6. WORKFLOW FILES
+  # ==========================================
+  echo "## 6. Workflow Context"
+  echo "----------------------"
+
+  if [[ -n "$WORKFLOW" && -f "$AGENTX_DIR/workflows/$WORKFLOW.yaml" ]]; then
+    add_file "$AGENTX_DIR/workflows/$WORKFLOW.yaml" "workflow" "Active workflow"
+  fi
+  echo ""
+
+  # ==========================================
+  # 7. SKILL FILES
+  # ==========================================
+  echo "## 7. Skill Definitions"
+  echo "-----------------------"
+
+  # Skills referenced in workflow
+  if [[ -n "$WORKFLOW" && -f "$AGENTX_DIR/workflows/$WORKFLOW.yaml" ]]; then
+    WORKFLOW_SKILLS=$(grep -o 'skills:.*' "$AGENTX_DIR/workflows/$WORKFLOW.yaml" 2>/dev/null | grep -o '\[.*\]' | tr -d '[],' | tr -s ' ' '\n' || echo "")
+    for skill in $WORKFLOW_SKILLS; do
+      skill=$(echo "$skill" | tr -d ' ')
+      if [[ -f "$AGENTX_DIR/skills/$skill.yaml" ]]; then
+        add_file "$AGENTX_DIR/skills/$skill.yaml" "skill" "Workflow skill"
+      fi
+    done
+  fi
+  echo ""
+
+  # ==========================================
+  # 8. PROJECT SOURCE FILES
+  # ==========================================
+  echo "## 8. Project Source Files"
+  echo "--------------------------"
+
+  # Build files
+  for file in pom.xml build.gradle build.gradle.kts settings.gradle; do
+    [[ -f "$file" ]] && add_file "$file" "project-build" "Build configuration"
+  done
+
+  # Config files
+  CONFIG_TOKENS=0
+  CONFIG_COUNT=0
+  for file in $(find src -name "application*.properties" -o -name "application*.yaml" -o -name "application*.yml" 2>/dev/null); do
+    tokens=$(estimate_tokens "$file")
+    CONFIG_TOKENS=$((CONFIG_TOKENS + tokens))
+    CONFIG_COUNT=$((CONFIG_COUNT + 1))
+  done
+  if [[ $CONFIG_COUNT -gt 0 ]]; then
+    echo "  Config files: $CONFIG_COUNT files (~$CONFIG_TOKENS tokens)"
+    TOTAL_TOKENS=$((TOTAL_TOKENS + CONFIG_TOKENS))
+    [[ "$FIRST_FILE" == "true" ]] && FIRST_FILE=false || JSON_FILES+=","
+    JSON_FILES+="{\"file\":\"src/**/application*.*\",\"category\":\"project-config\",\"tokens\":$CONFIG_TOKENS,\"description\":\"Application configuration ($CONFIG_COUNT files)\"}"
+  fi
+
+  # Source files summary
+  JAVA_COUNT=$(find src/main -name "*.java" 2>/dev/null | wc -l | tr -d ' ')
+  JAVA_TOKENS=$(find src/main -name "*.java" -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+  JAVA_TOKENS=$((JAVA_TOKENS / CHARS_PER_TOKEN))
+  if [[ $JAVA_COUNT -gt 0 ]]; then
+    echo "  Java source: $JAVA_COUNT files (~$JAVA_TOKENS tokens)"
+    TOTAL_TOKENS=$((TOTAL_TOKENS + JAVA_TOKENS))
+    [[ "$FIRST_FILE" == "true" ]] && FIRST_FILE=false || JSON_FILES+=","
+    JSON_FILES+="{\"file\":\"src/main/**/*.java\",\"category\":\"project-source\",\"tokens\":$JAVA_TOKENS,\"description\":\"Java source ($JAVA_COUNT files)\"}"
+  fi
+
+  # Test files summary
+  TEST_COUNT=$(find src/test -name "*.java" 2>/dev/null | wc -l | tr -d ' ')
+  TEST_TOKENS=$(find src/test -name "*.java" -exec cat {} \; 2>/dev/null | wc -c | tr -d ' ')
+  TEST_TOKENS=$((TEST_TOKENS / CHARS_PER_TOKEN))
+  if [[ $TEST_COUNT -gt 0 ]]; then
+    echo "  Test files: $TEST_COUNT files (~$TEST_TOKENS tokens)"
+    TOTAL_TOKENS=$((TOTAL_TOKENS + TEST_TOKENS))
+    [[ "$FIRST_FILE" == "true" ]] && FIRST_FILE=false || JSON_FILES+=","
+    JSON_FILES+="{\"file\":\"src/test/**/*.java\",\"category\":\"project-test\",\"tokens\":$TEST_TOKENS,\"description\":\"Test files ($TEST_COUNT files)\"}"
+  fi
+  echo ""
+
+  JSON_FILES+="]"
+
+  # ==========================================
+  # SUMMARY
+  # ==========================================
+  echo "## Summary"
+  echo "=========="
+  echo ""
+  echo "| Category | Tokens |"
+  echo "|----------|--------|"
+
+  # Calculate category totals from JSON
+  PERSONA_TOTAL=$(echo "$JSON_FILES" | grep -o '"category":"persona"[^}]*"tokens":[0-9]*' | grep -o '[0-9]*$' | paste -sd+ - | bc 2>/dev/null || echo 0)
+  ALIAS_TOTAL=$(echo "$JSON_FILES" | grep -o '"category":"alias"[^}]*"tokens":[0-9]*' | grep -o '[0-9]*$' | paste -sd+ - | bc 2>/dev/null || echo 0)
+  INTENTION_TOTAL=$(echo "$JSON_FILES" | grep -o '"category":"intention"[^}]*"tokens":[0-9]*' | grep -o '[0-9]*$' | paste -sd+ - | bc 2>/dev/null || echo 0)
+  LIBRARY_TOTAL=$(echo "$JSON_FILES" | grep -o '"category":"library"[^}]*"tokens":[0-9]*' | grep -o '[0-9]*$' | paste -sd+ - | bc 2>/dev/null || echo 0)
+  PROVIDER_TOTAL=$(echo "$JSON_FILES" | grep -o '"category":"context-provider"[^}]*"tokens":[0-9]*' | grep -o '[0-9]*$' | paste -sd+ - | bc 2>/dev/null || echo 0)
+  PROJECT_TOTAL=$((JAVA_TOKENS + TEST_TOKENS + CONFIG_TOKENS))
+
+  echo "| Persona | ~$PERSONA_TOTAL |"
+  echo "| Alias | ~$ALIAS_TOTAL |"
+  echo "| Intention | ~$INTENTION_TOTAL |"
+  echo "| Libraries | ~$LIBRARY_TOTAL |"
+  echo "| Context Providers | ~$PROVIDER_TOTAL |"
+  echo "| Project Files | ~$PROJECT_TOTAL |"
+  echo "| **TOTAL** | **~$TOTAL_TOKENS** |"
+  echo ""
+
+  # Context budget analysis
+  CONTEXT_BUDGET=${CONTEXT_BUDGET:-200000}
+  USED_PERCENT=$((TOTAL_TOKENS * 100 / CONTEXT_BUDGET))
+  REMAINING=$((CONTEXT_BUDGET - TOTAL_TOKENS))
+
+  echo "### Context Budget"
+  echo "- Budget: $CONTEXT_BUDGET tokens"
+  echo "- Used: ~$TOTAL_TOKENS tokens ($USED_PERCENT%)"
+  echo "- Remaining: ~$REMAINING tokens"
+  echo ""
+
+  if [[ $USED_PERCENT -gt 80 ]]; then
+    echo "⚠️ **Warning**: High context usage. Consider:"
+    echo "  - Using selective file loading"
+    echo "  - Reducing library context"
+    echo "  - Chunking the implementation"
+  elif [[ $USED_PERCENT -gt 50 ]]; then
+    echo "ℹ️ Moderate context usage - should be fine for implementation"
+  else
+    echo "✅ Comfortable context budget"
+  fi
+
+  # Output JSON
+  cat <<EOF
+
+{
+  "totalTokens": $TOTAL_TOKENS,
+  "contextBudget": $CONTEXT_BUDGET,
+  "usedPercent": $USED_PERCENT,
+  "remainingTokens": $REMAINING,
+  "categories": {
+    "persona": $PERSONA_TOTAL,
+    "alias": $ALIAS_TOTAL,
+    "intention": $INTENTION_TOTAL,
+    "library": $LIBRARY_TOTAL,
+    "contextProvider": $PROVIDER_TOTAL,
+    "project": $PROJECT_TOTAL
+  },
+  "files": $JSON_FILES
+}
+EOF
+
+shell: bash
+
+inputs:
+  - name: workspace
+    env: WORKSPACE
+    description: Project workspace path
+    default: "."
+  - name: agentxDir
+    env: AGENTX_DIR
+    description: AgentX configuration directory
+    default: ".agentx"
+  - name: persona
+    env: PERSONA
+    description: Active persona name
+    required: false
+  - name: alias
+    env: ALIAS
+    description: Active alias name
+    required: false
+  - name: intention
+    env: INTENTION
+    description: Active intention name
+    required: false
+  - name: workflow
+    env: WORKFLOW
+    description: Active workflow name
+    required: false
+  - name: libraries
+    env: LIBRARIES
+    description: Space-separated list of libraries
+    required: false
+  - name: contextBudget
+    env: CONTEXT_BUDGET
+    description: Total context token budget
+    default: "200000"
+
+outputs:
+  - name: output
+    extract: full
+    description: Full context analysis report
+  - name: totalTokens
+    extract: pattern
+    pattern: '"totalTokens":\s*(\d+)'
+    description: Total estimated tokens
+  - name: usedPercent
+    extract: pattern
+    pattern: '"usedPercent":\s*(\d+)'
+    description: Percentage of context budget used
+  - name: remainingTokens
+    extract: pattern
+    pattern: '"remainingTokens":\s*(\d+)'
+    description: Remaining context tokens
+
+timeout: 120
