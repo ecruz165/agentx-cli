@@ -6,12 +6,12 @@ Migration guides, release notes, and configuration changelogs for Spring Boot ve
 
 | File | Version | Description |
 |------|---------|-------------|
-| `3.3-release-notes.adoc` | 3.2.x → 3.3.x | Breaking changes, deprecations, new features |
-| `3.3-config-changelog.adoc` | 3.2.x → 3.3.x | Property changes and renames |
-| `3.4-release-notes.adoc` | 3.3.x → 3.4.x | Breaking changes, deprecations, new features |
-| `3.4-config-changelog.adoc` | 3.3.x → 3.4.x | Property changes and renames |
-| `3.5-release-notes.adoc` | 3.4.x → 3.5.x | Breaking changes, deprecations, new features |
-| `3.5-config-changelog.adoc` | 3.4.x → 3.5.x | Property changes and renames |
+| `3.3-release-notes.md` | 3.2.x → 3.3.x | Breaking changes, deprecations, new features |
+| `3.3-config-changelog.md` | 3.2.x → 3.3.x | Property changes and renames |
+| `3.4-release-notes.md` | 3.3.x → 3.4.x | Breaking changes, deprecations, new features |
+| `3.4-config-changelog.md` | 3.3.x → 3.4.x | Property changes and renames |
+| `3.5-release-notes.md` | 3.4.x → 3.5.x | Breaking changes, deprecations, new features |
+| `3.5-config-changelog.md` | 3.4.x → 3.5.x | Property changes and renames |
 
 ## Usage
 
@@ -58,7 +58,11 @@ This upgrade spans **3 minor versions**:
 - Significant dependency updates
 
 #### 3.4 → 3.5
-- TBD (check 3.5-release-notes.adoc)
+- Heapdump endpoint requires explicit access configuration
+- TaskExecutor bean name change (applicationTaskExecutor only)
+- Prometheus Pushgateway dependency change
+- SSL support for service connections
+- New configuration for structured logging stack traces
 
 ## Source
 

@@ -98,7 +98,7 @@ run: |
     echo "| File | Tokens | Description |" >> "$PRD_FILE"
     echo "|------|--------|-------------|" >> "$PRD_FILE"
 
-    for file in "$AGENTX_DIR/libraries/spring-boot-migration"/*.adoc "$AGENTX_DIR/libraries/spring-boot-migration"/*.yaml; do
+    for file in "$AGENTX_DIR/libraries/spring-boot-migration"/*.md "$AGENTX_DIR/libraries/spring-boot-migration"/*.yaml; do
       if [[ -f "$file" ]]; then
         filename=$(basename "$file")
         tokens=$(estimate_tokens "$file")

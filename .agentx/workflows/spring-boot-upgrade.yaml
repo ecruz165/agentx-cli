@@ -562,12 +562,12 @@ steps:
 
       | File | Description |
       |------|-------------|
-      | `3.3-release-notes.adoc` | Spring Boot 3.3 breaking changes |
-      | `3.3-config-changelog.adoc` | Property changes 3.2 → 3.3 |
-      | `3.4-release-notes.adoc` | Spring Boot 3.4 breaking changes |
-      | `3.4-config-changelog.adoc` | Property changes 3.3 → 3.4 |
-      | `3.5-release-notes.adoc` | Spring Boot 3.5 breaking changes |
-      | `3.5-config-changelog.adoc` | Property changes 3.4 → 3.5 |
+      | `3.3-release-notes.md` | Spring Boot 3.3 breaking changes |
+      | `3.3-config-changelog.md` | Property changes 3.2 → 3.3 |
+      | `3.4-release-notes.md` | Spring Boot 3.4 breaking changes |
+      | `3.4-config-changelog.md` | Property changes 3.3 → 3.4 |
+      | `3.5-release-notes.md` | Spring Boot 3.5 breaking changes |
+      | `3.5-config-changelog.md` | Property changes 3.4 → 3.5 |
       | `breaking-changes.yaml` | Structured breaking changes data |
 
       ## Implementation Phases
