@@ -1,0 +1,72 @@
+# Mockito Documentation Library
+# Generated from Mockito source code
+#
+# Total chunks: 14
+# Total tokens: ~11905
+#
+# Usage: libraries: [mockito]
+
+library:
+  id: mockito
+  name: Mockito
+  version: "5.x"
+  source: https://site.mockito.org/
+  totalTokens: 11905
+
+chunks:
+  - id: annotations
+    title: "Annotations"
+    path: annotations.md
+    tokens: 565
+  - id: argument-captors
+    title: "Argument Captors"
+    path: argument-captors.md
+    tokens: 269
+  - id: argument-matchers-reference
+    title: "Argument Matchers Reference"
+    path: argument-matchers-reference.md
+    tokens: 781
+  - id: argument-matchers
+    title: "Argument Matchers"
+    path: argument-matchers.md
+    tokens: 676
+  - id: basics
+    title: "Mockito Basics"
+    path: basics.md
+    tokens: 432
+  - id: bdd-style
+    title: "BDD Style with Mockito"
+    path: bdd-style.md
+    tokens: 423
+  - id: junit-integration
+    title: "JUnit Integration"
+    path: junit-integration.md
+    tokens: 452
+  - id: migration
+    title: "Migration and Setup"
+    path: migration.md
+    tokens: 1514
+  - id: mock-settings
+    title: "Mock Settings"
+    path: mock-settings.md
+    tokens: 2428
+  - id: spies
+    title: "Spies"
+    path: spies.md
+    tokens: 985
+  - id: static-mocking
+    title: "Static and Construction Mocking"
+    path: static-mocking.md
+    tokens: 569
+  - id: strictness
+    title: "Strictness and Lenient Mocking"
+    path: strictness.md
+    tokens: 570
+  - id: stubbing
+    title: "Stubbing"
+    path: stubbing.md
+    tokens: 1274
+  - id: verification
+    title: "Verification"
+    path: verification.md
+    tokens: 967

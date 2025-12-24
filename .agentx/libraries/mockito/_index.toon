@@ -1,0 +1,19 @@
+@mockito v5.x ~11905tok
+src:https://site.mockito.org/
+
+[chunks]
+id|title|path|~tok
+annotations|Annotations|annotations.md|565
+argument-captors|Argument Captors|argument-captors.md|269
+argument-matchers-reference|Argument Matchers Reference|argument-matchers-reference.md|781
+argument-matchers|Argument Matchers|argument-matchers.md|676
+basics|Mockito Basics|basics.md|432
+bdd-style|BDD Style|bdd-style.md|423
+junit-integration|JUnit Integration|junit-integration.md|452
+migration|Migration and Setup|migration.md|1514
+mock-settings|Mock Settings|mock-settings.md|2428
+spies|Spies|spies.md|985
+static-mocking|Static and Construction Mocking|static-mocking.md|569
+strictness|Strictness and Lenient|strictness.md|570
+stubbing|Stubbing|stubbing.md|1274
+verification|Verification|verification.md|967
