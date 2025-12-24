@@ -213,6 +213,10 @@
             "description": "Refactor with a11y-audit"
           },
           {
+            "name": "exec:a11y-audit:upgrade",
+            "description": "Upgrade with a11y-audit"
+          },
+          {
             "name": "exec:auth-jwt",
             "description": "Execute with auth-jwt: JWT authentication implementation"
           },
@@ -231,6 +235,10 @@
           {
             "name": "exec:auth-jwt:refactor",
             "description": "Refactor with auth-jwt"
+          },
+          {
+            "name": "exec:auth-jwt:upgrade",
+            "description": "Upgrade with auth-jwt"
           },
           {
             "name": "exec:be-api",
@@ -253,6 +261,10 @@
             "description": "Refactor with be-api"
           },
           {
+            "name": "exec:be-api:upgrade",
+            "description": "Upgrade with be-api"
+          },
+          {
             "name": "exec:be-endpoint",
             "description": "Execute with be-endpoint: Build complete REST endpoint with layered architecture (10-step guided workflow)"
           },
@@ -271,6 +283,10 @@
           {
             "name": "exec:be-endpoint:refactor",
             "description": "Refactor with be-endpoint"
+          },
+          {
+            "name": "exec:be-endpoint:upgrade",
+            "description": "Upgrade with be-endpoint"
           },
           {
             "name": "exec:be-integration",
@@ -293,6 +309,10 @@
             "description": "Refactor with be-integration"
           },
           {
+            "name": "exec:be-integration:upgrade",
+            "description": "Upgrade with be-integration"
+          },
+          {
             "name": "exec:be-service",
             "description": "Execute with be-service: Backend service layer - business logic, transactions, integrations"
           },
@@ -311,6 +331,10 @@
           {
             "name": "exec:be-service:refactor",
             "description": "Refactor with be-service"
+          },
+          {
+            "name": "exec:be-service:upgrade",
+            "description": "Upgrade with be-service"
           },
           {
             "name": "exec:be-test",
@@ -333,6 +357,10 @@
             "description": "Refactor with be-test"
           },
           {
+            "name": "exec:be-test:upgrade",
+            "description": "Upgrade with be-test"
+          },
+          {
             "name": "exec:db-schema",
             "description": "Execute with db-schema: Database schema design and migrations"
           },
@@ -351,6 +379,10 @@
           {
             "name": "exec:db-schema:refactor",
             "description": "Refactor with db-schema"
+          },
+          {
+            "name": "exec:db-schema:upgrade",
+            "description": "Upgrade with db-schema"
           },
           {
             "name": "exec:design-system",
@@ -373,6 +405,10 @@
             "description": "Refactor with design-system"
           },
           {
+            "name": "exec:design-system:upgrade",
+            "description": "Upgrade with design-system"
+          },
+          {
             "name": "exec:fe-component",
             "description": "Execute with fe-component: React component development"
           },
@@ -391,6 +427,10 @@
           {
             "name": "exec:fe-component:refactor",
             "description": "Refactor with fe-component"
+          },
+          {
+            "name": "exec:fe-component:upgrade",
+            "description": "Upgrade with fe-component"
           },
           {
             "name": "exec:fe-state",
@@ -413,6 +453,10 @@
             "description": "Refactor with fe-state"
           },
           {
+            "name": "exec:fe-state:upgrade",
+            "description": "Upgrade with fe-state"
+          },
+          {
             "name": "exec:feature-plan",
             "description": "Execute with feature-plan: Plan feature development with milestones, dependencies, and rollout strategy"
           },
@@ -431,6 +475,10 @@
           {
             "name": "exec:feature-plan:refactor",
             "description": "Refactor with feature-plan"
+          },
+          {
+            "name": "exec:feature-plan:upgrade",
+            "description": "Upgrade with feature-plan"
           },
           {
             "name": "exec:qa-automation",
@@ -453,6 +501,10 @@
             "description": "Refactor with qa-automation"
           },
           {
+            "name": "exec:qa-automation:upgrade",
+            "description": "Upgrade with qa-automation"
+          },
+          {
             "name": "exec:qa-testplan",
             "description": "Execute with qa-testplan: Create comprehensive test plans with test cases and coverage analysis"
           },
@@ -471,6 +523,10 @@
           {
             "name": "exec:qa-testplan:refactor",
             "description": "Refactor with qa-testplan"
+          },
+          {
+            "name": "exec:qa-testplan:upgrade",
+            "description": "Upgrade with qa-testplan"
           },
           {
             "name": "exec:req-define",
@@ -493,6 +549,10 @@
             "description": "Refactor with req-define"
           },
           {
+            "name": "exec:req-define:upgrade",
+            "description": "Upgrade with req-define"
+          },
+          {
             "name": "exec:spec-write",
             "description": "Execute with spec-write: Write detailed feature specifications and technical requirements"
           },
@@ -511,6 +571,10 @@
           {
             "name": "exec:spec-write:refactor",
             "description": "Refactor with spec-write"
+          },
+          {
+            "name": "exec:spec-write:upgrade",
+            "description": "Upgrade with spec-write"
           },
           {
             "name": "exec:story-create",
@@ -533,6 +597,10 @@
             "description": "Refactor with story-create"
           },
           {
+            "name": "exec:story-create:upgrade",
+            "description": "Upgrade with story-create"
+          },
+          {
             "name": "exec:ui-component",
             "description": "Execute with ui-component: Design UI component specifications with states, variants, and accessibility"
           },
@@ -551,6 +619,10 @@
           {
             "name": "exec:ui-component:refactor",
             "description": "Refactor with ui-component"
+          },
+          {
+            "name": "exec:ui-component:upgrade",
+            "description": "Upgrade with ui-component"
           },
           {
             "name": "exec:ui-design",
@@ -573,6 +645,10 @@
             "description": "Refactor with ui-design"
           },
           {
+            "name": "exec:ui-design:upgrade",
+            "description": "Upgrade with ui-design"
+          },
+          {
             "name": "exec:ux-flow",
             "description": "Execute with ux-flow: Design user flows, journey maps, and interaction patterns"
           },
@@ -591,6 +667,10 @@
           {
             "name": "exec:ux-flow:refactor",
             "description": "Refactor with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:upgrade",
+            "description": "Upgrade with ux-flow"
           }
         ]
       },
@@ -695,6 +775,10 @@
             "description": "Refactor with auth-jwt"
           },
           {
+            "name": "exec:auth-jwt:upgrade",
+            "description": "Upgrade with auth-jwt"
+          },
+          {
             "name": "exec:be-api",
             "description": "Execute with be-api: Backend REST API development - controllers, DTOs, validation"
           },
@@ -713,6 +797,10 @@
           {
             "name": "exec:be-api:refactor",
             "description": "Refactor with be-api"
+          },
+          {
+            "name": "exec:be-api:upgrade",
+            "description": "Upgrade with be-api"
           },
           {
             "name": "exec:be-endpoint",
@@ -735,6 +823,10 @@
             "description": "Refactor with be-endpoint"
           },
           {
+            "name": "exec:be-endpoint:upgrade",
+            "description": "Upgrade with be-endpoint"
+          },
+          {
             "name": "exec:be-integration",
             "description": "Execute with be-integration: Downstream system integration - WebClient, circuit breaker, resilience"
           },
@@ -753,6 +845,10 @@
           {
             "name": "exec:be-integration:refactor",
             "description": "Refactor with be-integration"
+          },
+          {
+            "name": "exec:be-integration:upgrade",
+            "description": "Upgrade with be-integration"
           },
           {
             "name": "exec:be-service",
@@ -775,6 +871,10 @@
             "description": "Refactor with be-service"
           },
           {
+            "name": "exec:be-service:upgrade",
+            "description": "Upgrade with be-service"
+          },
+          {
             "name": "exec:be-test",
             "description": "Execute with be-test: Backend testing - unit tests, integration tests, mocking"
           },
@@ -795,6 +895,10 @@
             "description": "Refactor with be-test"
           },
           {
+            "name": "exec:be-test:upgrade",
+            "description": "Upgrade with be-test"
+          },
+          {
             "name": "exec:db-schema",
             "description": "Execute with db-schema: Database schema design and migrations"
           },
@@ -813,6 +917,10 @@
           {
             "name": "exec:db-schema:refactor",
             "description": "Refactor with db-schema"
+          },
+          {
+            "name": "exec:db-schema:upgrade",
+            "description": "Upgrade with db-schema"
           }
         ]
       },
@@ -876,6 +984,10 @@
             "description": "Refactor with a11y-audit"
           },
           {
+            "name": "exec:a11y-audit:upgrade",
+            "description": "Upgrade with a11y-audit"
+          },
+          {
             "name": "exec:design-system",
             "description": "Execute with design-system: Create and maintain design system components, tokens, and documentation"
           },
@@ -894,6 +1006,10 @@
           {
             "name": "exec:design-system:refactor",
             "description": "Refactor with design-system"
+          },
+          {
+            "name": "exec:design-system:upgrade",
+            "description": "Upgrade with design-system"
           },
           {
             "name": "exec:ui-component",
@@ -916,6 +1032,10 @@
             "description": "Refactor with ui-component"
           },
           {
+            "name": "exec:ui-component:upgrade",
+            "description": "Upgrade with ui-component"
+          },
+          {
             "name": "exec:ui-design",
             "description": "Execute with ui-design: UI/UX design system implementation"
           },
@@ -936,6 +1056,10 @@
             "description": "Refactor with ui-design"
           },
           {
+            "name": "exec:ui-design:upgrade",
+            "description": "Upgrade with ui-design"
+          },
+          {
             "name": "exec:ux-flow",
             "description": "Execute with ux-flow: Design user flows, journey maps, and interaction patterns"
           },
@@ -954,6 +1078,10 @@
           {
             "name": "exec:ux-flow:refactor",
             "description": "Refactor with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:upgrade",
+            "description": "Upgrade with ux-flow"
           }
         ]
       },
@@ -1058,6 +1186,10 @@
             "description": "Refactor with fe-component"
           },
           {
+            "name": "exec:fe-component:upgrade",
+            "description": "Upgrade with fe-component"
+          },
+          {
             "name": "exec:fe-state",
             "description": "Execute with fe-state: Frontend state management"
           },
@@ -1076,6 +1208,10 @@
           {
             "name": "exec:fe-state:refactor",
             "description": "Refactor with fe-state"
+          },
+          {
+            "name": "exec:fe-state:upgrade",
+            "description": "Upgrade with fe-state"
           },
           {
             "name": "exec:ui-component",
@@ -1098,6 +1234,10 @@
             "description": "Refactor with ui-component"
           },
           {
+            "name": "exec:ui-component:upgrade",
+            "description": "Upgrade with ui-component"
+          },
+          {
             "name": "exec:ui-design",
             "description": "Execute with ui-design: UI/UX design system implementation"
           },
@@ -1116,6 +1256,10 @@
           {
             "name": "exec:ui-design:refactor",
             "description": "Refactor with ui-design"
+          },
+          {
+            "name": "exec:ui-design:upgrade",
+            "description": "Upgrade with ui-design"
           }
         ]
       },
@@ -1179,6 +1323,10 @@
             "description": "Refactor with a11y-audit"
           },
           {
+            "name": "exec:a11y-audit:upgrade",
+            "description": "Upgrade with a11y-audit"
+          },
+          {
             "name": "exec:auth-jwt",
             "description": "Execute with auth-jwt: JWT authentication implementation"
           },
@@ -1197,6 +1345,10 @@
           {
             "name": "exec:auth-jwt:refactor",
             "description": "Refactor with auth-jwt"
+          },
+          {
+            "name": "exec:auth-jwt:upgrade",
+            "description": "Upgrade with auth-jwt"
           },
           {
             "name": "exec:be-api",
@@ -1219,6 +1371,10 @@
             "description": "Refactor with be-api"
           },
           {
+            "name": "exec:be-api:upgrade",
+            "description": "Upgrade with be-api"
+          },
+          {
             "name": "exec:be-endpoint",
             "description": "Execute with be-endpoint: Build complete REST endpoint with layered architecture (10-step guided workflow)"
           },
@@ -1237,6 +1393,10 @@
           {
             "name": "exec:be-endpoint:refactor",
             "description": "Refactor with be-endpoint"
+          },
+          {
+            "name": "exec:be-endpoint:upgrade",
+            "description": "Upgrade with be-endpoint"
           },
           {
             "name": "exec:be-integration",
@@ -1259,6 +1419,10 @@
             "description": "Refactor with be-integration"
           },
           {
+            "name": "exec:be-integration:upgrade",
+            "description": "Upgrade with be-integration"
+          },
+          {
             "name": "exec:be-service",
             "description": "Execute with be-service: Backend service layer - business logic, transactions, integrations"
           },
@@ -1277,6 +1441,10 @@
           {
             "name": "exec:be-service:refactor",
             "description": "Refactor with be-service"
+          },
+          {
+            "name": "exec:be-service:upgrade",
+            "description": "Upgrade with be-service"
           },
           {
             "name": "exec:be-test",
@@ -1299,6 +1467,10 @@
             "description": "Refactor with be-test"
           },
           {
+            "name": "exec:be-test:upgrade",
+            "description": "Upgrade with be-test"
+          },
+          {
             "name": "exec:db-schema",
             "description": "Execute with db-schema: Database schema design and migrations"
           },
@@ -1317,6 +1489,10 @@
           {
             "name": "exec:db-schema:refactor",
             "description": "Refactor with db-schema"
+          },
+          {
+            "name": "exec:db-schema:upgrade",
+            "description": "Upgrade with db-schema"
           },
           {
             "name": "exec:design-system",
@@ -1339,6 +1515,10 @@
             "description": "Refactor with design-system"
           },
           {
+            "name": "exec:design-system:upgrade",
+            "description": "Upgrade with design-system"
+          },
+          {
             "name": "exec:fe-component",
             "description": "Execute with fe-component: React component development"
           },
@@ -1357,6 +1537,10 @@
           {
             "name": "exec:fe-component:refactor",
             "description": "Refactor with fe-component"
+          },
+          {
+            "name": "exec:fe-component:upgrade",
+            "description": "Upgrade with fe-component"
           },
           {
             "name": "exec:fe-state",
@@ -1379,6 +1563,10 @@
             "description": "Refactor with fe-state"
           },
           {
+            "name": "exec:fe-state:upgrade",
+            "description": "Upgrade with fe-state"
+          },
+          {
             "name": "exec:feature-plan",
             "description": "Execute with feature-plan: Plan feature development with milestones, dependencies, and rollout strategy"
           },
@@ -1397,6 +1585,10 @@
           {
             "name": "exec:feature-plan:refactor",
             "description": "Refactor with feature-plan"
+          },
+          {
+            "name": "exec:feature-plan:upgrade",
+            "description": "Upgrade with feature-plan"
           },
           {
             "name": "exec:qa-automation",
@@ -1419,6 +1611,10 @@
             "description": "Refactor with qa-automation"
           },
           {
+            "name": "exec:qa-automation:upgrade",
+            "description": "Upgrade with qa-automation"
+          },
+          {
             "name": "exec:qa-testplan",
             "description": "Execute with qa-testplan: Create comprehensive test plans with test cases and coverage analysis"
           },
@@ -1437,6 +1633,10 @@
           {
             "name": "exec:qa-testplan:refactor",
             "description": "Refactor with qa-testplan"
+          },
+          {
+            "name": "exec:qa-testplan:upgrade",
+            "description": "Upgrade with qa-testplan"
           },
           {
             "name": "exec:req-define",
@@ -1459,6 +1659,10 @@
             "description": "Refactor with req-define"
           },
           {
+            "name": "exec:req-define:upgrade",
+            "description": "Upgrade with req-define"
+          },
+          {
             "name": "exec:spec-write",
             "description": "Execute with spec-write: Write detailed feature specifications and technical requirements"
           },
@@ -1477,6 +1681,10 @@
           {
             "name": "exec:spec-write:refactor",
             "description": "Refactor with spec-write"
+          },
+          {
+            "name": "exec:spec-write:upgrade",
+            "description": "Upgrade with spec-write"
           },
           {
             "name": "exec:story-create",
@@ -1499,6 +1707,10 @@
             "description": "Refactor with story-create"
           },
           {
+            "name": "exec:story-create:upgrade",
+            "description": "Upgrade with story-create"
+          },
+          {
             "name": "exec:ui-component",
             "description": "Execute with ui-component: Design UI component specifications with states, variants, and accessibility"
           },
@@ -1517,6 +1729,10 @@
           {
             "name": "exec:ui-component:refactor",
             "description": "Refactor with ui-component"
+          },
+          {
+            "name": "exec:ui-component:upgrade",
+            "description": "Upgrade with ui-component"
           },
           {
             "name": "exec:ui-design",
@@ -1539,6 +1755,10 @@
             "description": "Refactor with ui-design"
           },
           {
+            "name": "exec:ui-design:upgrade",
+            "description": "Upgrade with ui-design"
+          },
+          {
             "name": "exec:ux-flow",
             "description": "Execute with ux-flow: Design user flows, journey maps, and interaction patterns"
           },
@@ -1557,6 +1777,10 @@
           {
             "name": "exec:ux-flow:refactor",
             "description": "Refactor with ux-flow"
+          },
+          {
+            "name": "exec:ux-flow:upgrade",
+            "description": "Upgrade with ux-flow"
           }
         ]
       },
@@ -1620,6 +1844,10 @@
             "description": "Refactor with feature-plan"
           },
           {
+            "name": "exec:feature-plan:upgrade",
+            "description": "Upgrade with feature-plan"
+          },
+          {
             "name": "exec:req-define",
             "description": "Execute with req-define: Define and document functional and non-functional requirements"
           },
@@ -1638,6 +1866,10 @@
           {
             "name": "exec:req-define:refactor",
             "description": "Refactor with req-define"
+          },
+          {
+            "name": "exec:req-define:upgrade",
+            "description": "Upgrade with req-define"
           },
           {
             "name": "exec:spec-write",
@@ -1660,6 +1892,10 @@
             "description": "Refactor with spec-write"
           },
           {
+            "name": "exec:spec-write:upgrade",
+            "description": "Upgrade with spec-write"
+          },
+          {
             "name": "exec:story-create",
             "description": "Execute with story-create: Create user stories with acceptance criteria and business value"
           },
@@ -1678,6 +1914,10 @@
           {
             "name": "exec:story-create:refactor",
             "description": "Refactor with story-create"
+          },
+          {
+            "name": "exec:story-create:upgrade",
+            "description": "Upgrade with story-create"
           }
         ]
       },
@@ -1741,6 +1981,10 @@
             "description": "Refactor with be-test"
           },
           {
+            "name": "exec:be-test:upgrade",
+            "description": "Upgrade with be-test"
+          },
+          {
             "name": "exec:qa-automation",
             "description": "Execute with qa-automation: Design and implement automated test suites - E2E, integration, performance"
           },
@@ -1761,6 +2005,10 @@
             "description": "Refactor with qa-automation"
           },
           {
+            "name": "exec:qa-automation:upgrade",
+            "description": "Upgrade with qa-automation"
+          },
+          {
             "name": "exec:qa-testplan",
             "description": "Execute with qa-testplan: Create comprehensive test plans with test cases and coverage analysis"
           },
@@ -1779,6 +2027,10 @@
           {
             "name": "exec:qa-testplan:refactor",
             "description": "Refactor with qa-testplan"
+          },
+          {
+            "name": "exec:qa-testplan:upgrade",
+            "description": "Upgrade with qa-testplan"
           }
         ]
       }
