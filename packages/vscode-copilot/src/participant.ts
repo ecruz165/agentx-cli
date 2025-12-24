@@ -1223,7 +1223,7 @@ async function handleConfigPathCommand(
     stream.markdown(`📁 **Config file:** \`${configPath}\``);
   } else {
     stream.markdown(`ℹ️ No configuration file found\n\n`);
-    stream.markdown(`Default location: \`.ai-config/config.json\``);
+    stream.markdown(`Default location: \`.agentx/config.json\``);
   }
 
   return { metadata: { command: 'config path' } };
@@ -1239,7 +1239,7 @@ async function handleIntentionsListCommand(
 
   if (intentions.length === 0) {
     stream.markdown(`ℹ️ **No intentions configured**\n\n`);
-    stream.markdown(`Add intention JSON files to: \`.ai-config/intentions/\``);
+    stream.markdown(`Add intention JSON files to: \`.agentx/intentions/\``);
     return { metadata: { command: 'intentions list', count: 0 } };
   }
 
@@ -1351,10 +1351,10 @@ async function handleInitCommand(
   );
   stream.markdown(`| Primary | \`${detection.primaryMarker}\` |\n\n`);
 
-  // Step 2: Check if .ai-config exists
+  // Step 2: Check if .agentx exists
   if (hasAiConfig(workspacePath)) {
     stream.markdown(`### Existing Configuration Found\n\n`);
-    stream.markdown(`\`.ai-config/\` already exists at \`${getAiConfigPath(workspacePath)}\`\n\n`);
+    stream.markdown(`\`.agentx/\` already exists at \`${getAiConfigPath(workspacePath)}\`\n\n`);
     stream.markdown(`Would you like to:\n\n`);
 
     stream.button({
@@ -1421,7 +1421,7 @@ async function handleInitCommand(
   );
   stream.markdown(`**Directory Structure:**\n`);
   stream.markdown(`\`\`\`\n`);
-  stream.markdown(`.ai-config/\n`);
+  stream.markdown(`.agentx/\n`);
   stream.markdown(`├── config.json\n`);
   stream.markdown(`├── aliases/\n`);
   for (const alias of templates.aliases.slice(0, 5)) {
@@ -1527,17 +1527,17 @@ async function handleInitAnalyzeCommand(
   // Check if already initialized
   if (hasAiConfig(workspacePath)) {
     stream.markdown(`### AgentX Status\n\n`);
-    stream.markdown(`\`.ai-config/\` exists at \`${getAiConfigPath(workspacePath)}\`\n`);
+    stream.markdown(`\`.agentx/\` exists at \`${getAiConfigPath(workspacePath)}\`\n`);
   } else {
     stream.markdown(`### Next Steps\n\n`);
-    stream.markdown(`Run \`/init:scaffold\` to create \`.ai-config/\` for this project.\n`);
+    stream.markdown(`Run \`/init:scaffold\` to create \`.agentx/\` for this project.\n`);
   }
 
   return { metadata: { command: 'init:analyze', projectType: analysis.projectType } };
 }
 
 /**
- * /init:scaffold and /init:scaffold-with-dirs - Scaffold .ai-config
+ * /init:scaffold and /init:scaffold-with-dirs - Scaffold .agentx
  */
 async function handleInitScaffoldCommand(
   stream: vscode.ChatResponseStream,
@@ -1563,7 +1563,7 @@ async function handleInitScaffoldCommand(
 
   // Check if already exists
   if (hasAiConfig(workspacePath)) {
-    stream.markdown(`**.ai-config/** already exists.\n\n`);
+    stream.markdown(`**.agentx/** already exists.\n\n`);
     stream.markdown(`Use the buttons below to update:\n\n`);
 
     stream.button({
@@ -1587,7 +1587,7 @@ async function handleInitScaffoldCommand(
 
   stream.markdown(`### Files to Create\n\n`);
   stream.markdown(`\`\`\`\n`);
-  stream.markdown(`.ai-config/\n`);
+  stream.markdown(`.agentx/\n`);
   stream.markdown(`├── config.json\n`);
   stream.markdown(`├── aliases/\n`);
   for (const alias of templates.aliases) {

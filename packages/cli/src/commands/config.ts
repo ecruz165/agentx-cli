@@ -107,7 +107,7 @@ export function createConfigCommand(): Command {
         console.log(configPath);
       } else {
         console.log(colors.dim('No configuration file found'));
-        console.log(colors.dim('Default location: .ai-config/config.json'));
+        console.log(colors.dim('Default location: .agentx/config.json'));
       }
     });
 

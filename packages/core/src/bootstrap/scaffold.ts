@@ -1,6 +1,6 @@
 /**
  * Project scaffolding utilities
- * Creates .ai-config structure based on project type
+ * Creates .agentx structure based on project type
  */
 
 import fs from 'fs';

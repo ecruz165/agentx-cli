@@ -93,8 +93,7 @@ const DEFAULT_CONFIG: AgentXConfig = {
  * First match wins - project-specific configs take precedence
  */
 const CONFIG_PATHS = [
-  '.agentx/config.json',      // Project-specific (new preferred location)
-  '.ai-config/config.json',   // Legacy project-specific
+  '.agentx/config.json',      // Project-specific
   '.agentx.json',             // Project root file
   path.join(os.homedir(), '.agentx', 'config.json'),  // User global config
 ];

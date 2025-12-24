@@ -100,10 +100,10 @@ async function createProjectStructure(
     aliases: ['project'],
   };
   fs.writeFileSync(
-    path.join(outputPath, '.ai-config.json'),
+    path.join(outputPath, '.agentx.json'),
     JSON.stringify(aiConfig, null, 2)
   );
-  console.log(`${colors.green('✓')} Created ${outputPath}/.ai-config.json`);
+  console.log(`${colors.green('✓')} Created ${outputPath}/.agentx.json`);
 
   switch (framework) {
     case 'spec-kit':
@@ -190,7 +190,7 @@ agentx exec ${template === 'bff-service' ? 'bff' : 'rest-api'} "..."
 
 ## Structure
 
-- \`.ai-config.json\` - AI configuration
+- \`.agentx.json\` - AI configuration
 - \`PROJECT.yaml\` - Project metadata
 - \`README.md\` - This file
 

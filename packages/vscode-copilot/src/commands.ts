@@ -281,7 +281,7 @@ ${fileList}${moreFiles}`;
         }
       } else {
         vscode.window.showInformationMessage(
-          'No configuration file found. Default location: .ai-config/config.json'
+          'No configuration file found. Default location: .agentx/config.json'
         );
       }
     }
@@ -460,7 +460,7 @@ ${fileList}${moreFiles}`;
           cancellable: false,
         },
         async (progress) => {
-          progress.report({ message: 'Creating .ai-config structure...' });
+          progress.report({ message: 'Creating .agentx structure...' });
 
           const result = await scaffoldProject({
             projectType: projectType as ProjectType,
@@ -471,11 +471,11 @@ ${fileList}${moreFiles}`;
 
           if (result.success) {
             vscode.window.showInformationMessage(
-              `AgentX initialized! Created ${result.createdFiles.length} files in .ai-config/`
+              `AgentX initialized! Created ${result.createdFiles.length} files in .agentx/`
             );
 
             // Open the config.json file
-            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            const configPath = path.join(workspacePath, '.agentx', 'config.json');
             try {
               const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
               await vscode.window.showTextDocument(doc);
@@ -503,7 +503,7 @@ ${fileList}${moreFiles}`;
           cancellable: false,
         },
         async (progress) => {
-          progress.report({ message: 'Creating .ai-config structure...' });
+          progress.report({ message: 'Creating .agentx structure...' });
 
           const result = await scaffoldProject({
             projectType: 'typescript', // Default to TypeScript
@@ -518,7 +518,7 @@ ${fileList}${moreFiles}`;
             );
 
             // Open the config.json file
-            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            const configPath = path.join(workspacePath, '.agentx', 'config.json');
             try {
               const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
               await vscode.window.showTextDocument(doc);
@@ -546,7 +546,7 @@ ${fileList}${moreFiles}`;
           cancellable: false,
         },
         async (progress) => {
-          progress.report({ message: 'Updating .ai-config structure...' });
+          progress.report({ message: 'Updating .agentx structure...' });
 
           const result = await scaffoldProject({
             projectType: (projectType || 'typescript') as ProjectType,
@@ -577,7 +577,7 @@ ${fileList}${moreFiles}`;
     'agentx.reinitializeOverwrite',
     async (workspacePath: string, projectType: string) => {
       const confirm = await vscode.window.showWarningMessage(
-        'This will overwrite existing .ai-config files. Continue?',
+        'This will overwrite existing .agentx files. Continue?',
         { modal: true },
         'Overwrite'
       );
@@ -593,7 +593,7 @@ ${fileList}${moreFiles}`;
           cancellable: false,
         },
         async (progress) => {
-          progress.report({ message: 'Overwriting .ai-config structure...' });
+          progress.report({ message: 'Overwriting .agentx structure...' });
 
           const result = await scaffoldProject({
             projectType: (projectType || 'typescript') as ProjectType,
@@ -608,7 +608,7 @@ ${fileList}${moreFiles}`;
             );
 
             // Open the config.json file
-            const configPath = path.join(workspacePath, '.ai-config', 'config.json');
+            const configPath = path.join(workspacePath, '.agentx', 'config.json');
             try {
               const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(configPath));
               await vscode.window.showTextDocument(doc);

@@ -10,7 +10,7 @@ Tests use the `default-knowledge-base` directory included in the repository.
 pnpm run build
 
 # Set up environment to use default-knowledge-base
-export AGENTX_CONFIG_PATH="$(pwd)/default-knowledge-base/.ai-config/config.json"
+export AGENTX_CONFIG_PATH="$(pwd)/default-knowledge-base/.agentx/config.json"
 
 # Or run from default-knowledge-base directory
 cd default-knowledge-base
@@ -239,7 +239,7 @@ agentx exec be-endpoint "Create an order endpoint" --dry-run --file output.md --
 agentx init spec-kit -t bff-service -n test-bff -o /tmp/test-bff
 ls -la /tmp/test-bff
 ```
-**Expected:** Creates project with .ai-config.json, README.md, PROJECT.yaml, specs/
+**Expected:** Creates project with .agentx.json, README.md, PROJECT.yaml, specs/
 
 ### 7.2 Initialize open-spec Project
 ```bash

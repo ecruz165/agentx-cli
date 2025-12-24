@@ -1,7 +1,7 @@
 # AgentX VS Code Extension Manual Test Script
 
 This document provides a comprehensive manual test script for the AgentX VS Code extension.
-Tests require a workspace with a `.ai-config` folder (use `default-knowledge-base`).
+Tests require a workspace with a `.agentx` folder (use `default-knowledge-base`).
 
 ## Quick Setup (Recommended)
 
@@ -55,7 +55,7 @@ code-insiders --install-extension packages/vscode-copilot/agentx-vscode-1.0.0.vs
 code default-knowledge-base
 ```
 
-**Note:** The `default-knowledge-base` folder already has a `.ai-config` folder with:
+**Note:** The `default-knowledge-base` folder already has a `.agentx` folder with:
 - `config.json` - Configuration with `knowledgeBase: "."` (uses current directory)
 - `aliases/` - Sample alias definitions
 - `intentions/` - Sample intention definitions
@@ -73,7 +73,7 @@ code default-knowledge-base
 ## 1. Extension Activation
 
 ### 1.1 Verify Activation
-**Action:** Open a workspace with `.ai-config` folder
+**Action:** Open a workspace with `.agentx` folder
 **Expected:** 
 - "AgentX extension activated" notification appears
 - Console shows "AgentX extension is now active"
@@ -302,7 +302,7 @@ code default-knowledge-base
 - No partial response shown
 
 ### 7.4 No Aliases Directory
-**Action:** Open workspace without `.ai-config/aliases`
+**Action:** Open workspace without `.agentx/aliases`
 **Expected:** 
 - Shows "Alias directory not found" warning
 - Shows expected path

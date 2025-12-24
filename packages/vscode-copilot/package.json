@@ -174,7 +174,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -182,11 +182,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -695,7 +695,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -703,11 +703,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -736,7 +736,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -744,11 +744,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -945,7 +945,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -953,11 +953,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -1106,7 +1106,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -1114,11 +1114,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -1147,7 +1147,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -1155,11 +1155,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -1284,7 +1284,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -1292,11 +1292,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -1805,7 +1805,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -1813,11 +1813,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
@@ -1942,7 +1942,7 @@
           },
           {
             "name": "init",
-            "description": "Initialize AgentX - detect project and scaffold .ai-config"
+            "description": "Initialize AgentX - detect project and scaffold .agentx"
           },
           {
             "name": "init:analyze",
@@ -1950,11 +1950,11 @@
           },
           {
             "name": "init:scaffold",
-            "description": "Scaffold .ai-config with detected project settings"
+            "description": "Scaffold .agentx with detected project settings"
           },
           {
             "name": "init:scaffold-with-dirs",
-            "description": "Scaffold .ai-config and create source directories"
+            "description": "Scaffold .agentx and create source directories"
           },
           {
             "name": "help",
