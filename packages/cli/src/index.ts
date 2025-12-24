@@ -5,6 +5,7 @@ import { createConfigCommand } from './commands/config';
 import { createAliasCommand } from './commands/alias';
 import { createExecCommand } from './commands/exec';
 import { createInitCommand } from './commands/init';
+import { createScaffoldCommand } from './commands/scaffold';
 
 const packageJson = require('../package.json');
 
@@ -21,6 +22,7 @@ program.option('--no-color', 'Disable colored output');
 // Register commands
 program.addCommand(createExecCommand(packageJson.version));
 program.addCommand(createInitCommand(packageJson.version));
+program.addCommand(createScaffoldCommand(packageJson.version));
 program.addCommand(createConfigCommand());
 program.addCommand(createAliasCommand());
 

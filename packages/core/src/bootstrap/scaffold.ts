@@ -216,7 +216,7 @@ export const DEFAULT_TEMPLATES: ProjectTemplates = {
 
 /**
  * Default configuration for new projects
- * Note: Personas are stored in separate files in .ai-config/personas/ folder
+ * Note: Personas are stored in separate files in .agentx/personas/ folder
  */
 function getDefaultConfig(_projectType: ProjectType, _projectName?: string): AgentXConfig {
   return {
@@ -324,14 +324,14 @@ function getDefaultPersonas(projectType: ProjectType): PersonaTemplateInput[] {
 }
 
 /**
- * Get the .ai-config directory path for a project
+ * Get the .agentx directory path for a project
  */
 export function getAiConfigPath(projectPath: string): string {
-  return path.join(path.resolve(projectPath), '.ai-config');
+  return path.join(path.resolve(projectPath), '.agentx');
 }
 
 /**
- * Check if .ai-config already exists
+ * Check if .agentx already exists
  */
 export function hasAiConfig(projectPath: string): boolean {
   return fs.existsSync(getAiConfigPath(projectPath));
@@ -544,7 +544,7 @@ function createKnowledgeBaseStructure(basePath: string): string[] {
 }
 
 /**
- * Scaffold the .ai-config structure for a project
+ * Scaffold the .agentx structure for a project
  */
 export async function scaffoldProject(
   options: ScaffoldOptions
@@ -564,7 +564,7 @@ export async function scaffoldProject(
     const intentionDir = path.join(aiConfigPath, 'intentions');
     const personaDir = path.join(aiConfigPath, 'personas');
 
-    // Create .ai-config directory structure
+    // Create .agentx directory structure
     const dirsToCreate = [aiConfigPath, aliasDir, intentionDir, personaDir];
     for (const dir of dirsToCreate) {
       if (!fs.existsSync(dir)) {
