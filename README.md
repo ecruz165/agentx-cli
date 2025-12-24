@@ -566,33 +566,25 @@ AgentX looks for configuration files in the following order:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `provider` | string | `copilot` | AI provider (`copilot`, `claude`, `openai`, `mock`) |
-| `model` | string | `gpt-4` | Default model to use |
+| `model` | string | `claude-opus-4.5` | Default model to use |
 | `knowledgeBase` | string | `./default-knowledge-base` | Path to knowledge base |
 | `maxContextSize` | number | `65536` | Maximum context size in bytes |
 | `contextFormat` | string | `hybrid` | Context format (`hybrid`, `raw`, `structured`) |
 | `cacheEnabled` | boolean | `true` | Enable context caching |
-| `frameworks` | object | `{...}` | Framework configurations |
 | `outputFormat` | string | `markdown` | Default output format (`toon`, `json`, `markdown`, `raw`) |
-| `outputLocation` | string | `./agentx-output` | Default directory for saved outputs |
 | `toonConversion` | object | `{...}` | TOON conversion settings per content type |
 
 ### Example Configuration
 
 ```json
 {
-  "provider": "mock",
-  "model": "gpt-4",
+  "provider": "copilot",
+  "model": "claude-opus-4.5",
   "knowledgeBase": "./default-knowledge-base",
   "maxContextSize": 65536,
   "contextFormat": "hybrid",
   "cacheEnabled": true,
-  "frameworks": {
-    "spec-kit": { "name": "spec-kit", "enabled": true },
-    "open-spec": { "name": "open-spec", "enabled": true },
-    "bmad": { "name": "bmad", "enabled": true }
-  },
   "outputFormat": "markdown",
-  "outputLocation": "./agentx-output",
   "toonConversion": {
     "patterns": true,
     "reference": true,

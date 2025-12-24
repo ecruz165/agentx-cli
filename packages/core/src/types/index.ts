@@ -93,7 +93,7 @@ export interface AgentXConfig {
   maxContextSize: number;
   contextFormat: ContextFormat;
   cacheEnabled: boolean;
-  frameworks: Record<string, FrameworkConfig>;
+  frameworks?: Record<string, FrameworkConfig>;
   outputFormat?: ResponseOutputFormat;
   outputLocation?: string;
   personas?: PersonaDefinition[];

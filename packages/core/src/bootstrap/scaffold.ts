@@ -216,22 +216,16 @@ export const DEFAULT_TEMPLATES: ProjectTemplates = {
 
 /**
  * Default configuration for new projects
- * Note: Personas are stored in separate files in .agentx/personas/ folder
+ * Shared resources (aliases, personas, skills, etc.) come from bundled defaults
  */
 function getDefaultConfig(_projectType: ProjectType, _projectName?: string): AgentXConfig {
   return {
     provider: 'copilot',
-    model: 'gpt-4',
+    model: 'claude-opus-4.5',
     knowledgeBase: '.',
-    maxContextSize: 32768,
+    maxContextSize: 65536,
     contextFormat: 'hybrid' as ContextFormat,
     cacheEnabled: true,
-    frameworks: {
-      'spec-kit': {
-        name: 'spec-kit',
-        enabled: true,
-      },
-    },
     outputFormat: 'markdown',
     toonConversion: {
       patterns: true,
@@ -448,7 +442,7 @@ export function generateDefaultConfig(
   configPath?: string,
   overwrite: boolean = false
 ): boolean {
-  const targetPath = configPath || path.join(process.cwd(), '.ai-config', 'config.json');
+  const targetPath = configPath || path.join(process.cwd(), '.agentx', 'config.json');
 
   if (fs.existsSync(targetPath) && !overwrite) {
     return false;
@@ -545,6 +539,7 @@ function createKnowledgeBaseStructure(basePath: string): string[] {
 
 /**
  * Scaffold the .agentx structure for a project
+ * Only creates project-specific config - shared resources come from bundled defaults
  */
 export async function scaffoldProject(
   options: ScaffoldOptions
@@ -560,53 +555,14 @@ export async function scaffoldProject(
   try {
     const basePath = path.resolve(options.basePath);
     const aiConfigPath = getAiConfigPath(basePath);
-    const aliasDir = path.join(aiConfigPath, 'aliases');
-    const intentionDir = path.join(aiConfigPath, 'intentions');
-    const personaDir = path.join(aiConfigPath, 'personas');
 
-    // Create .agentx directory structure
-    const dirsToCreate = [aiConfigPath, aliasDir, intentionDir, personaDir];
-    for (const dir of dirsToCreate) {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        result.createdDirectories.push(dir);
-      }
+    // Create .agentx directory
+    if (!fs.existsSync(aiConfigPath)) {
+      fs.mkdirSync(aiConfigPath, { recursive: true });
+      result.createdDirectories.push(aiConfigPath);
     }
 
-    // Get templates for project type
-    const templates = DEFAULT_TEMPLATES[options.projectType] || DEFAULT_TEMPLATES.typescript;
-
-    // Merge custom aliases with defaults
-    const allAliases = [...templates.aliases];
-    if (options.customAliases) {
-      allAliases.push(...options.customAliases);
-    }
-
-    // Generate alias files
-    const aliasResult = generateAliasFiles(allAliases, aliasDir, options.overwrite);
-    result.createdFiles.push(...aliasResult.created);
-    result.skippedPaths.push(...aliasResult.skipped);
-
-    // Merge custom intentions with defaults
-    const allIntentions = [...templates.intentions];
-    if (options.customIntentions) {
-      allIntentions.push(...options.customIntentions);
-    }
-
-    // Generate intention files
-    if (allIntentions.length > 0) {
-      const intentionResult = generateIntentionFiles(allIntentions, intentionDir, options.overwrite);
-      result.createdFiles.push(...intentionResult.created);
-      result.skippedPaths.push(...intentionResult.skipped);
-    }
-
-    // Generate persona files based on project type
-    const defaultPersonas = getDefaultPersonas(options.projectType);
-    const personaResult = generatePersonaFiles(defaultPersonas, personaDir, options.overwrite);
-    result.createdFiles.push(...personaResult.created);
-    result.skippedPaths.push(...personaResult.skipped);
-
-    // Generate config.json
+    // Generate config.json with project-specific settings
     const configPath = path.join(aiConfigPath, 'config.json');
     const configCreated = generateDefaultConfig(
       options.projectType,
@@ -618,16 +574,6 @@ export async function scaffoldProject(
       result.createdFiles.push(configPath);
     } else if (fs.existsSync(configPath)) {
       result.skippedPaths.push(configPath);
-    }
-
-    // Create knowledge base structure
-    const kbCreated = createKnowledgeBaseStructure(basePath);
-    for (const item of kbCreated) {
-      if (fs.statSync(item).isDirectory()) {
-        result.createdDirectories.push(item);
-      } else {
-        result.createdFiles.push(item);
-      }
     }
 
     // Optionally create source directories
