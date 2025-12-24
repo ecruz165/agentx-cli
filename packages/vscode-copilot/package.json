@@ -2048,7 +2048,8 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
-    "@agentx/core": "workspace:*"
+    "@agentx/core": "workspace:*",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/node": "^25.0.2",

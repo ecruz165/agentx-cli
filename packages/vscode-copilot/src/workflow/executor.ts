@@ -1,6 +1,7 @@
 /**
  * VS Code Workflow Step Executor
  * Implements the StepExecutor interface for VS Code Copilot Chat
+ * Supports both skill-based and LLM prompt-based steps
  */
 
 import * as vscode from 'vscode';
@@ -16,6 +17,7 @@ import {
   createExecutionState,
   updateExecutionStatus,
 } from '@agentx/core';
+import { SkillExecutor, SkillResult } from '../skills';
 
 /**
  * Options for the VS Code workflow executor
@@ -36,11 +38,17 @@ export class VSCodeWorkflowExecutor implements StepExecutor {
   private executionId: string | null = null;
   private stepIndex: number = 0;
   private totalSteps: number = 0;
+  private skillExecutor: SkillExecutor;
 
   constructor(options: VSCodeExecutorOptions) {
     this.stream = options.stream;
     this.token = options.token;
     this.request = options.request;
+
+    // Initialize skill executor with workspace root
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const workspaceRoot = workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    this.skillExecutor = new SkillExecutor(workspaceRoot);
   }
 
   /**
@@ -72,6 +80,7 @@ export class VSCodeWorkflowExecutor implements StepExecutor {
 
   /**
    * Execute a single step
+   * Supports both skill-based and LLM prompt-based steps
    */
   async executeStep(
     step: WorkflowStep,
@@ -96,59 +105,13 @@ export class VSCodeWorkflowExecutor implements StepExecutor {
     this.stream.progress(`Step ${this.stepIndex}/${this.totalSteps}: ${step.name}`);
 
     try {
-      // Interpolate the prompt with context
-      const prompt = interpolate(step.prompt, context);
-
-      // Get available language models
-      const models = await vscode.lm.selectChatModels({
-        vendor: 'copilot',
-        family: 'gpt-4o',
-      });
-
-      if (models.length === 0) {
-        throw new Error('No language model available');
+      // Check if step has skills defined
+      if (step.skills && step.skills.length > 0) {
+        return await this.executeSkillStep(step, context, startTime);
       }
 
-      const model = models[0];
-
-      // Build messages for the LLM
-      const messages = [
-        vscode.LanguageModelChatMessage.User(this.buildStepPrompt(step, prompt, context)),
-      ];
-
-      // Execute the LLM call
-      const response = await model.sendRequest(messages, {}, this.token);
-
-      // Collect the response
-      let fullResponse = '';
-      for await (const chunk of response.text) {
-        fullResponse += chunk;
-      }
-
-      // Extract outputs from response
-      const outputs = this.extractOutputs(fullResponse, step);
-
-      // Stream success message
-      this.stream.markdown(`\n✅ **Step ${this.stepIndex}**: ${step.name}\n\n`);
-
-      // Show created files if any
-      if (outputs.createdFiles) {
-        const files = Array.isArray(outputs.createdFiles)
-          ? outputs.createdFiles
-          : [outputs.createdFiles];
-        for (const file of files) {
-          this.stream.markdown(`  📄 Created: \`${file}\`\n`);
-        }
-      }
-
-      return {
-        stepId: step.id,
-        status: 'success',
-        outputs,
-        duration: Date.now() - startTime,
-        createdFiles: outputs.createdFiles as string[] | undefined,
-        modifiedFiles: outputs.modifiedFiles as string[] | undefined,
-      };
+      // Fall back to LLM prompt-based execution
+      return await this.executeLlmStep(step, context, startTime);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -164,6 +127,188 @@ export class VSCodeWorkflowExecutor implements StepExecutor {
         error: errorMessage,
       };
     }
+  }
+
+  /**
+   * Execute a skill-based step
+   */
+  private async executeSkillStep(
+    step: WorkflowStep,
+    context: WorkflowContext,
+    startTime: number
+  ): Promise<StepResult> {
+    const outputs: Record<string, unknown> = {};
+    const createdFiles: string[] = [];
+    const modifiedFiles: string[] = [];
+
+    this.stream.markdown(`\n🔧 **Step ${this.stepIndex}**: ${step.name} (skills: ${step.skills.join(', ')})\n\n`);
+
+    // Build skill inputs from step's skillInputs with interpolation
+    const skillInputs: Record<string, unknown> = {};
+    const stepWithInputs = step as WorkflowStep & { skillInputs?: Record<string, string> };
+    if (stepWithInputs.skillInputs) {
+      for (const [key, value] of Object.entries(stepWithInputs.skillInputs)) {
+        if (typeof value === 'string') {
+          skillInputs[key] = interpolate(value, context);
+        } else {
+          skillInputs[key] = value;
+        }
+      }
+    }
+
+    // Also include workflow inputs
+    Object.assign(skillInputs, context.inputs);
+
+    // Execute each skill in sequence
+    for (const skillId of step.skills) {
+      this.stream.markdown(`  ⚙️ Running skill: \`${skillId}\`\n`);
+
+      const skillResult = await this.skillExecutor.execute(skillId, skillInputs);
+
+      if (!skillResult.success) {
+        const errorMsg = skillResult.error?.message || 'Skill execution failed';
+        this.stream.markdown(`  ❌ Skill failed: ${errorMsg}\n`);
+
+        return {
+          stepId: step.id,
+          status: 'failed',
+          outputs,
+          duration: Date.now() - startTime,
+          error: `Skill ${skillId} failed: ${errorMsg}`,
+        };
+      }
+
+      // Merge skill outputs
+      Object.assign(outputs, skillResult.outputs);
+
+      // Track files
+      if (skillResult.outputs.createdFiles) {
+        const files = Array.isArray(skillResult.outputs.createdFiles)
+          ? skillResult.outputs.createdFiles as string[]
+          : [skillResult.outputs.createdFiles as string];
+        createdFiles.push(...files);
+      }
+      if (skillResult.outputs.modifiedFiles) {
+        const files = Array.isArray(skillResult.outputs.modifiedFiles)
+          ? skillResult.outputs.modifiedFiles as string[]
+          : [skillResult.outputs.modifiedFiles as string];
+        modifiedFiles.push(...files);
+      }
+
+      this.stream.markdown(`  ✅ Skill completed\n`);
+    }
+
+    // Map skill outputs to step outputs based on 'from' mapping
+    for (const outputDef of step.outputs) {
+      const outputDefWithFrom = outputDef as typeof outputDef & { from?: string };
+      if (outputDefWithFrom.from) {
+        // Handle 'skill.outputName' format
+        const fromPath = outputDefWithFrom.from.replace(/^skill\./, '');
+        if (outputs[fromPath] !== undefined) {
+          outputs[outputDef.name] = outputs[fromPath];
+        }
+      }
+    }
+
+    this.stream.markdown(`\n✅ **Step ${this.stepIndex}**: ${step.name} - Complete\n\n`);
+
+    // Add created/modified files as references for context in follow-up questions
+    this.streamFileReferences(createdFiles, modifiedFiles);
+
+    return {
+      stepId: step.id,
+      status: 'success',
+      outputs,
+      duration: Date.now() - startTime,
+      createdFiles: createdFiles.length > 0 ? createdFiles : undefined,
+      modifiedFiles: modifiedFiles.length > 0 ? modifiedFiles : undefined,
+    };
+  }
+
+  /**
+   * Stream file references to add them to chat context
+   * This allows users to reference these files with #file in follow-up questions
+   */
+  private streamFileReferences(createdFiles: string[], modifiedFiles: string[]): void {
+    const allFiles = [...createdFiles, ...modifiedFiles];
+    if (allFiles.length === 0) return;
+
+    this.stream.markdown(`📎 **Files available for reference:**\n`);
+    for (const file of allFiles) {
+      try {
+        const uri = vscode.Uri.file(file);
+        // Use stream.reference to add file to chat context
+        this.stream.reference(uri);
+        this.stream.markdown(` \`${file}\`\n`);
+      } catch {
+        // Fall back to just showing the path
+        this.stream.markdown(` \`${file}\`\n`);
+      }
+    }
+    this.stream.markdown(`\n`);
+  }
+
+  /**
+   * Execute an LLM prompt-based step
+   */
+  private async executeLlmStep(
+    step: WorkflowStep,
+    context: WorkflowContext,
+    startTime: number
+  ): Promise<StepResult> {
+    // Interpolate the prompt with context
+    const prompt = interpolate(step.prompt, context);
+
+    // Get available language models
+    const models = await vscode.lm.selectChatModels({
+      vendor: 'copilot',
+      family: 'gpt-4o',
+    });
+
+    if (models.length === 0) {
+      throw new Error('No language model available');
+    }
+
+    const model = models[0];
+
+    // Build messages for the LLM
+    const messages = [
+      vscode.LanguageModelChatMessage.User(this.buildStepPrompt(step, prompt, context)),
+    ];
+
+    // Execute the LLM call
+    const response = await model.sendRequest(messages, {}, this.token);
+
+    // Collect the response
+    let fullResponse = '';
+    for await (const chunk of response.text) {
+      fullResponse += chunk;
+    }
+
+    // Extract outputs from response
+    const outputs = this.extractOutputs(fullResponse, step);
+
+    // Stream success message
+    this.stream.markdown(`\n✅ **Step ${this.stepIndex}**: ${step.name}\n\n`);
+
+    // Show created files if any
+    if (outputs.createdFiles) {
+      const files = Array.isArray(outputs.createdFiles)
+        ? outputs.createdFiles
+        : [outputs.createdFiles];
+      for (const file of files) {
+        this.stream.markdown(`  📄 Created: \`${file}\`\n`);
+      }
+    }
+
+    return {
+      stepId: step.id,
+      status: 'success',
+      outputs,
+      duration: Date.now() - startTime,
+      createdFiles: outputs.createdFiles as string[] | undefined,
+      modifiedFiles: outputs.modifiedFiles as string[] | undefined,
+    };
   }
 
   /**

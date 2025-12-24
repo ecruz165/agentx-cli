@@ -307,7 +307,7 @@ async function handleListWorkflows(
 
   if (workflows.length === 0) {
     stream.markdown(`No workflows found.\n\n`);
-    stream.markdown(`Create workflows in \`.agentx/workflows/\` as YAML files.\n`);
+    stream.markdown(`Create workflows in \`<knowledgeBase>/.context/workflows/\` as YAML files.\n`);
     return { metadata: { command: 'list-workflows' } };
   }
 

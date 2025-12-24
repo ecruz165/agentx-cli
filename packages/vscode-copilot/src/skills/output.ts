@@ -151,7 +151,8 @@ export class OutputExtractor {
     if (!output.path) return null;
 
     try {
-      return fs.readFileSync(output.path, output.encoding || 'utf-8');
+      const encoding = (output.encoding || 'utf-8') as BufferEncoding;
+      return fs.readFileSync(output.path, { encoding });
     } catch {
       return null;
     }

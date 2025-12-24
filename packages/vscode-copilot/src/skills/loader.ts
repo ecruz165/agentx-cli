@@ -1,12 +1,23 @@
 /**
  * Skill Loader
  * Loads and caches skill definitions from YAML files
+ * Skills are stored in <knowledgeBase>/.context/skills/
  */
 
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 import * as path from 'path';
+import { loadConfig, resolveKnowledgeBasePath } from '@agentx/core';
 import { Skill } from './types';
+
+/**
+ * Get the skills directory path from knowledge base
+ */
+function getSkillsDir(): string {
+  const config = loadConfig();
+  const kbPath = resolveKnowledgeBasePath(config.knowledgeBase);
+  return path.join(kbPath, '.context', 'skills');
+}
 
 /**
  * Skill loader with caching and validation
@@ -16,8 +27,9 @@ export class SkillLoader {
   private skillsDir: string;
   private watcher?: vscode.FileSystemWatcher;
 
-  constructor(workspaceRoot: string) {
-    this.skillsDir = path.join(workspaceRoot, '.agentx', 'skills');
+  constructor(_workspaceRoot?: string) {
+    // Get skills directory from knowledge base config
+    this.skillsDir = getSkillsDir();
   }
 
   /**

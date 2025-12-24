@@ -361,7 +361,7 @@ ${fileList}${moreFiles}`;
     'agentx.openLastContext',
     async () => {
       const config = loadConfig();
-      const lastEntry = await getLastHistoryEntry(confighistory);
+      const lastEntry = await getLastHistoryEntry(config.history);
 
       if (!lastEntry) {
         vscode.window.showInformationMessage('No context history found.');
@@ -383,7 +383,7 @@ ${fileList}${moreFiles}`;
     'agentx.browseHistory',
     async () => {
       const config = loadConfig();
-      const entries = await listHistoryEntries(confighistory);
+      const entries = await listHistoryEntries(config.history);
 
       if (entries.length === 0) {
         vscode.window.showInformationMessage('No context history found.');
@@ -443,7 +443,7 @@ ${fileList}${moreFiles}`;
 
       if (confirm === 'Clear History') {
         const config = loadConfig();
-        await clearHistory(confighistory);
+        await clearHistory(config.history);
         vscode.window.showInformationMessage('Context history cleared.');
       }
     }

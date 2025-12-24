@@ -173,7 +173,7 @@ async function saveContextHistory(
   const config = loadConfig();
 
   // Check if history is enabled
-  if (confighistory?.enabled === false) {
+  if (config.history?.enabled === false) {
     return null;
   }
 
@@ -209,15 +209,15 @@ async function saveContextHistory(
     };
 
     // Check if first save and handle gitignore
-    if (isFirstHistorySave(confighistory)) {
-      if (!isHistoryInGitignore(confighistory)) {
+    if (isFirstHistorySave(config.history)) {
+      if (!isHistoryInGitignore(config.history)) {
         // Auto-add to gitignore (in VS Code we don't prompt, just do it)
-        addHistoryToGitignore(confighistory);
+        addHistoryToGitignore(config.history);
       }
     }
 
     // Save the entry
-    const result = await saveHistoryEntry(entry, confighistory);
+    const result = await saveHistoryEntry(entry, config.history);
 
     // Show notification in chat
     const relativePath = result.contextPath.replace(process.cwd() + '/', '');
