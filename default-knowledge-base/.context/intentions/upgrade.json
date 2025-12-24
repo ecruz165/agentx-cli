@@ -3,7 +3,7 @@
   "name": "Upgrade",
   "description": "Upgrade Spring Boot version with guided migration steps",
   "contextProvider": {
-    "script": "context-providers/spring-boot-project.sh",
+    "script": "providers/spring-boot-project.sh",
     "workspaceAware": true
   },
   "preconditions": [

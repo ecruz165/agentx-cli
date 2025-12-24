@@ -978,7 +978,7 @@ Personas are defined in `.agentx/personas/` as individual JSON files:
   "name": "Backend Developer",
   "description": "Spring Boot, Rust auth, database, APIs",
   "aliasPatterns": ["be-*", "api-*", "db-*", "auth-*"],
-  "contextProviders": ["tools/context-providers/java-project-context.ts"],
+  "contextProviders": ["tools/providers/java-project-context.ts"],
   "defaultModel": "claude-sonnet",
   "perspective": "You are a senior backend developer focused on building robust, scalable APIs and services.",
   "tone": "technical, precise, security-conscious",
@@ -1057,10 +1057,10 @@ AgentX automatically persists the composed context from every `/exec` command fo
 
 ### How It Works
 
-Every time you run an `exec` command, AgentX saves the full context to `.agentx/.history/`:
+Every time you run an `exec` command, AgentX saves the full context to `.agentx/history/`:
 
 ```
-.agentx/.history/
+.agentx/history/
 └── 2024-01-15/
     ├── 103045-be-endpoint-create-new/
     │   ├── context.md        # Full composed context
@@ -1325,40 +1325,55 @@ agentx-cli/
 │           ├── participant.ts   # Copilot Chat participant
 │           ├── commands.ts      # VS Code commands
 │           └── vscode-lm-provider.ts  # VS Code LM API provider
-├── .agentx/                     # AgentX configuration directory
+├── default-knowledge-base/      # Bundled team-shared resources
+│   └── .context/                # Default context resources
+│       ├── aliases/             # Default alias definitions
+│       ├── intentions/          # Default intention definitions
+│       ├── personas/            # Default persona definitions
+│       ├── workflows/           # Default workflow definitions
+│       ├── skills/              # Default skill definitions
+│       ├── templates/           # Default prompt templates
+│       ├── scripts/             # Default scripts for skills
+│       ├── libraries/           # Reference libraries (Spring Boot, etc.)
+│       ├── frameworks/          # Framework templates
+│       └── providers/           # Context provider scripts
+├── .agentx/                     # Project-specific configuration
 │   ├── config.json              # Main configuration
-│   ├── aliases/                 # Alias definitions
-│   ├── intentions/              # Intention definitions
-│   ├── personas/                # Persona definitions (8 roles)
-│   ├── workflows/               # Multi-step workflow definitions
-│   ├── skills/                  # Reusable skill definitions
-│   ├── templates/               # Prompt templates
-│   ├── scripts/                 # Custom scripts for skills
-│   ├── .history/                # Context history (auto-generated)
-│   └── .plans/                  # LLM plans (auto-generated)
-├── default-knowledge-base/      # Example knowledge base
-│   ├── patterns/                # Architecture patterns
-│   └── reference/               # Technical reference docs
+│   ├── history/                # Context history (auto-generated)
+│   └── plans/                  # LLM plans (auto-generated)
 ├── pnpm-workspace.yaml          # Monorepo configuration
 ├── tsconfig.base.json           # Shared TypeScript config
 └── README.md
 ```
 
-### .agentx Directory
+### Directory Structure
 
-The `.agentx/` directory contains all AgentX configuration and state:
+AgentX uses a two-tier structure:
+
+**Bundled Defaults** (`default-knowledge-base/.context/`):
+Team-shared resources packaged with the CLI.
 
 | Directory | Purpose |
 |-----------|---------|
-| `aliases/` | Context alias definitions (JSON files) |
-| `intentions/` | Structured prompt intentions (JSON files) |
-| `personas/` | Role-based personas (JSON files) |
-| `workflows/` | Multi-step workflows (YAML files) |
-| `skills/` | Reusable skills for workflows (YAML files) |
-| `templates/` | Prompt templates for intentions |
-| `scripts/` | Custom scripts invoked by skills |
-| `.history/` | Auto-generated context history |
-| `.plans/` | Auto-generated LLM plan files |
+| `aliases/` | Default context alias definitions |
+| `intentions/` | Default structured prompt intentions |
+| `personas/` | Default role-based personas |
+| `workflows/` | Default multi-step workflows |
+| `skills/` | Default reusable skills |
+| `templates/` | Default prompt templates |
+| `scripts/` | Default scripts invoked by skills |
+| `libraries/` | Reference libraries (migrations, docs) |
+| `frameworks/` | Framework templates |
+| `providers/` | Context provider scripts |
+
+**Project-Specific** (`.agentx/` in each project):
+Project-local configuration and state.
+
+| Directory | Purpose |
+|-----------|---------|
+| `config.json` | Project configuration |
+| `history/` | Auto-generated context history |
+| `plans/` | Auto-generated LLM plan files |
 
 ---
 
@@ -1524,12 +1539,18 @@ agentx config set activePersona architect
 ### Key Directories
 
 ```bash
-.agentx/aliases/      # Context alias definitions
-.agentx/intentions/   # Structured prompt intentions
-.agentx/personas/     # Role-based personas
-.agentx/workflows/    # Multi-step workflows
-.agentx/skills/       # Reusable skills
-.agentx/.history/     # Context history (auto-generated)
+# Project-specific (in your project)
+.agentx/config.json   # Project configuration
+.agentx/history/     # Context history (auto-generated)
+
+# Bundled defaults (in CLI package)
+default-knowledge-base/.context/aliases/      # Default alias definitions
+default-knowledge-base/.context/intentions/   # Default structured intentions
+default-knowledge-base/.context/personas/     # Default role-based personas
+default-knowledge-base/.context/workflows/    # Default multi-step workflows
+default-knowledge-base/.context/skills/       # Default reusable skills
+default-knowledge-base/.context/libraries/    # Reference libraries
+default-knowledge-base/.context/providers/    # Context provider scripts
 ```
 
 ---

@@ -118,7 +118,7 @@ const PLAN_EXPIRATION_MS = 30 * 60 * 1000;
  * Get the plans directory path (temporary storage for active plans)
  */
 export function getPlansPath(): string {
-  return path.join(getBasePath(), '.agentx', '.plans');
+  return path.join(getBasePath(), '.agentx', 'plans');
 }
 
 /**
@@ -520,7 +520,7 @@ export function savePrdToHistory(
   prd: PrdDocument,
   contextContent?: string
 ): { prdPath: string; contextPath: string } {
-  const historyPath = path.join(getBasePath(), '.agentx', '.history');
+  const historyPath = path.join(getBasePath(), '.agentx', 'history');
   const dateFolder = prd.generatedAt.slice(0, 10);
   const time = new Date(prd.generatedAt).toTimeString().slice(0, 5).replace(':', '');
   const safeName = prd.alias.replace(/[^a-zA-Z0-9-_]/g, '-');

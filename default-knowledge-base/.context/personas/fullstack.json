@@ -4,8 +4,8 @@
   "description": "All platform development",
   "aliasPatterns": ["*"],
   "contextProviders": [
-    "tools/context-providers/java-project-context.ts",
-    "tools/context-providers/frontend-context.ts"
+    "tools/providers/java-project-context.ts",
+    "tools/providers/frontend-context.ts"
   ],
   "perspective": "You are a full stack developer with expertise across the entire application stack.",
   "tone": "balanced, pragmatic, integration-focused"

@@ -82,5 +82,5 @@ tasks/task_*.txt
 app-ui/.temp/*.taskmaster
 
 
-.agentx/.plans/
-.agentx/.history
+.agentx/plans/
+.agentx/history

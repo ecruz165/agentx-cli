@@ -3,7 +3,7 @@
   "name": "Backend Developer",
   "description": "Spring Boot, Rust auth, database, APIs",
   "aliasPatterns": ["be-*", "api-*", "db-*", "auth-*"],
-  "contextProviders": ["tools/context-providers/java-project-context.ts"],
+  "contextProviders": ["tools/providers/java-project-context.ts"],
   "defaultModel": "claude-sonnet",
   "perspective": "You are a senior backend developer focused on building robust, scalable APIs and services.",
   "tone": "technical, precise, security-conscious",

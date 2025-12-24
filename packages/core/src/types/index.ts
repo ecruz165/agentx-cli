@@ -220,7 +220,7 @@ export interface HistoryConfig {
   retainDays: number;
   /** Maximum number of history entries to keep (default: 100) */
   maxEntries: number;
-  /** Location for history files (default: .agentx/.history) */
+  /** Location for history files (default: .agentx/history) */
   location: string;
   /** Include workspace files in context.md (default: true) */
   includeWorkspaceFiles: boolean;

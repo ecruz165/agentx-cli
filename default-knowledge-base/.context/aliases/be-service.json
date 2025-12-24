@@ -12,7 +12,7 @@
     "spring-boot-migration"
   ],
   "contextProviders": [
-    "context-providers/spring-boot-project.sh"
+    "providers/spring-boot-project.sh"
   ],
   "intentions": ["upgrade"]
 }

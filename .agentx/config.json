@@ -1,24 +1,10 @@
 {
-  "provider": "mock",
-  "model": "gpt-4",
+  "provider": "copilot",
+  "model": "claude-opus-4.5",
   "knowledgeBase": "./default-knowledge-base",
   "maxContextSize": 65536,
   "contextFormat": "hybrid",
   "cacheEnabled": true,
-  "frameworks": {
-    "spec-kit": {
-      "name": "spec-kit",
-      "enabled": true
-    },
-    "open-spec": {
-      "name": "open-spec",
-      "enabled": true
-    },
-    "bmad": {
-      "name": "bmad",
-      "enabled": true
-    }
-  },
   "outputFormat": "markdown",
   "outputLocation": "./agentx-output",
   "toonConversion": {
